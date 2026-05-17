@@ -59,15 +59,19 @@ function formatarEdital(item) {
   const ano = item.anoCompra;
   const sequencial = item.sequencialCompra;
 
+  // ufNome e municipioNome migraram para dentro de unidadeOrgao na API do PNCP
+  const unidade = item.unidadeOrgao ?? {};
+
   return {
     numeroEdital: item.numeroControlePNCP ?? null,
     orgao: item.orgaoEntidade?.razaoSocial ?? null,
     objeto: item.objetoCompra ?? null,
     valorEstimado: formatarMoeda(item.valorTotalEstimado),
     dataPublicacao: formatarData(item.dataPublicacaoPncp),
+    dataEncerramentoProposta: formatarData(item.dataEncerramentoProposta),
     modalidade: item.modalidadeNome ?? null,
-    estado: item.ufNome ?? null,
-    municipio: item.municipioNome ?? null,
+    estado: unidade.ufNome ?? null,
+    municipio: unidade.municipioNome ?? null,
     link: cnpj && ano && sequencial ? montarLink(cnpj, ano, sequencial) : null,
   };
 }
@@ -111,11 +115,13 @@ async function listarEditais(req, res) {
     }
   }
 
-  // Busca mais itens quando há filtro por palavra-chave para compensar a filtragem local
-  const tamanhoRequisicao = q ? Math.min(Number(tamanhoPagina) * 5, 50) : tamanhoPagina;
+  // PNCP exige tamanhoPagina >= 10; com filtro por palavra-chave busca mais para compensar filtragem local
+  const tamanhoBase = Math.max(Number(tamanhoPagina), 10);
+  const tamanhoRequisicao = q ? Math.min(tamanhoBase * 5, 50) : tamanhoBase;
 
   try {
-    const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/publicacao`, {
+    // /proposta: não exige codigoModalidadeContratacao, filtra por período de recebimento de propostas
+    const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
       params: {
         dataInicial,
         dataFinal,
