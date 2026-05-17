@@ -116,15 +116,40 @@ async function listarEditais(req, res) {
   }
 
   const tamanhoSolicitado = Math.max(Number(tamanhoPagina), 10);
-
-  // Quando há filtros locais (q ou uf), o PNCP não os suporta no /proposta —
-  // varremos até PAGINAS_BUSCA páginas de 50 itens para ter dataset suficiente.
+  const paginaSolicitada = Math.max(Number(pagina), 1);
   const filtraLocal = !!(q || uf);
-  const PAGINAS_BUSCA = filtraLocal ? 5 : 1;
-  const tamanhoRequisicao = 50;
 
   try {
-    // /proposta: filtra por período de encerramento de propostas; uf/q são filtrados localmente
+    if (!filtraLocal) {
+      // Sem filtros locais: delega paginação direto ao PNCP — acesso a todos os 28k+ registros
+      const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
+        params: {
+          dataInicial,
+          dataFinal,
+          pagina: paginaSolicitada,
+          tamanhoPagina: tamanhoSolicitado,
+          ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }),
+        },
+        timeout: 10000,
+      });
+
+      const dados = resposta.data.data ?? [];
+      if (dados.length === 0) {
+        return res.json({
+          mensagem: 'Nenhum edital encontrado para os filtros informados.',
+          total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [],
+        });
+      }
+      return res.json({
+        total: resposta.data.totalRegistros ?? dados.length,
+        pagina: paginaSolicitada,
+        tamanhoPagina: tamanhoSolicitado,
+        dados: dados.map(formatarEdital),
+      });
+    }
+
+    // Com filtros locais (q e/ou uf): varre até 10 páginas de 50 para cobrir dataset amplo
+    const PAGINAS_BUSCA = 10;
     const paginas = await Promise.all(
       Array.from({ length: PAGINAS_BUSCA }, (_, i) =>
         axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
@@ -132,16 +157,15 @@ async function listarEditais(req, res) {
             dataInicial,
             dataFinal,
             pagina: i + 1,
-            tamanhoPagina: tamanhoRequisicao,
+            tamanhoPagina: 50,
             ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }),
           },
-          timeout: 10000,
+          timeout: 12000,
         }).then((r) => r.data.data ?? []).catch(() => []),
       ),
     );
 
     let dados = paginas.flat();
-    const totalPNCP = dados.length;
 
     if (q) dados = filtrarPorPalavraChave(dados, q);
     if (uf) {
@@ -151,7 +175,7 @@ async function listarEditais(req, res) {
       );
     }
 
-    // Deduplica por numeroControlePNCP (páginas podem ter sobreposição)
+    // Deduplica por numeroControlePNCP
     const vistos = new Set();
     dados = dados.filter((item) => {
       if (vistos.has(item.numeroControlePNCP)) return false;
@@ -162,17 +186,14 @@ async function listarEditais(req, res) {
     if (dados.length === 0) {
       return res.json({
         mensagem: 'Nenhum edital encontrado para os filtros informados.',
-        total: 0,
-        pagina: Number(pagina),
-        tamanhoPagina: tamanhoSolicitado,
-        dados: [],
+        total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [],
       });
     }
 
-    const inicio = (Number(pagina) - 1) * tamanhoSolicitado;
+    const inicio = (paginaSolicitada - 1) * tamanhoSolicitado;
     return res.json({
       total: dados.length,
-      pagina: Number(pagina),
+      pagina: paginaSolicitada,
       tamanhoPagina: tamanhoSolicitado,
       dados: dados.slice(inicio, inicio + tamanhoSolicitado).map(formatarEdital),
     });
