@@ -1,13 +1,13 @@
 const { Pool } = require('pg');
 const dns = require('dns');
 
-// Railway roteia IPv6 por padrão, mas o Supabase retorna ENETUNREACH nessa família.
-// Forçar ipv4first garante que o dns.lookup() resolva apenas endereços IPv4.
-dns.setDefaultResultOrder('ipv4first');
-
+// Railway expõe IPv6 mas o Supabase rejeita conexões nessa família (ENETUNREACH).
+// Passar lookup com family:4 força resolução exclusivamente IPv4 para este pool.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
+  lookup: (hostname, options, callback) =>
+    dns.lookup(hostname, { ...options, family: 4 }, callback),
 });
 
 module.exports = pool;
