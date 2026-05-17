@@ -2,9 +2,14 @@ require('dotenv').config();
 const express = require('express');
 
 if (!process.env.JWT_SECRET) {
-  console.error('ERRO: variável JWT_SECRET não definida. Configure-a antes de iniciar o servidor.');
-  process.exit(1);
+  console.warn('AVISO: JWT_SECRET não definida — logins falharão até que a variável seja configurada.');
 }
+
+console.log('Diagnóstico de inicialização:', {
+  node: process.version,
+  jwt_secret_ok: !!process.env.JWT_SECRET,
+  bcryptjs: require('bcryptjs/package.json').version,
+});
 
 const authRoutes = require('./routes/auth');
 const editaisRoutes = require('./routes/editais');
