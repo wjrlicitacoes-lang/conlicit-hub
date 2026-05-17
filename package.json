@@ -4,7 +4,7 @@
   "description": "API para consulta de editais do PNCP - Portal Nacional de Contratações Públicas",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
+    "start": "node --dns-result-order=ipv4first src/app.js",
     "dev": "nodemon src/app.js"
   },
   "dependencies": {
