@@ -46,15 +46,13 @@ process.on('uncaughtException', (err) => {
 
 const PORT = process.env.PORT || 3000;
 
-executarMigracoes()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`ConlicitHub API rodando na porta ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Falha ao executar migrações — servidor não iniciado:', err.message);
-    process.exit(1);
+// Sobe imediatamente para o healthcheck do Railway passar; migrações rodam em background
+app.listen(PORT, () => {
+  console.log(`ConlicitHub API rodando na porta ${PORT}`);
+
+  executarMigracoes().catch((err) => {
+    console.error('Falha nas migrações:', err.message);
   });
+});
 
 module.exports = app;
