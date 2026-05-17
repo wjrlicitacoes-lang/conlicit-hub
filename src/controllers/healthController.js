@@ -4,6 +4,7 @@ function verificarSaude(req, res) {
     servico: 'ConlicitHub API',
     versao: '3.1.0',
     node: process.version,
+    jwt_secret_configurada: !!process.env.JWT_SECRET,
     timestamp: new Date().toISOString(),
   });
 }
