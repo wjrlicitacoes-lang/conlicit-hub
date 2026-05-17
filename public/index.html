@@ -713,7 +713,7 @@
   // ── Dates ──
   function setDefaultDates() {
     const hoje = new Date();
-    const fim = new Date(hoje); fim.setMonth(fim.getMonth() + 3);
+    const fim = new Date(hoje); fim.setDate(fim.getDate() + 30);
     document.getElementById('dataInicial').value = hoje.toISOString().slice(0, 10);
     document.getElementById('dataFinal').value = fim.toISOString().slice(0, 10);
   }
