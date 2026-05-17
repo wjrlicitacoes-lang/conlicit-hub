@@ -1,8 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-// Armazenamento em memória — substituir por banco de dados em produção
-const usuarios = new Map();
+const db = require('../database/db');
 
 async function registrar(req, res) {
   const { email, senha } = req.body ?? {};
@@ -19,14 +17,23 @@ async function registrar(req, res) {
     return res.status(400).json({ erro: 'A senha deve ter no mínimo 8 caracteres' });
   }
 
-  if (usuarios.has(email)) {
-    return res.status(409).json({ erro: 'Email já cadastrado' });
+  try {
+    const senhaHash = await bcrypt.hash(senha, 10);
+
+    await db.query(
+      'INSERT INTO usuarios (email, senha_hash) VALUES ($1, $2)',
+      [email, senhaHash],
+    );
+
+    return res.status(201).json({ mensagem: 'Usuário criado com sucesso' });
+  } catch (erro) {
+    // Código 23505 = violação de unique constraint (email duplicado)
+    if (erro.code === '23505') {
+      return res.status(409).json({ erro: 'Email já cadastrado' });
+    }
+    console.error('Erro ao registrar usuário:', erro);
+    return res.status(500).json({ erro: 'Erro interno ao criar usuário' });
   }
-
-  const senhaHash = await bcrypt.hash(senha, 10);
-  usuarios.set(email, { email, senhaHash });
-
-  return res.status(201).json({ mensagem: 'Usuário criado com sucesso' });
 }
 
 async function login(req, res) {
@@ -37,10 +44,15 @@ async function login(req, res) {
   }
 
   try {
-    const usuario = usuarios.get(email);
-    const senhaValida = usuario && await bcrypt.compare(senha, usuario.senhaHash);
+    const resultado = await db.query(
+      'SELECT email, senha_hash FROM usuarios WHERE email = $1',
+      [email],
+    );
+
+    const usuario = resultado.rows[0];
 
     // Mesma mensagem para usuário inexistente e senha errada (evita enumeração)
+    const senhaValida = usuario && await bcrypt.compare(senha, usuario.senha_hash);
     if (!senhaValida) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
     }
@@ -53,6 +65,7 @@ async function login(req, res) {
 
     return res.json({ token });
   } catch (erro) {
+    console.error('Erro ao fazer login:', erro);
     return res.status(500).json({ erro: 'Erro interno ao processar login' });
   }
 }

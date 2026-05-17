@@ -4,10 +4,14 @@ const express = require('express');
 if (!process.env.JWT_SECRET) {
   console.warn('AVISO: JWT_SECRET não definida — logins falharão até que a variável seja configurada.');
 }
+if (!process.env.DATABASE_URL) {
+  console.warn('AVISO: DATABASE_URL não definida — operações de usuário falharão.');
+}
 
 console.log('Diagnóstico de inicialização:', {
   node: process.version,
   jwt_secret_ok: !!process.env.JWT_SECRET,
+  database_ok: !!process.env.DATABASE_URL,
   bcryptjs: require('bcryptjs/package.json').version,
 });
 
@@ -15,6 +19,7 @@ const authRoutes = require('./routes/auth');
 const editaisRoutes = require('./routes/editais');
 const healthRoutes = require('./routes/health');
 const autenticar = require('./middleware/autenticar');
+const { executarMigracoes } = require('./database/migracoes');
 
 const app = express();
 
@@ -41,8 +46,15 @@ process.on('uncaughtException', (err) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`ConlicitHub API rodando na porta ${PORT}`);
-});
+executarMigracoes()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`ConlicitHub API rodando na porta ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Falha ao executar migrações — servidor não iniciado:', err.message);
+    process.exit(1);
+  });
 
 module.exports = app;
