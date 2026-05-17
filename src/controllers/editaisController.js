@@ -115,45 +115,66 @@ async function listarEditais(req, res) {
     }
   }
 
-  // PNCP exige tamanhoPagina >= 10; com filtro por palavra-chave busca mais para compensar filtragem local
-  const tamanhoBase = Math.max(Number(tamanhoPagina), 10);
-  const tamanhoRequisicao = q ? Math.min(tamanhoBase * 5, 50) : tamanhoBase;
+  const tamanhoSolicitado = Math.max(Number(tamanhoPagina), 10);
+
+  // Quando há filtros locais (q ou uf), o PNCP não os suporta no /proposta —
+  // varremos até PAGINAS_BUSCA páginas de 50 itens para ter dataset suficiente.
+  const filtraLocal = !!(q || uf);
+  const PAGINAS_BUSCA = filtraLocal ? 5 : 1;
+  const tamanhoRequisicao = 50;
 
   try {
-    // /proposta: não exige codigoModalidadeContratacao, filtra por período de recebimento de propostas
-    const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
-      params: {
-        dataInicial,
-        dataFinal,
-        pagina,
-        tamanhoPagina: tamanhoRequisicao,
-        ...(uf && { uf: uf.toUpperCase() }),
-        ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }),
-      },
-      timeout: 10000,
-    });
+    // /proposta: filtra por período de encerramento de propostas; uf/q são filtrados localmente
+    const paginas = await Promise.all(
+      Array.from({ length: PAGINAS_BUSCA }, (_, i) =>
+        axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
+          params: {
+            dataInicial,
+            dataFinal,
+            pagina: i + 1,
+            tamanhoPagina: tamanhoRequisicao,
+            ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }),
+          },
+          timeout: 10000,
+        }).then((r) => r.data.data ?? []).catch(() => []),
+      ),
+    );
 
-    let dados = resposta.data.data ?? [];
+    let dados = paginas.flat();
+    const totalPNCP = dados.length;
 
-    if (q) {
-      dados = filtrarPorPalavraChave(dados, q);
+    if (q) dados = filtrarPorPalavraChave(dados, q);
+    if (uf) {
+      const ufUpper = uf.toUpperCase();
+      dados = dados.filter((item) =>
+        (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper,
+      );
     }
+
+    // Deduplica por numeroControlePNCP (páginas podem ter sobreposição)
+    const vistos = new Set();
+    dados = dados.filter((item) => {
+      if (vistos.has(item.numeroControlePNCP)) return false;
+      vistos.add(item.numeroControlePNCP);
+      return true;
+    });
 
     if (dados.length === 0) {
       return res.json({
         mensagem: 'Nenhum edital encontrado para os filtros informados.',
         total: 0,
         pagina: Number(pagina),
-        tamanhoPagina: Number(tamanhoPagina),
+        tamanhoPagina: tamanhoSolicitado,
         dados: [],
       });
     }
 
+    const inicio = (Number(pagina) - 1) * tamanhoSolicitado;
     return res.json({
-      total: resposta.data.totalRegistros ?? dados.length,
+      total: dados.length,
       pagina: Number(pagina),
-      tamanhoPagina: Number(tamanhoPagina),
-      dados: dados.slice(0, Number(tamanhoPagina)).map(formatarEdital),
+      tamanhoPagina: tamanhoSolicitado,
+      dados: dados.slice(inicio, inicio + tamanhoSolicitado).map(formatarEdital),
     });
   } catch (erro) {
     const status = erro.response?.status ?? 502;
