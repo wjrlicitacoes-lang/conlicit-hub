@@ -601,11 +601,11 @@
         </select>
       </div>
       <div class="form-group" style="margin:0">
-        <label for="dataInicial">Data inicial</label>
+        <label for="dataInicial">Encerramento a partir de</label>
         <input type="date" id="dataInicial" />
       </div>
       <div class="form-group" style="margin:0">
-        <label for="dataFinal">Data final</label>
+        <label for="dataFinal">Encerramento até</label>
         <input type="date" id="dataFinal" />
       </div>
     </div>
@@ -713,9 +713,9 @@
   // ── Dates ──
   function setDefaultDates() {
     const hoje = new Date();
-    const ini = new Date(hoje); ini.setMonth(ini.getMonth() - 1);
-    document.getElementById('dataInicial').value = ini.toISOString().slice(0, 10);
-    document.getElementById('dataFinal').value = hoje.toISOString().slice(0, 10);
+    const fim = new Date(hoje); fim.setMonth(fim.getMonth() + 3);
+    document.getElementById('dataInicial').value = hoje.toISOString().slice(0, 10);
+    document.getElementById('dataFinal').value = fim.toISOString().slice(0, 10);
   }
 
   function limparBusca() {
