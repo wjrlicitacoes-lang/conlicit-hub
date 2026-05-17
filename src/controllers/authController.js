@@ -36,21 +36,25 @@ async function login(req, res) {
     return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
   }
 
-  const usuario = usuarios.get(email);
-  const senhaValida = usuario && await bcrypt.compare(senha, usuario.senhaHash);
+  try {
+    const usuario = usuarios.get(email);
+    const senhaValida = usuario && await bcrypt.compare(senha, usuario.senhaHash);
 
-  // Mesma mensagem para usuário inexistente e senha errada (evita enumeração)
-  if (!senhaValida) {
-    return res.status(401).json({ erro: 'Credenciais inválidas' });
+    // Mesma mensagem para usuário inexistente e senha errada (evita enumeração)
+    if (!senhaValida) {
+      return res.status(401).json({ erro: 'Credenciais inválidas' });
+    }
+
+    const token = jwt.sign(
+      { email: usuario.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRACAO || '8h' },
+    );
+
+    return res.json({ token });
+  } catch (erro) {
+    return res.status(500).json({ erro: 'Erro interno ao processar login' });
   }
-
-  const token = jwt.sign(
-    { email: usuario.email },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRACAO || '8h' },
-  );
-
-  return res.json({ token });
 }
 
 module.exports = { registrar, login };
