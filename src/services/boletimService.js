@@ -33,50 +33,48 @@ function limparTelefone(tel) {
   return '55' + d;
 }
 
-// Busca até 5 páginas por termo, filtra localmente por keyword e UF
+// Busca 20 páginas em paralelo uma única vez, filtra UF e qualquer keyword do cliente
 async function buscarEditaisParaCliente(cliente) {
   const dataInicial = dataHoje();
   const dataFinal = dataMais30();
+
+  // 20 páginas × 50 = 1.000 editais em paralelo — cobrem ~3,5% do universo diário
+  const PAGINAS = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  let pool;
+  try {
+    const paginas = await Promise.all(
+      PAGINAS.map((p) =>
+        axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
+          params: { dataInicial, dataFinal, pagina: p, tamanhoPagina: 50 },
+          timeout: 15000,
+        }).then((r) => r.data.data ?? []).catch(() => []),
+      ),
+    );
+    pool = paginas.flat();
+  } catch (e) {
+    console.error(`[Boletim] Erro buscando editais para ${cliente.email}:`, e.message);
+    return [];
+  }
+
+  // Filtra por UF primeiro (reduz o dataset)
+  if (cliente.uf) {
+    const ufUpper = cliente.uf.toUpperCase();
+    pool = pool.filter((item) =>
+      (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper,
+    );
+  }
+
+  // Aplica qualquer keyword do cliente (OR entre termos)
+  const termos = (cliente.palavras_chave ?? []).map(semAcento).filter(Boolean);
   const encontrados = new Map();
 
-  const termos = cliente.palavras_chave?.length ? cliente.palavras_chave : [null];
-
-  for (const termo of termos) {
-    try {
-      const paginas = await Promise.all(
-        [1, 2, 3, 4, 5].map((p) =>
-          axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
-            params: { dataInicial, dataFinal, pagina: p, tamanhoPagina: 50 },
-            timeout: 12000,
-          }).then((r) => r.data.data ?? []).catch(() => []),
-        ),
-      );
-
-      let dados = paginas.flat();
-
-      if (termo) {
-        const termoNorm = semAcento(termo);
-        dados = dados.filter((item) =>
-          semAcento(item.objetoCompra ?? '').includes(termoNorm) ||
-          semAcento(item.orgaoEntidade?.razaoSocial ?? '').includes(termoNorm),
-        );
-      }
-
-      if (cliente.uf) {
-        const ufUpper = cliente.uf.toUpperCase();
-        dados = dados.filter((item) =>
-          (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper,
-        );
-      }
-
-      // Até 5 resultados por termo
-      dados.slice(0, 5).forEach((item) => {
-        if (!encontrados.has(item.numeroControlePNCP)) {
-          encontrados.set(item.numeroControlePNCP, item);
-        }
-      });
-    } catch (e) {
-      console.error(`[Boletim] Erro buscando termo "${termo}" para ${cliente.email}:`, e.message);
+  for (const item of pool) {
+    const objeto = semAcento(item.objetoCompra ?? '');
+    const orgao  = semAcento(item.orgaoEntidade?.razaoSocial ?? '');
+    const bate   = termos.length === 0 || termos.some((t) => objeto.includes(t) || orgao.includes(t));
+    if (bate && !encontrados.has(item.numeroControlePNCP)) {
+      encontrados.set(item.numeroControlePNCP, item);
     }
   }
 
