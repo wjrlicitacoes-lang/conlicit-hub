@@ -33,12 +33,21 @@ function limparTelefone(tel) {
   return '55' + d;
 }
 
-// Busca 20 páginas em paralelo uma única vez, filtra UF e qualquer keyword do cliente
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Word-boundary match on NFD-stripped text — avoids "racoes" matching inside "contratacoes"
+function criarRegex(termo) {
+  const normalizado = escapeRegex(semAcento(termo));
+  return new RegExp(`\\b${normalizado}\\b`);
+}
+
+// Returns [{item, termosMatchados}] — one entry per unique edital
 async function buscarEditaisParaCliente(cliente) {
   const dataInicial = dataHoje();
   const dataFinal = dataMais30();
 
-  // 20 páginas × 50 = 1.000 editais em paralelo — cobrem ~3,5% do universo diário
   const PAGINAS = Array.from({ length: 20 }, (_, i) => i + 1);
 
   let pool;
@@ -57,7 +66,6 @@ async function buscarEditaisParaCliente(cliente) {
     return [];
   }
 
-  // Filtra por UF primeiro (reduz o dataset)
   if (cliente.uf) {
     const ufUpper = cliente.uf.toUpperCase();
     pool = pool.filter((item) =>
@@ -65,16 +73,22 @@ async function buscarEditaisParaCliente(cliente) {
     );
   }
 
-  // Aplica qualquer keyword do cliente (OR entre termos)
-  const termos = (cliente.palavras_chave ?? []).map(semAcento).filter(Boolean);
+  const termos = (cliente.palavras_chave ?? []).filter(Boolean);
+  const regexes = termos.map((t) => ({ original: t, re: criarRegex(t) }));
+
   const encontrados = new Map();
 
   for (const item of pool) {
     const objeto = semAcento(item.objetoCompra ?? '');
     const orgao  = semAcento(item.orgaoEntidade?.razaoSocial ?? '');
-    const bate   = termos.length === 0 || termos.some((t) => objeto.includes(t) || orgao.includes(t));
+
+    const termosMatchados = regexes
+      .filter(({ re }) => re.test(objeto) || re.test(orgao))
+      .map(({ original }) => original);
+
+    const bate = termos.length === 0 || termosMatchados.length > 0;
     if (bate && !encontrados.has(item.numeroControlePNCP)) {
-      encontrados.set(item.numeroControlePNCP, item);
+      encontrados.set(item.numeroControlePNCP, { item, termosMatchados });
     }
   }
 
@@ -96,14 +110,15 @@ async function enviarWhatsApp(whatsapp, mensagem) {
   return data;
 }
 
-function montarMensagemWhatsApp(nome, editais) {
+// resultados = [{item, termosMatchados}]
+function montarMensagemWhatsApp(nome, resultados) {
   const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   let msg = `🔔 *Boletim ConlicitHub* — ${hoje}\n\n`;
-  msg += `Olá, *${nome}*! Encontramos *${editais.length}* edital(is) para você hoje.\n\n`;
+  msg += `Olá, *${nome}*! Encontramos *${resultados.length}* edital(is) para você hoje.\n\n`;
 
-  editais.slice(0, 10).forEach((e, i) => {
+  resultados.slice(0, 10).forEach(({ item: e, termosMatchados }, i) => {
     const obj = (e.objetoCompra || '—').slice(0, 120);
-    const uf = e.unidadeOrgao?.ufSigla || '—';
+    const uf  = e.unidadeOrgao?.ufSigla || '—';
     const enc = formatarDataBR(e.dataEncerramentoProposta);
     const val = formatarMoeda(e.valorTotalEstimado);
     const { cnpj } = e.orgaoEntidade ?? {};
@@ -112,6 +127,7 @@ function montarMensagemWhatsApp(nome, editais) {
     msg += `*${i + 1}. ${e.orgaoEntidade?.razaoSocial || '—'}* (${uf})\n`;
     msg += `📋 ${obj}${obj.length >= 120 ? '…' : ''}\n`;
     msg += `💰 ${val} | ⏰ Encerra: ${enc}\n`;
+    if (termosMatchados.length > 0) msg += `🏷️ _${termosMatchados.join(', ')}_\n`;
     if (link) msg += `🔗 ${link}\n`;
     msg += '\n';
   });
@@ -121,7 +137,8 @@ function montarMensagemWhatsApp(nome, editais) {
 }
 
 // ── Email via Resend ──
-async function enviarEmail(email, nome, editais) {
+// resultados = [{item, termosMatchados}]
+async function enviarEmail(email, nome, resultados) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('RESEND_API_KEY não configurada');
 
@@ -130,22 +147,29 @@ async function enviarEmail(email, nome, editais) {
     timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  const cards = editais.slice(0, 10).map((e) => {
-    const uf = e.unidadeOrgao?.ufSigla || '';
-    const mun = e.unidadeOrgao?.municipioNome || '';
+  const cards = resultados.slice(0, 10).map(({ item: e, termosMatchados }) => {
+    const uf   = e.unidadeOrgao?.ufSigla || '';
+    const mun  = e.unidadeOrgao?.municipioNome || '';
     const local = [mun, uf].filter(Boolean).join(' · ') || '—';
-    const enc = formatarDataBR(e.dataEncerramentoProposta);
-    const val = formatarMoeda(e.valorTotalEstimado);
+    const enc  = formatarDataBR(e.dataEncerramentoProposta);
+    const val  = formatarMoeda(e.valorTotalEstimado);
     const { cnpj } = e.orgaoEntidade ?? {};
     const link = cnpj
       ? `https://pncp.gov.br/app/editais/${cnpj}/${e.anoCompra}/${e.sequencialCompra}`
       : '#';
 
+    const badges = termosMatchados.length > 0
+      ? termosMatchados.map((t) =>
+          `<span style="display:inline-block;background:#0e2233;color:#4CC5D7;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;margin-right:4px;margin-bottom:4px;border:1px solid #4CC5D7;">${t}</span>`,
+        ).join('')
+      : '';
+
     return `
       <div style="background:#1a2f3e;border-radius:8px;padding:20px;margin-bottom:16px;border-left:3px solid #4CC5D7;">
         <div style="font-size:11px;color:#4CC5D7;font-weight:600;margin-bottom:6px;font-family:monospace;">${e.numeroControlePNCP || ''}</div>
         <div style="font-size:15px;font-weight:700;color:#e8f4f7;margin-bottom:6px;">${e.orgaoEntidade?.razaoSocial || '—'}</div>
-        <div style="font-size:13px;color:#7fa8bb;margin-bottom:14px;line-height:1.5;">${(e.objetoCompra || '—').slice(0, 220)}${(e.objetoCompra || '').length > 220 ? '…' : ''}</div>
+        <div style="font-size:13px;color:#7fa8bb;margin-bottom:10px;line-height:1.5;">${(e.objetoCompra || '—').slice(0, 220)}${(e.objetoCompra || '').length > 220 ? '…' : ''}</div>
+        ${badges ? `<div style="margin-bottom:12px;">${badges}</div>` : ''}
         <table style="border-collapse:collapse;margin-bottom:14px;font-size:12px;color:#b0d4de;">
           <tr>
             <td style="padding-right:20px;padding-bottom:4px;"><strong style="color:#4CC5D7;">Valor</strong><br>${val}</td>
@@ -166,7 +190,7 @@ async function enviarEmail(email, nome, editais) {
     <div style="background:#1f3547;border-radius:12px;padding:28px;margin-bottom:24px;">
       <h1 style="font-size:20px;color:#e8f4f7;margin:0 0 6px;">🔔 Boletim de Editais</h1>
       <p style="font-size:13px;color:#7fa8bb;margin:0 0 14px;text-transform:capitalize;">${hoje}</p>
-      <p style="font-size:14px;color:#b0d4de;margin:0;">Olá, <strong>${nome}</strong>! Encontramos <strong style="color:#4CC5D7;">${editais.length} edital(is)</strong> com base nos seus interesses.</p>
+      <p style="font-size:14px;color:#b0d4de;margin:0;">Olá, <strong>${nome}</strong>! Encontramos <strong style="color:#4CC5D7;">${resultados.length} edital(is)</strong> com base nos seus interesses.</p>
     </div>
     ${cards}
     <div style="text-align:center;padding:24px 0;border-top:1px solid #243d50;margin-top:8px;">
@@ -175,15 +199,15 @@ async function enviarEmail(email, nome, editais) {
   </div>
 </body></html>`;
 
+  // Collect unique matched keywords across all editais for the subject line
+  const todasKeywords = [...new Set(resultados.flatMap((r) => r.termosMatchados))];
   const dataFormatada = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const keywordsStr = todasKeywords.length > 0 ? `: ${todasKeywords.slice(0, 5).join(', ')}` : '';
+  const subject = `🔔 Boletim ConlicitHub — ${resultados.length} edital(is)${keywordsStr} · ${dataFormatada}`;
+
   const { data } = await axios.post(
     'https://api.resend.com/emails',
-    {
-      from,
-      to: email,
-      subject: `🔔 Boletim ConlicitHub — ${editais.length} edital(is) para você · ${dataFormatada}`,
-      html,
-    },
+    { from, to: email, subject, html },
     { headers: { Authorization: `Bearer ${apiKey}` }, timeout: 15000 },
   );
   return data;
@@ -209,19 +233,20 @@ async function dispararBoletim() {
   for (const cliente of clientes) {
     resultado.clientes_processados++;
     try {
-      const editais = await buscarEditaisParaCliente(cliente);
+      const resultados = await buscarEditaisParaCliente(cliente);
 
-      if (editais.length === 0) {
+      if (resultados.length === 0) {
         console.log(`[Boletim] Sem editais para ${cliente.email}`);
         continue;
       }
 
       resultado.clientes_com_editais++;
-      console.log(`[Boletim] ${editais.length} edital(is) para ${cliente.email}`);
+      const termosUnicos = [...new Set(resultados.flatMap((r) => r.termosMatchados))];
+      console.log(`[Boletim] ${resultados.length} edital(is) para ${cliente.email} — termos: ${termosUnicos.join(', ') || 'todos'}`);
 
       if (cliente.whatsapp) {
         try {
-          await enviarWhatsApp(cliente.whatsapp, montarMensagemWhatsApp(cliente.nome, editais));
+          await enviarWhatsApp(cliente.whatsapp, montarMensagemWhatsApp(cliente.nome, resultados));
           resultado.envios_whatsapp++;
         } catch (e) {
           resultado.erros.push({ cliente: cliente.email, canal: 'whatsapp', erro: e.message });
@@ -230,14 +255,13 @@ async function dispararBoletim() {
 
       if (cliente.email) {
         try {
-          await enviarEmail(cliente.email, cliente.nome, editais);
+          await enviarEmail(cliente.email, cliente.nome, resultados);
           resultado.envios_email++;
         } catch (e) {
           resultado.erros.push({ cliente: cliente.email, canal: 'email', erro: e.message });
         }
       }
 
-      // Pausa entre clientes para não saturar Z-API / Resend
       await new Promise((r) => setTimeout(r, 500));
     } catch (e) {
       console.error(`[Boletim] Erro processando ${cliente.email}:`, e.message);
