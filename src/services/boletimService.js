@@ -1,0 +1,255 @@
+const axios = require('axios');
+const db = require('../database/db');
+
+const PNCP_BASE_URL = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+
+function semAcento(texto) {
+  return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function dataHoje() {
+  return new Date().toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function dataMais30() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function formatarMoeda(valor) {
+  if (valor == null) return '—';
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatarDataBR(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+function limparTelefone(tel) {
+  const d = tel.replace(/\D/g, '');
+  if (d.startsWith('55') && d.length >= 12) return d;
+  return '55' + d;
+}
+
+// Busca até 5 páginas por termo, filtra localmente por keyword e UF
+async function buscarEditaisParaCliente(cliente) {
+  const dataInicial = dataHoje();
+  const dataFinal = dataMais30();
+  const encontrados = new Map();
+
+  const termos = cliente.palavras_chave?.length ? cliente.palavras_chave : [null];
+
+  for (const termo of termos) {
+    try {
+      const paginas = await Promise.all(
+        [1, 2, 3, 4, 5].map((p) =>
+          axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
+            params: { dataInicial, dataFinal, pagina: p, tamanhoPagina: 50 },
+            timeout: 12000,
+          }).then((r) => r.data.data ?? []).catch(() => []),
+        ),
+      );
+
+      let dados = paginas.flat();
+
+      if (termo) {
+        const termoNorm = semAcento(termo);
+        dados = dados.filter((item) =>
+          semAcento(item.objetoCompra ?? '').includes(termoNorm) ||
+          semAcento(item.orgaoEntidade?.razaoSocial ?? '').includes(termoNorm),
+        );
+      }
+
+      if (cliente.uf) {
+        const ufUpper = cliente.uf.toUpperCase();
+        dados = dados.filter((item) =>
+          (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper,
+        );
+      }
+
+      // Até 5 resultados por termo
+      dados.slice(0, 5).forEach((item) => {
+        if (!encontrados.has(item.numeroControlePNCP)) {
+          encontrados.set(item.numeroControlePNCP, item);
+        }
+      });
+    } catch (e) {
+      console.error(`[Boletim] Erro buscando termo "${termo}" para ${cliente.email}:`, e.message);
+    }
+  }
+
+  return [...encontrados.values()];
+}
+
+// ── WhatsApp via Z-API ──
+async function enviarWhatsApp(whatsapp, mensagem) {
+  const instance = process.env.ZAPI_INSTANCE;
+  const token = process.env.ZAPI_TOKEN;
+  if (!instance || !token) throw new Error('ZAPI_INSTANCE/ZAPI_TOKEN não configurados');
+
+  const telefone = limparTelefone(whatsapp);
+  const { data } = await axios.post(
+    `https://api.z-api.io/instances/${instance}/token/${token}/send-text`,
+    { phone: telefone, message: mensagem },
+    { timeout: 15000 },
+  );
+  return data;
+}
+
+function montarMensagemWhatsApp(nome, editais) {
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  let msg = `🔔 *Boletim ConlicitHub* — ${hoje}\n\n`;
+  msg += `Olá, *${nome}*! Encontramos *${editais.length}* edital(is) para você hoje.\n\n`;
+
+  editais.slice(0, 10).forEach((e, i) => {
+    const obj = (e.objetoCompra || '—').slice(0, 120);
+    const uf = e.unidadeOrgao?.ufSigla || '—';
+    const enc = formatarDataBR(e.dataEncerramentoProposta);
+    const val = formatarMoeda(e.valorTotalEstimado);
+    const { cnpj } = e.orgaoEntidade ?? {};
+    const link = cnpj ? `https://pncp.gov.br/app/editais/${cnpj}/${e.anoCompra}/${e.sequencialCompra}` : '';
+
+    msg += `*${i + 1}. ${e.orgaoEntidade?.razaoSocial || '—'}* (${uf})\n`;
+    msg += `📋 ${obj}${obj.length >= 120 ? '…' : ''}\n`;
+    msg += `💰 ${val} | ⏰ Encerra: ${enc}\n`;
+    if (link) msg += `🔗 ${link}\n`;
+    msg += '\n';
+  });
+
+  msg += '_ConlicitHub — Editais Públicos do PNCP_';
+  return msg;
+}
+
+// ── Email via Resend ──
+async function enviarEmail(email, nome, editais) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY não configurada');
+
+  const from = process.env.BOLETIM_FROM_EMAIL || 'onboarding@resend.dev';
+  const hoje = new Date().toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const cards = editais.slice(0, 10).map((e) => {
+    const uf = e.unidadeOrgao?.ufSigla || '';
+    const mun = e.unidadeOrgao?.municipioNome || '';
+    const local = [mun, uf].filter(Boolean).join(' · ') || '—';
+    const enc = formatarDataBR(e.dataEncerramentoProposta);
+    const val = formatarMoeda(e.valorTotalEstimado);
+    const { cnpj } = e.orgaoEntidade ?? {};
+    const link = cnpj
+      ? `https://pncp.gov.br/app/editais/${cnpj}/${e.anoCompra}/${e.sequencialCompra}`
+      : '#';
+
+    return `
+      <div style="background:#1a2f3e;border-radius:8px;padding:20px;margin-bottom:16px;border-left:3px solid #4CC5D7;">
+        <div style="font-size:11px;color:#4CC5D7;font-weight:600;margin-bottom:6px;font-family:monospace;">${e.numeroControlePNCP || ''}</div>
+        <div style="font-size:15px;font-weight:700;color:#e8f4f7;margin-bottom:6px;">${e.orgaoEntidade?.razaoSocial || '—'}</div>
+        <div style="font-size:13px;color:#7fa8bb;margin-bottom:14px;line-height:1.5;">${(e.objetoCompra || '—').slice(0, 220)}${(e.objetoCompra || '').length > 220 ? '…' : ''}</div>
+        <table style="border-collapse:collapse;margin-bottom:14px;font-size:12px;color:#b0d4de;">
+          <tr>
+            <td style="padding-right:20px;padding-bottom:4px;"><strong style="color:#4CC5D7;">Valor</strong><br>${val}</td>
+            <td style="padding-right:20px;padding-bottom:4px;"><strong style="color:#4CC5D7;">Encerra</strong><br>${enc}</td>
+            <td><strong style="color:#4CC5D7;">Local</strong><br>${local}</td>
+          </tr>
+        </table>
+        <a href="${link}" style="display:inline-block;background:#4CC5D7;color:#182A39;font-weight:700;font-size:13px;padding:8px 18px;border-radius:6px;text-decoration:none;">Ver edital no PNCP →</a>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#182A39;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="text-align:center;padding:24px 0 32px;">
+      <span style="font-size:22px;font-weight:700;color:#e8f4f7;">Conlicit<span style="color:#4CC5D7;">Hub</span></span>
+    </div>
+    <div style="background:#1f3547;border-radius:12px;padding:28px;margin-bottom:24px;">
+      <h1 style="font-size:20px;color:#e8f4f7;margin:0 0 6px;">🔔 Boletim de Editais</h1>
+      <p style="font-size:13px;color:#7fa8bb;margin:0 0 14px;text-transform:capitalize;">${hoje}</p>
+      <p style="font-size:14px;color:#b0d4de;margin:0;">Olá, <strong>${nome}</strong>! Encontramos <strong style="color:#4CC5D7;">${editais.length} edital(is)</strong> com base nos seus interesses.</p>
+    </div>
+    ${cards}
+    <div style="text-align:center;padding:24px 0;border-top:1px solid #243d50;margin-top:8px;">
+      <p style="font-size:12px;color:#4a6a7f;margin:0;">ConlicitHub — Editais Públicos do PNCP</p>
+    </div>
+  </div>
+</body></html>`;
+
+  const dataFormatada = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const { data } = await axios.post(
+    'https://api.resend.com/emails',
+    {
+      from,
+      to: email,
+      subject: `🔔 Boletim ConlicitHub — ${editais.length} edital(is) para você · ${dataFormatada}`,
+      html,
+    },
+    { headers: { Authorization: `Bearer ${apiKey}` }, timeout: 15000 },
+  );
+  return data;
+}
+
+// ── Disparo principal ──
+async function dispararBoletim() {
+  const resultado = {
+    inicio: new Date().toISOString(),
+    clientes_processados: 0,
+    clientes_com_editais: 0,
+    envios_whatsapp: 0,
+    envios_email: 0,
+    erros: [],
+  };
+
+  const { rows: clientes } = await db.query(
+    'SELECT * FROM clientes WHERE ativo = TRUE ORDER BY id',
+  );
+
+  console.log(`[Boletim] Iniciando disparo para ${clientes.length} cliente(s) ativo(s)`);
+
+  for (const cliente of clientes) {
+    resultado.clientes_processados++;
+    try {
+      const editais = await buscarEditaisParaCliente(cliente);
+
+      if (editais.length === 0) {
+        console.log(`[Boletim] Sem editais para ${cliente.email}`);
+        continue;
+      }
+
+      resultado.clientes_com_editais++;
+      console.log(`[Boletim] ${editais.length} edital(is) para ${cliente.email}`);
+
+      if (cliente.whatsapp) {
+        try {
+          await enviarWhatsApp(cliente.whatsapp, montarMensagemWhatsApp(cliente.nome, editais));
+          resultado.envios_whatsapp++;
+        } catch (e) {
+          resultado.erros.push({ cliente: cliente.email, canal: 'whatsapp', erro: e.message });
+        }
+      }
+
+      if (cliente.email) {
+        try {
+          await enviarEmail(cliente.email, cliente.nome, editais);
+          resultado.envios_email++;
+        } catch (e) {
+          resultado.erros.push({ cliente: cliente.email, canal: 'email', erro: e.message });
+        }
+      }
+
+      // Pausa entre clientes para não saturar Z-API / Resend
+      await new Promise((r) => setTimeout(r, 500));
+    } catch (e) {
+      console.error(`[Boletim] Erro processando ${cliente.email}:`, e.message);
+      resultado.erros.push({ cliente: cliente.email, erro: e.message });
+    }
+  }
+
+  resultado.fim = new Date().toISOString();
+  console.log('[Boletim] Concluído:', JSON.stringify(resultado));
+  return resultado;
+}
+
+module.exports = { dispararBoletim };

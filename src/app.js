@@ -18,8 +18,11 @@ console.log('Diagnóstico de inicialização:', {
 const authRoutes = require('./routes/auth');
 const editaisRoutes = require('./routes/editais');
 const healthRoutes = require('./routes/health');
+const clientesRoutes = require('./routes/clientes');
+const boletimRoutes = require('./routes/boletim');
 const autenticar = require('./middleware/autenticar');
 const { executarMigracoes } = require('./database/migracoes');
+const { iniciarAgendador } = require('./cron/agendador');
 
 const path = require('path');
 
@@ -31,6 +34,8 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/auth', authRoutes);
 app.use('/health', healthRoutes);
 app.use('/editais', autenticar, editaisRoutes);
+app.use('/clientes', autenticar, clientesRoutes);
+app.use('/boletim', autenticar, boletimRoutes);
 
 // Captura erros lançados por route handlers async que não têm try/catch próprio
 app.use((err, req, res, next) => {
@@ -56,6 +61,8 @@ app.listen(PORT, () => {
   executarMigracoes().catch((err) => {
     console.error('Falha nas migrações:', err.message);
   });
+
+  iniciarAgendador();
 });
 
 module.exports = app;
