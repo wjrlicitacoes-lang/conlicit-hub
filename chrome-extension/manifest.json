@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "ConlicitHub Monitor",
+  "version": "1.0.0",
+  "description": "Monitora chats de pregões eletrônicos em tempo real e alerta sobre novas mensagens",
+  "permissions": [
+    "notifications",
+    "storage",
+    "alarms",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.licitardigital.com.br/*",
+    "https://licitardigital.com.br/*",
+    "https://*.portaldecompraspublicas.com.br/*",
+    "https://portaldecompraspublicas.com.br/*",
+    "https://*.compras.gov.br/*",
+    "https://compras.gov.br/*",
+    "https://compras.mg.gov.br/*",
+    "https://*.compras.mg.gov.br/*",
+    "https://api.resend.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.licitardigital.com.br/*",
+        "https://licitardigital.com.br/*",
+        "https://*.portaldecompraspublicas.com.br/*",
+        "https://portaldecompraspublicas.com.br/*",
+        "https://*.compras.gov.br/*",
+        "https://compras.gov.br/*",
+        "https://compras.mg.gov.br/*",
+        "https://*.compras.mg.gov.br/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

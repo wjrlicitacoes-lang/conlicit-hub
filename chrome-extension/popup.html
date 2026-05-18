@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConlicitHub Monitor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">Conlicit<span class="logo-accent">Hub</span></div>
+      <div class="header-sub">Monitor de Pregões</div>
+    </header>
+
+    <!-- Status global -->
+    <div class="status-bar" id="statusBar">
+      <div class="status-indicator" id="statusDot"></div>
+      <span id="statusText">Verificando...</span>
+      <button class="btn-pause-all" id="btnPauseAll" title="Pausar/retomar todos">⏸</button>
+    </div>
+
+    <!-- Lista de sessões -->
+    <div class="sessions-container" id="sessionsContainer">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Nenhum pregão detectado</div>
+        <div class="empty-sub">Abra uma sessão em um dos portais monitorados</div>
+        <div class="portals-list">
+          <div class="portal-chip">Licitar Digital</div>
+          <div class="portal-chip">Portal de Compras Públicas</div>
+          <div class="portal-chip">Compras.gov.br</div>
+          <div class="portal-chip">Compras MG</div>
+        </div>
+      </div>
+      <div id="sessionsList"></div>
+    </div>
+
+    <!-- Configurações -->
+    <div class="settings-panel" id="settingsPanel">
+      <button class="settings-toggle" id="settingsToggle">
+        <span>⚙</span> Configurações
+      </button>
+      <div class="settings-body" id="settingsBody" style="display:none;">
+        <div class="field">
+          <label>Email para alertas</label>
+          <input type="email" id="inputEmail" placeholder="seu@email.com">
+        </div>
+        <div class="field">
+          <label>Resend API Key</label>
+          <input type="password" id="inputApiKey" placeholder="re_...">
+        </div>
+        <div class="field">
+          <label>From (remetente)</label>
+          <input type="email" id="inputFromEmail" placeholder="onboarding@resend.dev">
+        </div>
+        <button class="btn-save" id="btnSave">Salvar</button>
+        <div class="save-msg" id="saveMsg"></div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
