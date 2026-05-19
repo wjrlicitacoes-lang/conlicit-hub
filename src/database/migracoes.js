@@ -12,18 +12,73 @@ async function executarMigracoes() {
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS clientes (
-      id             SERIAL PRIMARY KEY,
-      nome           VARCHAR(255) NOT NULL,
-      email          VARCHAR(255) UNIQUE NOT NULL,
-      whatsapp       VARCHAR(20),
-      palavras_chave TEXT[]       NOT NULL DEFAULT '{}',
-      uf             VARCHAR(2),
-      ativo          BOOLEAN      NOT NULL DEFAULT TRUE,
-      criado_em      TIMESTAMPTZ  DEFAULT NOW()
+      id                   SERIAL PRIMARY KEY,
+      nome                 VARCHAR(255) NOT NULL,
+      email                VARCHAR(255) UNIQUE NOT NULL,
+      whatsapp             VARCHAR(20),
+      palavras_chave       TEXT[]       NOT NULL DEFAULT '{}',
+      uf                   VARCHAR(2),
+      ativo                BOOLEAN      NOT NULL DEFAULT TRUE,
+      valor_contrato       NUMERIC      NOT NULL DEFAULT 0,
+      percentual_comissao  NUMERIC      NOT NULL DEFAULT 0,
+      dia_vencimento       INTEGER      NOT NULL DEFAULT 1,
+      criado_em            TIMESTAMPTZ  DEFAULT NOW()
     )
   `);
 
-  // Cache local de editais do PNCP — permite busca textual completa
+  // Adiciona colunas novas a tabelas que já podem existir sem elas
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS valor_contrato       NUMERIC      NOT NULL DEFAULT 0`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS percentual_comissao  NUMERIC      NOT NULL DEFAULT 0`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_vencimento       INTEGER      NOT NULL DEFAULT 1`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel          VARCHAR(255)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS origem               VARCHAR(50)  NOT NULL DEFAULT 'direto'`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_nome             VARCHAR(255)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_comissao         NUMERIC      NOT NULL DEFAULT 0`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS pregoes (
+      id              SERIAL PRIMARY KEY,
+      cliente_id      INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      numero          VARCHAR(100),
+      orgao           TEXT,
+      objeto          TEXT,
+      data_abertura   DATE,
+      valor_estimado  NUMERIC,
+      valor_vencido   NUMERIC,
+      comissao_gerada NUMERIC,
+      status          VARCHAR(20) NOT NULL DEFAULT 'a_disputar',
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT pregoes_status_check CHECK (status IN ('a_disputar','vencido','perdido','cancelado'))
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS mensalidades (
+      id                SERIAL PRIMARY KEY,
+      cliente_id        INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      mes_ano           VARCHAR(7)  NOT NULL,
+      valor             NUMERIC     NOT NULL DEFAULT 0,
+      data_vencimento   DATE,
+      data_recebimento  DATE,
+      status            VARCHAR(20) NOT NULL DEFAULT 'pendente',
+      created_at        TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT mensalidades_status_check CHECK (status IN ('recebido','pendente','atrasado'))
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS documentos (
+      id              SERIAL PRIMARY KEY,
+      cliente_id      INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      nome            TEXT        NOT NULL,
+      tipo            VARCHAR(50) DEFAULT 'outro',
+      url             TEXT,
+      data_vencimento DATE,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  // Cache local de editais do PNCP
   await db.query(`
     CREATE TABLE IF NOT EXISTS editais_cache (
       numero_controle_pncp  VARCHAR(100) PRIMARY KEY,
@@ -51,6 +106,17 @@ async function executarMigracoes() {
   `);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_uf  ON editais_cache(uf)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_enc ON editais_cache(data_encerramento)`);
+
+  // Campos de contato e responsabilidade no cliente
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_nome       VARCHAR(255)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_cargo      VARCHAR(100)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_whatsapp   VARCHAR(20)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_conlicit VARCHAR(100)`);
+
+  // Sistema de roles
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255)`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente' CHECK (role IN ('admin','assistente'))`);
+  await db.query(`UPDATE usuarios SET role = 'admin' WHERE email = 'wjrlicitacoes@gmail.com'`);
 
   console.log('Migrações executadas com sucesso');
 }

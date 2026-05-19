@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const db  = require('../database/db');
 
-function autenticar(req, res, next) {
+async function autenticar(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -11,6 +12,20 @@ function autenticar(req, res, next) {
 
   try {
     req.usuario = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Tokens emitidos antes de role ser adicionado ao payload não têm req.usuario.role.
+    // Fallback: busca role (e id) no banco para garantir retrocompatibilidade.
+    if (!req.usuario.role && req.usuario.email) {
+      const { rows } = await db.query(
+        'SELECT id, role FROM usuarios WHERE email = $1',
+        [req.usuario.email],
+      );
+      if (rows[0]) {
+        req.usuario.id   = req.usuario.id   ?? rows[0].id;
+        req.usuario.role = rows[0].role;
+      }
+    }
+
     next();
   } catch (erro) {
     const mensagem = erro.name === 'TokenExpiredError'
