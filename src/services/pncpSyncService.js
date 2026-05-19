@@ -4,8 +4,8 @@ const db = require('../database/db');
 const BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
 const TAMANHO_PAGINA = 50;
 const CONCORRENCIA   = 5;   // páginas paralelas por lote (respeitoso ao PNCP e ao Supabase)
-const TIMEOUT_MS     = 25000;
-const MAX_TENTATIVAS = 3;
+const TIMEOUT_MS     = 12000;
+const MAX_TENTATIVAS = 2;   // 1 retry — evita esperar 25s×3 por página lenta
 
 function dStr(d) {
   return d.toISOString().slice(0, 10).replace(/-/g, '');

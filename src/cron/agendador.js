@@ -10,7 +10,7 @@ function iniciarAgendador() {
     async () => {
       console.log('[Cron] Iniciando sincronização diária do PNCP...');
       try {
-        await sincronizarPNCP({ diasAdiante: 90 });
+        await sincronizarPNCP({ diasAdiante: 60 });
       } catch (e) {
         console.error('[Cron] Erro na sincronização:', e.message);
       }
