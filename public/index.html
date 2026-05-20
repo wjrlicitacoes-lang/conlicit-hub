@@ -1599,7 +1599,7 @@
 
 <!-- MODAL: Cliente Detail -->
 <div class="modal-overlay" id="modal-detalhe" onclick="fecharDetalheCliente(event)">
-  <div class="modal" style="max-width:860px" onclick="event.stopPropagation()">
+  <div class="modal" style="width:90vw;max-width:1100px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h3 id="detalhe-nome">Detalhes do cliente</h3>
       <div style="display:flex;gap:.5rem;align-items:center">
@@ -2057,26 +2057,50 @@
     }
   }
 
+  function fmtDataAbreviada(p) {
+    if (p.data_hora_abertura) {
+      const d = new Date(p.data_hora_abertura);
+      if (!isNaN(d.getTime()))
+        return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    if (p.data_abertura) {
+      const d = new Date(p.data_abertura + 'T12:00:00');
+      if (!isNaN(d.getTime()))
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    return 'Sem data';
+  }
+
   function renderTabelaPregoes(lista, mostraAcoes) {
     if (lista.length === 0) return '<p style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0">Nenhum registro.</p>';
-    return `<div class="table-wrap"><table class="data-table">
+    const ellipsis = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    return `<div style="overflow-x:hidden"><table class="data-table" style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:110px">
+        <col style="width:140px">
+        <col style="min-width:0;width:auto">
+        <col style="width:90px">
+        <col style="width:110px">
+        <col style="width:90px">
+        <col style="width:160px">
+      </colgroup>
       <thead><tr>
         <th>Número</th><th>Órgão</th><th>Objeto</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th>
       </tr></thead>
       <tbody>${lista.map(p => `<tr data-pid="${p.id}">
-        <td><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
-        <td class="td-muted">${esc((p.orgao||'').slice(0,30))}</td>
-        <td class="td-muted">${esc((p.objeto||'').slice(0,50))}</td>
-        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-        <td>${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
-        <td><span class="s-badge s-${p.status}">${p.status.replace('_',' ')}</span></td>
-        <td><div class="td-actions">
+        <td style="${ellipsis}"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
+        <td class="td-muted" style="${ellipsis}" title="${esc(p.orgao||'')}">${esc(p.orgao||'—')}</td>
+        <td class="td-muted" style="${ellipsis}" title="${esc(p.objeto||'')}">${esc(p.objeto||'—')}</td>
+        <td class="td-muted" style="white-space:nowrap">${fmtDataAbreviada(p)}</td>
+        <td style="white-space:nowrap">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
+        <td><span class="s-badge s-${p.status}" style="font-size:.7rem;padding:2px 6px">${p.status.replace('_',' ')}</span></td>
+        <td><div class="td-actions" style="flex-wrap:nowrap;gap:.2rem">
           ${mostraAcoes ? `
-          <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})">Vencido</button>
-          <button class="btn btn-ghost btn-sm" onclick="atualizarStatusPregao(${p.id},'perdido')">Perdido</button>
-          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA">🤖</button>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar">✏️</button>
-          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger)">🗑️</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})" style="font-size:11px;padding:3px 8px">Vencido</button>
+          <button class="btn btn-ghost btn-sm" onclick="atualizarStatusPregao(${p.id},'perdido')" style="font-size:11px;padding:3px 8px">Perdido</button>
+          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA" style="padding:3px 6px">🤖</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar" style="padding:3px 6px">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger);padding:3px 6px">🗑️</button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
@@ -2084,17 +2108,26 @@
 
   function renderTabelaVencidos(lista) {
     if (lista.length === 0) return '<p style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0">Nenhum pregão vencido ainda.</p>';
-    return `<div class="table-wrap"><table class="data-table">
+    const ellipsis = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    return `<div style="overflow-x:hidden"><table class="data-table" style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:110px">
+        <col style="width:140px">
+        <col style="width:90px">
+        <col style="width:120px">
+        <col style="width:110px">
+        <col style="width:80px">
+      </colgroup>
       <thead><tr><th>Número</th><th>Órgão</th><th>Abertura</th><th>Valor vencido</th><th>Comissão</th><th></th></tr></thead>
       <tbody>${lista.map(p => `<tr data-pid="${p.id}">
-        <td><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
-        <td class="td-muted">${esc((p.orgao||'').slice(0,30))}</td>
-        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-        <td style="color:var(--primary);font-weight:700">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
-        <td>${p.comissao_gerada ? fmtBRL(p.comissao_gerada) : '—'}</td>
-        <td><div class="td-actions">
-          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar">✏️</button>
-          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger)">🗑️</button>
+        <td style="${ellipsis}"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
+        <td class="td-muted" style="${ellipsis}" title="${esc(p.orgao||'')}">${esc(p.orgao||'—')}</td>
+        <td class="td-muted" style="white-space:nowrap">${fmtDataAbreviada(p)}</td>
+        <td style="color:var(--primary);font-weight:700;white-space:nowrap">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
+        <td style="white-space:nowrap">${p.comissao_gerada ? fmtBRL(p.comissao_gerada) : '—'}</td>
+        <td><div class="td-actions" style="flex-wrap:nowrap;gap:.2rem">
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar" style="padding:3px 6px">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger);padding:3px 6px">🗑️</button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
