@@ -6,6 +6,7 @@
   <title>ConlicitHub — Painel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -801,7 +802,26 @@
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: rgba(255,255,255,.02); }
     .data-table .td-muted { color: var(--text-muted); font-size: .78rem; }
-    .data-table .td-actions { display: flex; gap: .3rem; justify-content: flex-end; }
+    .data-table .td-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+    .btn-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--sec-border);
+      background: rgba(255,255,255,.04);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px; transition: background .12s, border-color .12s;
+      padding: 0; line-height: 1;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,.09); }
+    .btn-icon.btn-success { color: #5aad20; }
+    .btn-icon.btn-success:hover { background: rgba(90,173,32,.15); border-color: #5aad20; }
+    .btn-icon.btn-danger  { color: #e05c5c; }
+    .btn-icon.btn-danger:hover  { background: rgba(224,92,92,.15); border-color: #e05c5c; }
+    .btn-icon.btn-edson   { color: var(--primary); }
+    .btn-icon.btn-edson:hover   { background: rgba(76,197,215,.15); border-color: var(--primary); }
+    .btn-icon.btn-delete  { color: #e05c5c; }
+    .btn-icon.btn-delete:hover  { background: rgba(224,92,92,.15); border-color: #e05c5c; }
+    .btn-icon.btn-neutral { color: var(--text-muted); }
+    .btn-icon.btn-neutral:hover { background: rgba(255,255,255,.09); border-color: var(--text-muted); }
     .table-section { margin-bottom: 1.5rem; }
     .table-section h4 {
       font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
@@ -2204,13 +2224,13 @@
         <td style="white-space:nowrap">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
         <td><span class="s-badge s-${p.status}" style="font-size:.7rem;padding:2px 6px">${p.status.replace('_',' ')}</span></td>
         <td>${p.portal_disputa ? portalBadge(p.portal_disputa, p.link_pncp) : '<span style="color:var(--text-muted);font-size:.75rem">—</span>'}</td>
-        <td><div class="td-actions" style="flex-wrap:nowrap;gap:.2rem">
+        <td><div class="td-actions">
           ${mostraAcoes ? `
-          <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})" style="font-size:11px;padding:3px 8px">Vencido</button>
-          <button class="btn btn-ghost btn-sm" onclick="atualizarStatusPregao(${p.id},'perdido')" style="font-size:11px;padding:3px 8px">Perdido</button>
-          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA" style="padding:3px 6px">🤖</button>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar" style="padding:3px 6px">✏️</button>
-          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger);padding:3px 6px">🗑️</button>
+          <button class="btn-icon btn-success" title="Marcar como Vencido" onclick="abrirMarcarVencido(${p.id})"><i class="ti ti-trophy"></i></button>
+          <button class="btn-icon btn-danger"  title="Marcar como Perdido" onclick="atualizarStatusPregao(${p.id},'perdido')"><i class="ti ti-thumb-down"></i></button>
+          <button class="btn-icon btn-edson"   title="Ver análise do Edson" onclick="verEdson(${p.id})"><i class="ti ti-robot"></i></button>` : ''}
+          <button class="btn-icon btn-neutral" title="Editar pregão" onclick="abrirEditarPregao(${p.id})"><i class="ti ti-edit"></i></button>
+          <button class="btn-icon btn-delete"  title="Excluir pregão" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')"><i class="ti ti-trash"></i></button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
@@ -2235,9 +2255,9 @@
         <td class="td-muted" style="white-space:nowrap">${fmtDataAbreviada(p)}</td>
         <td style="color:var(--primary);font-weight:700;white-space:nowrap">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
         <td style="white-space:nowrap">${p.comissao_gerada ? fmtBRL(p.comissao_gerada) : '—'}</td>
-        <td><div class="td-actions" style="flex-wrap:nowrap;gap:.2rem">
-          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar" style="padding:3px 6px">✏️</button>
-          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger);padding:3px 6px">🗑️</button>
+        <td><div class="td-actions">
+          <button class="btn-icon btn-neutral" title="Editar pregão" onclick="abrirEditarPregao(${p.id})"><i class="ti ti-edit"></i></button>
+          <button class="btn-icon btn-delete"  title="Excluir pregão" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')"><i class="ti ti-trash"></i></button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
