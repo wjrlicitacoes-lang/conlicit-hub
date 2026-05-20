@@ -1151,6 +1151,21 @@
               <label for="dataFinal">Encerramento até</label>
               <input type="date" id="dataFinal" />
             </div>
+            <div class="form-group" style="margin:0">
+              <label for="cidade">Cidade</label>
+              <input type="text" id="cidade" placeholder="Ex: Belo Horizonte" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="raio_km">Raio de cobertura</label>
+              <select id="raio_km">
+                <option value="0">Cidade exata</option>
+                <option value="50">Até 50 km</option>
+                <option value="100">Até 100 km</option>
+                <option value="150">Até 150 km</option>
+                <option value="200">Estado inteiro</option>
+                <option value="999">Todo o Brasil</option>
+              </select>
+            </div>
           </div>
           <div class="search-actions">
             <button class="btn btn-ghost" onclick="limparBusca()">Limpar</button>
@@ -1407,6 +1422,51 @@
 </div>
 
 <!-- MODAL: Cliente Form -->
+<div class="modal-overlay" id="modal-oferecer" onclick="fecharModalOferecer(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
+    <div class="modal-header">
+      <h3>+ Oferecer para cliente</h3>
+      <button class="modal-close" onclick="fecharModalOferecer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Cliente *</label>
+        <select id="of-cliente"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Número do pregão</label>
+          <input id="of-numero" placeholder="PE-001/2026" />
+        </div>
+        <div class="form-group">
+          <label>Data/hora de abertura</label>
+          <input type="datetime-local" id="of-dha" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Número de controle PNCP</label>
+        <input id="of-controle" placeholder="45298569000113-1-000053/2026" />
+      </div>
+      <div class="form-group">
+        <label>Link do edital</label>
+        <input id="of-link" type="url" placeholder="https://pncp.gov.br/app/editais/..." />
+      </div>
+      <div class="form-group">
+        <label>Objeto</label>
+        <input id="of-objeto" />
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
+        <input type="checkbox" id="of-edson" checked style="width:auto;margin:0" />
+        <label for="of-edson" style="margin:0;cursor:pointer;font-size:.88rem">Acionar Edson automaticamente</label>
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="fecharModalOferecer()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarOferecer()">Adicionar ao calendário do cliente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-cliente" onclick="fecharModalCliente(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -1579,10 +1639,12 @@
   let authMode = 'login';
   let lastParams = null;
   let currentPage = 1;
+  let editaisResultados = [];
 
   let clientesCache = [];
   let boletinsCache = [];
   let clienteAtual = null;
+  let pregoesMap = {};
   let tabsLoaded = {};
   let activeSection = 'dashboard';
   let userRole = null;
@@ -1944,6 +2006,8 @@
     try {
       const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes`, { headers: { Authorization: `Bearer ${token}` } });
       const { dados = [] } = await r.json();
+      pregoesMap = {};
+      dados.forEach(p => { pregoesMap[p.id] = p; });
       const aDisputar = dados.filter(p => p.status === 'a_disputar');
       const vencidos  = dados.filter(p => p.status === 'vencido');
       const outros    = dados.filter(p => p.status === 'perdido' || p.status === 'cancelado');
@@ -1961,7 +2025,18 @@
             <div class="form-group" style="margin:0"><label>Data abertura</label><input type="date" id="pn-data" /></div>
             <div class="form-group" style="margin:0"><label>Valor estimado (R$)</label><input type="number" id="pn-valor" min="0" step="0.01" /></div>
           </div>
-          <div class="form-group" style="margin:0 0 .75rem"><label>Objeto</label><input id="pn-objeto" placeholder="Descrição do pregão..." /></div>
+          <div class="form-group" style="margin:0 0 .5rem"><label>Objeto</label><input id="pn-objeto" placeholder="Descrição do pregão..." /></div>
+          <div class="form-row" style="margin-bottom:.5rem">
+            <div class="form-group" style="margin:0">
+              <label>Link do edital no PNCP</label>
+              <input id="pn-link-pncp" type="url" placeholder="https://pncp.gov.br/app/editais/..." />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Número de controle PNCP</label>
+              <input id="pn-num-controle" placeholder="Ex: 45298569000113-1-000053/2026" />
+              <p style="font-size:.68rem;color:var(--text-muted);margin-top:.3rem">Encontre no PNCP → copie o número de controle para análise precisa</p>
+            </div>
+          </div>
           <div style="display:flex;gap:.5rem">
             <button class="btn btn-primary btn-sm" onclick="salvarPregao()">Salvar</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleInlineForm('form-pregao')">Cancelar</button>
@@ -1986,21 +2061,23 @@
     if (lista.length === 0) return '<p style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0">Nenhum registro.</p>';
     return `<div class="table-wrap"><table class="data-table">
       <thead><tr>
-        <th>Número</th><th>Órgão</th><th>Objeto</th><th>Abertura</th><th>Valor est.</th><th>Status</th>
-        ${mostraAcoes ? '<th></th>' : ''}
+        <th>Número</th><th>Órgão</th><th>Objeto</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th>
       </tr></thead>
-      <tbody>${lista.map(p => `<tr>
+      <tbody>${lista.map(p => `<tr data-pid="${p.id}">
         <td><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
         <td class="td-muted">${esc((p.orgao||'').slice(0,30))}</td>
         <td class="td-muted">${esc((p.objeto||'').slice(0,50))}</td>
-        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura).toLocaleDateString('pt-BR') : '—'}</td>
+        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
         <td>${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
         <td><span class="s-badge s-${p.status}">${p.status.replace('_',' ')}</span></td>
-        ${mostraAcoes ? `<td><div class="td-actions">
+        <td><div class="td-actions">
+          ${mostraAcoes ? `
           <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})">Vencido</button>
           <button class="btn btn-ghost btn-sm" onclick="atualizarStatusPregao(${p.id},'perdido')">Perdido</button>
-          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA">🤖</button>
-        </div></td>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA">🤖</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger)">🗑️</button>
+        </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   }
@@ -2008,13 +2085,17 @@
   function renderTabelaVencidos(lista) {
     if (lista.length === 0) return '<p style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0">Nenhum pregão vencido ainda.</p>';
     return `<div class="table-wrap"><table class="data-table">
-      <thead><tr><th>Número</th><th>Órgão</th><th>Abertura</th><th>Valor vencido</th><th>Comissão</th></tr></thead>
-      <tbody>${lista.map(p => `<tr>
+      <thead><tr><th>Número</th><th>Órgão</th><th>Abertura</th><th>Valor vencido</th><th>Comissão</th><th></th></tr></thead>
+      <tbody>${lista.map(p => `<tr data-pid="${p.id}">
         <td><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
         <td class="td-muted">${esc((p.orgao||'').slice(0,30))}</td>
-        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura).toLocaleDateString('pt-BR') : '—'}</td>
+        <td class="td-muted">${p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
         <td style="color:var(--primary);font-weight:700">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
         <td>${p.comissao_gerada ? fmtBRL(p.comissao_gerada) : '—'}</td>
+        <td><div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPregao(${p.id})" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="excluirPregao(${p.id},'${esc(p.numero||'')}')" title="Excluir" style="color:var(--danger)">🗑️</button>
+        </div></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   }
@@ -2025,10 +2106,12 @@
     if (!numero) { toast('Número do pregão é obrigatório', 'error'); return; }
     const body = {
       numero,
-      orgao: document.getElementById('pn-orgao').value.trim() || null,
-      objeto: document.getElementById('pn-objeto').value.trim() || null,
-      data_abertura: document.getElementById('pn-data').value || null,
-      valor_estimado: parseFloat(document.getElementById('pn-valor').value) || null,
+      orgao:                document.getElementById('pn-orgao').value.trim() || null,
+      objeto:               document.getElementById('pn-objeto').value.trim() || null,
+      data_abertura:        document.getElementById('pn-data').value || null,
+      valor_estimado:       parseFloat(document.getElementById('pn-valor').value) || null,
+      link_pncp:            document.getElementById('pn-link-pncp').value.trim() || null,
+      numero_controle_pncp: document.getElementById('pn-num-controle').value.trim() || null,
     };
     try {
       const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes`, {
@@ -2101,6 +2184,109 @@
       tabsLoaded.pregoes = false;
       switchTab2('pregoes');
     } catch { toast('Erro ao atualizar', 'error'); }
+  }
+
+  function abrirEditarPregao(pid) {
+    const p = pregoesMap[pid];
+    if (!p) return;
+    // Toggle: remove existing form if already open
+    const existing = document.getElementById(`edit-form-${pid}`);
+    if (existing) { existing.remove(); return; }
+    // Remove any other open edit forms
+    document.querySelectorAll('[id^="edit-form-"]').forEach(el => el.remove());
+
+    const tr = document.querySelector(`[data-pid="${pid}"]`);
+    if (!tr) return;
+
+    const dtLocal = p.data_hora_abertura ? toLocalInput(p.data_hora_abertura) : '';
+    const row = document.createElement('tr');
+    row.id = `edit-form-${pid}`;
+    row.innerHTML = `<td colspan="7" style="padding:.75rem .65rem;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-bottom:.5rem">
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Número *</label>
+          <input id="ep-numero-${pid}" value="${esc(p.numero||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Órgão</label>
+          <input id="ep-orgao-${pid}" value="${esc(p.orgao||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Data/hora abertura</label>
+          <input type="datetime-local" id="ep-dha-${pid}" value="${dtLocal}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Valor estimado (R$)</label>
+          <input type="number" id="ep-valor-${pid}" value="${p.valor_estimado||''}" min="0" step="0.01" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Status</label>
+          <select id="ep-status-${pid}" style="width:100%;${inputSty()}">
+            <option value="a_disputar" ${p.status==='a_disputar'?'selected':''}>A disputar</option>
+            <option value="vencido"    ${p.status==='vencido'?'selected':''}>Vencido</option>
+            <option value="perdido"    ${p.status==='perdido'?'selected':''}>Perdido</option>
+            <option value="cancelado"  ${p.status==='cancelado'?'selected':''}>Cancelado</option>
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Objeto</label>
+          <input id="ep-objeto-${pid}" value="${esc(p.objeto||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Link PNCP</label>
+          <input id="ep-link-${pid}" value="${esc(p.link_pncp||'')}" style="width:100%;${inputSty()}" /></div>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Número de controle PNCP</label>
+        <input id="ep-controle-${pid}" value="${esc(p.numero_controle_pncp||'')}" placeholder="45298569000113-1-000053/2026" style="width:100%;max-width:380px;${inputSty()}" />
+      </div>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn btn-primary btn-sm" onclick="salvarEdicaoPregao(${pid})">Salvar</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-form-${pid}').remove()">Cancelar</button>
+      </div>
+    </td>`;
+    tr.insertAdjacentElement('afterend', row);
+  }
+
+  function inputSty() {
+    return 'background:rgba(0,0,0,.25);border:1px solid var(--sec-border);border-radius:6px;color:var(--text);font-size:.85rem;padding:.4rem .65rem';
+  }
+
+  async function salvarEdicaoPregao(pid) {
+    if (!clienteAtual) return;
+    const p = pregoesMap[pid] || {};
+    const novoControle = document.getElementById(`ep-controle-${pid}`)?.value.trim() || null;
+    const body = {
+      numero:               document.getElementById(`ep-numero-${pid}`)?.value.trim() || null,
+      orgao:                document.getElementById(`ep-orgao-${pid}`)?.value.trim() || null,
+      objeto:               document.getElementById(`ep-objeto-${pid}`)?.value.trim() || null,
+      data_hora_abertura:   document.getElementById(`ep-dha-${pid}`)?.value || null,
+      valor_estimado:       parseFloat(document.getElementById(`ep-valor-${pid}`)?.value) || null,
+      status:               document.getElementById(`ep-status-${pid}`)?.value || null,
+      link_pncp:            document.getElementById(`ep-link-${pid}`)?.value.trim() || null,
+      numero_controle_pncp: novoControle,
+    };
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
+        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      // Se o número de controle mudou, disparar nova análise Edson
+      if (novoControle && novoControle !== (p.numero_controle_pncp || '')) {
+        fetch(`${API}/edson/${pid}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+          .catch(() => {});
+        toast('Pregão atualizado — Edson analisando o novo controle PNCP…', 'success');
+      } else {
+        toast('Pregão atualizado!', 'success');
+      }
+      tabsLoaded.pregoes = false;
+      switchTab2('pregoes');
+    } catch (err) { toast(err.message || 'Erro ao salvar', 'error'); }
+  }
+
+  async function excluirPregao(pid, numero) {
+    if (!clienteAtual) return;
+    const confirma = confirm(`Tem certeza que deseja excluir o pregão ${numero}? Esta ação não pode ser desfeita.`);
+    if (!confirma) return;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Pregão excluído com sucesso.', 'success');
+      tabsLoaded.pregoes = false;
+      switchTab2('pregoes');
+    } catch (err) { toast(err.message || 'Erro ao excluir', 'error'); }
   }
 
   // ── TAB: MENSALIDADES ──
@@ -2744,6 +2930,10 @@
   function limparBusca() {
     document.getElementById('q').value = '';
     document.getElementById('uf').value = '';
+    const cidadeEl = document.getElementById('cidade');
+    const raioEl   = document.getElementById('raio_km');
+    if (cidadeEl) cidadeEl.value = '';
+    if (raioEl)   raioEl.value  = '0';
     setDefaultDates();
     document.getElementById('results-area').innerHTML = '';
     lastParams = null;
@@ -2758,18 +2948,94 @@
     } catch { /* fire and forget */ }
   }
 
+  async function abrirModalOferecer(idx) {
+    const e = editaisResultados[idx];
+    if (!e) return;
+
+    // Parse data encerramento para datetime-local
+    let dhaValue = '';
+    if (e.dataEncerramento) {
+      try {
+        const d = new Date(e.dataEncerramento);
+        if (!isNaN(d.getTime())) dhaValue = toLocalInput(d.toISOString());
+      } catch {}
+    }
+
+    document.getElementById('of-numero').value   = e.numeroEdital || '';
+    document.getElementById('of-dha').value      = dhaValue;
+    document.getElementById('of-controle').value = e.numeroEdital || '';
+    document.getElementById('of-link').value     = e.linkSistemaOrigem || e.link || '';
+    document.getElementById('of-objeto').value   = e.objeto || '';
+
+    // Carregar clientes ativos
+    const sel = document.getElementById('of-cliente');
+    sel.innerHTML = '<option value="">Carregando…</option>';
+    try {
+      const r = await fetch(`${API}/clientes?ativo=true`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      sel.innerHTML = '<option value="">Selecione o cliente *</option>' +
+        dados.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+    } catch {
+      sel.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+    }
+
+    document.getElementById('modal-oferecer').classList.add('visible');
+  }
+
+  function fecharModalOferecer(e) {
+    if (e && e.target !== document.getElementById('modal-oferecer')) return;
+    document.getElementById('modal-oferecer').classList.remove('visible');
+  }
+
+  async function confirmarOferecer() {
+    const clienteId = document.getElementById('of-cliente').value;
+    if (!clienteId) { toast('Selecione o cliente', 'error'); return; }
+    const numero = document.getElementById('of-numero').value.trim();
+    if (!numero) { toast('Número do pregão é obrigatório', 'error'); return; }
+
+    const body = {
+      numero,
+      objeto:               document.getElementById('of-objeto').value.trim() || null,
+      data_hora_abertura:   document.getElementById('of-dha').value || null,
+      numero_controle_pncp: document.getElementById('of-controle').value.trim() || null,
+      link_pncp:            document.getElementById('of-link').value.trim() || null,
+      status:               'a_disputar',
+    };
+
+    try {
+      const r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
+        method: 'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const pregao = await r.json();
+
+      const acionar = document.getElementById('of-edson').checked;
+      if (acionar && pregao.id) {
+        fetch(`${API}/edson/${pregao.id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+          .catch(() => {});
+      }
+
+      const clienteNome = document.getElementById('of-cliente').selectedOptions[0]?.text || '';
+      toast(`Pregão adicionado para ${clienteNome}${acionar ? ' — Edson analisando…' : ''}`, 'success');
+      document.getElementById('modal-oferecer').classList.remove('visible');
+    } catch (err) { toast(err.message || 'Erro ao adicionar', 'error'); }
+  }
+
   async function buscar(pagina = 1) {
-    const q = document.getElementById('q').value.trim();
-    const uf = document.getElementById('uf').value;
-    const di = document.getElementById('dataInicial').value;
-    const df = document.getElementById('dataFinal').value;
+    const q      = document.getElementById('q').value.trim();
+    const uf     = document.getElementById('uf').value;
+    const di     = document.getElementById('dataInicial').value;
+    const df     = document.getElementById('dataFinal').value;
+    const cidade = document.getElementById('cidade')?.value.trim() || '';
+    const raio   = document.getElementById('raio_km')?.value || '0';
 
     if (!di || !df) { toast('Informe o período de busca', 'error'); return; }
     if (new Date(di) > new Date(df)) { toast('Data inicial deve ser anterior à data final', 'error'); return; }
 
     const dataInicial = di.replace(/-/g, '');
-    const dataFinal = df.replace(/-/g, '');
-    lastParams = { q, uf, dataInicial, dataFinal };
+    const dataFinal   = df.replace(/-/g, '');
+    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio };
     currentPage = pagina;
 
     const btn = document.getElementById('btn-buscar');
@@ -2782,6 +3048,7 @@
     const params = new URLSearchParams({ dataInicial, dataFinal, pagina, tamanhoPagina: 12 });
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
+    if (cidade && parseInt(raio) < 999) { params.set('cidade', cidade); params.set('raio_km', raio); }
 
     try {
       const r = await fetch(`${API}/editais?${params}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -2817,15 +3084,16 @@
     let html = `<div class="results-header">
       <div class="results-count"><strong>${total}</strong> edital${total !== 1 ? 'is' : ''} encontrado${total !== 1 ? 's' : ''} ${fonteLabel}</div>
     </div>`;
+    editaisResultados = d.dados;
     html += '<div class="cards-grid">';
-    for (const e of d.dados) html += renderCard(e);
+    d.dados.forEach((e, idx) => { html += renderCard(e, idx); });
     html += '</div>';
     if (totalPages > 1) html += renderPagination(pagina, totalPages);
     area.innerHTML = html;
     area.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function renderCard(e) {
+  function renderCard(e, idx) {
     const objeto = e.objeto || '—';
     const valor = e.valorEstimado || '—';
     const local = [e.municipio, e.estado].filter(Boolean).join(' · ') || '—';
@@ -2854,12 +3122,13 @@
           <span class="meta-value">${esc(e.dataEncerramentoProposta || '—')}</span>
         </div>
       </div>
-      ${e.link ? `<div class="card-footer">
-        <a class="btn-link" href="${e.link}" target="_blank" rel="noopener">
+      <div class="card-footer" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        ${e.link ? `<a class="btn-link" href="${e.link}" target="_blank" rel="noopener">
           Ver edital no PNCP
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </a>
-      </div>` : ''}
+        </a>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalOferecer(${idx})" style="font-size:.8rem">+ Oferecer para cliente</button>
+      </div>
     </div>`;
   }
 
@@ -3054,7 +3323,8 @@
       // pronto
       document.getElementById('edson-resultado').style.display = 'block';
       document.getElementById('edson-detalhe-acoes').innerHTML = `
-        <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">⬇ Planilha CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">📊 Planilha XLSX</button>
+        <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pregaoId})">📄 Relatório PDF</button>
         <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
       `;
       switchEdsonTab('resumo');
@@ -3124,12 +3394,19 @@
           </div>
         </div>
       </div>
+      ${a.link_pncp ? `
+      <div style="margin-bottom:1.25rem">
+        <a href="${esc(a.link_pncp)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">
+          📄 Abrir edital original
+        </a>
+      </div>` : ''}
       <div class="dados-bloco">
         <h4>Resumo executivo</h4>
         <p style="font-size:.9rem;color:var(--text);line-height:1.75;margin-top:.75rem">${esc(a.resumo_executivo||'—')}</p>
       </div>
-      <div style="margin-top:1.5rem">
-        <button class="btn btn-primary btn-sm" onclick="baixarPlanilhaEdson(${pid})">⬇ Baixar planilha de itens</button>
+      <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="baixarPlanilhaEdson(${pid})">📊 Baixar Planilha</button>
+        <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pid})">📄 Baixar Relatório</button>
       </div>`;
   }
 
@@ -3310,9 +3587,21 @@
       const blob = await r.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = `planilha-pregao-${pregaoId}.csv`; a.click();
+      a.href = url; a.download = `planilha-pregao-${pregaoId}.xlsx`; a.click();
       URL.revokeObjectURL(url);
     } catch { alert('Erro ao baixar planilha'); }
+  }
+
+  async function baixarRelatorioEdson(pregaoId) {
+    try {
+      const r = await fetch(`${API}/edson/${pregaoId}/relatorio`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { alert('Relatório não disponível. Aguarde a análise concluir.'); return; }
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `relatorio-edson-${pregaoId}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert('Erro ao baixar relatório'); }
   }
 
   // ─────────────────────────────────────────
@@ -3349,8 +3638,10 @@
           { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (rCal.status === 401) { logout(); return; }
-      const { dados = [] } = await rCal.json();
+      const calJson = await rCal.json();
+      const dados = calJson.dados ?? [];
       calDados = dados;
+      console.log('[Cal] dados retornados:', dados.map(p => ({ id: p.id, numero: p.numero, data_hora_abertura: p.data_hora_abertura, data_abertura: p.data_abertura })));
       if (rUsr.ok) {
         const { dados: usrs = [] } = await rUsr.json();
         calOperadores = usrs;
@@ -3374,12 +3665,25 @@
       let dia = null;
       if (p.data_hora_abertura) {
         const d = new Date(p.data_hora_abertura);
-        if (d.getMonth() + 1 === calMes && d.getFullYear() === calAno)
-          dia = d.getDate();
+        if (!isNaN(d.getTime())) {
+          // Use São Paulo timezone for day extraction — matches server-side AT TIME ZONE filter
+          const spParts = d.toLocaleDateString('pt-BR',
+            { timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'numeric', year: 'numeric' }).split('/');
+          const spDia = parseInt(spParts[0], 10);
+          const spMes = parseInt(spParts[1], 10);
+          const spAno = parseInt(spParts[2], 10);
+          if (spMes === calMes && spAno === calAno) dia = spDia;
+        }
       } else if (p.data_abertura) {
         const d = new Date(p.data_abertura + 'T12:00:00');
-        if (d.getMonth() + 1 === calMes && d.getFullYear() === calAno)
-          dia = d.getDate();
+        if (!isNaN(d.getTime())) {
+          const spParts = d.toLocaleDateString('pt-BR',
+            { timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'numeric', year: 'numeric' }).split('/');
+          const spDia = parseInt(spParts[0], 10);
+          const spMes = parseInt(spParts[1], 10);
+          const spAno = parseInt(spParts[2], 10);
+          if (spMes === calMes && spAno === calAno) dia = spDia;
+        }
       }
       if (dia) {
         if (!porDia[dia]) porDia[dia] = [];
@@ -3449,20 +3753,30 @@
     let timeHtml;
     if (temHora) {
       const dt = new Date(p.data_hora_abertura);
-      const dataStr = dt.toLocaleDateString('pt-BR',
-        { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
-      const horaStr = dt.toLocaleTimeString('pt-BR',
-        { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-      timeHtml = `<div class="cal-card-time">
-        <div class="cal-time-date">${dataStr}</div>
-        <div class="cal-time-hour">${horaStr}</div>
-      </div>`;
-    } else {
-      const dataStr = p.data_abertura
-        ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      if (!isNaN(dt.getTime())) {
+        const dataStr = dt.toLocaleDateString('pt-BR',
+          { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
+        const horaStr = dt.toLocaleTimeString('pt-BR',
+          { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+        timeHtml = `<div class="cal-card-time">
+          <div class="cal-time-date">${dataStr}</div>
+          <div class="cal-time-hour">${horaStr}</div>
+        </div>`;
+      } else {
+        timeHtml = `<div class="cal-card-time">
+          <div class="cal-time-no">Sem data definida</div>
+        </div>`;
+      }
+    } else if (p.data_abertura) {
+      const dt2 = new Date(p.data_abertura + 'T12:00:00');
+      const dataStr = !isNaN(dt2.getTime()) ? dt2.toLocaleDateString('pt-BR') : '—';
       timeHtml = `<div class="cal-card-time">
         <div class="cal-time-date">${dataStr}</div>
         <div class="cal-time-no">Sem horário</div>
+      </div>`;
+    } else {
+      timeHtml = `<div class="cal-card-time">
+        <div class="cal-time-no">Sem data definida</div>
       </div>`;
     }
 

@@ -45,6 +45,7 @@ function formatarEdital(item) {
   const ano  = item.anoCompra      ?? item.ano_compra;
   const seq  = item.sequencialCompra ?? item.sequencial_compra;
   const u    = item.unidadeOrgao ?? {};
+  const raw  = item.raw ?? item;
   return {
     numeroEdital:             item.numeroControlePNCP ?? item.numero_controle_pncp ?? null,
     orgao:                    item.orgaoEntidade?.razaoSocial ?? item.orgao_nome ?? null,
@@ -56,11 +57,13 @@ function formatarEdital(item) {
     estado:                   u.ufNome ?? null,
     municipio:                u.municipioNome ?? item.municipio ?? null,
     link:                     cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null,
+    linkSistemaOrigem:        item.linkSistemaOrigem ?? raw.linkSistemaOrigem ?? null,
+    dataEncerramento:         item.dataEncerramentoProposta ?? item.data_encerramento ?? null,
   };
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, pagina, tamanhoPagina }) {
+async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, pagina, tamanhoPagina }) {
   const condicoes = [`data_encerramento >= NOW()`];
   const params = [];
   let idx = 1;
@@ -98,6 +101,30 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, pagina
     params.push(dataFinal.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
   }
 
+  // TODO: implementar geolocalização real via API IBGE de vizinhos
+  // Opção B (prática): cidade exata ≤50 km; estado inteiro ≤150 km; sem filtro >150 km
+  if (cidade) {
+    const raio = parseInt(raio_km) || 0;
+    if (raio <= 50) {
+      condicoes.push(`municipio ILIKE $${idx++}`);
+      params.push(`%${cidade}%`);
+    } else if (raio <= 150) {
+      const ufResult = await db.query(
+        'SELECT uf FROM editais_cache WHERE municipio ILIKE $1 AND uf IS NOT NULL LIMIT 1',
+        [`%${cidade}%`],
+      );
+      if (ufResult.rows.length > 0) {
+        condicoes.push(`uf = $${idx++}`);
+        params.push(ufResult.rows[0].uf);
+      } else {
+        // cidade não encontrada no cache — fallback para busca por nome
+        condicoes.push(`municipio ILIKE $${idx++}`);
+        params.push(`%${cidade}%`);
+      }
+    }
+    // raio > 150 = sem filtro de localização (nacional)
+  }
+
   const where = condicoes.join(' AND ');
 
   const { rows: [{ n }] } = await db.query(
@@ -123,11 +150,13 @@ async function listarEditais(req, res) {
   const {
     dataInicial,
     dataFinal,
-    pagina       = 1,
+    pagina        = 1,
     tamanhoPagina = 10,
     q,
     uf,
     modalidade,
+    cidade,
+    raio_km,
   } = req.query;
 
   if (!dataInicial || !dataFinal) {
@@ -148,7 +177,7 @@ async function listarEditais(req, res) {
 
   const tamanhoSolicitado = Math.max(Number(tamanhoPagina), 10);
   const paginaSolicitada  = Math.max(Number(pagina), 1);
-  const filtraLocal       = !!(q || uf);
+  const filtraLocal       = !!(q || uf || cidade);
 
   try {
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
@@ -183,7 +212,7 @@ async function listarEditais(req, res) {
     if (totalCache >= 100) {
       // Cache populado → busca no banco (cobertura 100% dos editais sincronizados)
       const { total, dados } = await buscarNaCache({
-        q, uf, modalidade, dataInicial, dataFinal,
+        q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km,
         pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado,
       });
 
@@ -242,6 +271,13 @@ async function listarEditais(req, res) {
     if (uf) {
       const ufUpper = uf.toUpperCase();
       dados = dados.filter((item) => (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper);
+    }
+
+    if (cidade) {
+      const cidadeLower = semAcento(cidade);
+      dados = dados.filter((item) =>
+        semAcento(item.unidadeOrgao?.municipioNome ?? '').includes(cidadeLower),
+      );
     }
 
     const vistos = new Set();

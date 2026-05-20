@@ -1,5 +1,7 @@
 const db = require('../database/db');
 const { analisarPregao, chamarClaude } = require('../services/edsonService');
+const { gerarPlanilhaXLSX } = require('../services/planilhaService');
+const { gerarRelatorioPDF }  = require('../services/relatorioService');
 
 async function listar(req, res) {
   try {
@@ -54,6 +56,7 @@ async function obter(req, res) {
   try {
     const { rows: [analise] } = await db.query(
       `SELECT a.*, p.numero AS pregao_numero, p.orgao, p.objeto,
+              p.link_pncp, p.numero_controle_pncp,
               c.nome AS cliente_nome
        FROM analises_edson a
        JOIN pregoes p ON p.id = a.pregao_id
@@ -152,7 +155,9 @@ async function planilha(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.itens, p.numero, c.nome AS cliente_nome
+      `SELECT a.itens, a.modalidade, a.tipo_julgamento,
+              p.numero, p.orgao, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome
        FROM analises_edson a
        JOIN pregoes p ON p.id = a.pregao_id
        JOIN clientes c ON c.id = p.cliente_id
@@ -161,27 +166,44 @@ async function planilha(req, res) {
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
 
-    const itens = analise.itens ?? [];
-    const cab = 'Nº Item;Descrição;Unidade;Quantidade;Valor Unitário Estimado;Meu Preço Unitário;Meu Preço Total;Observação';
-    const linhas = itens.map((item) => [
-      item.numero ?? '',
-      `"${String(item.descricao ?? '').replace(/"/g, '""')}"`,
-      item.unidade ?? '',
-      item.quantidade ?? '',
-      item.valor_unitario_estimado ?? '',
-      '',
-      '',
-      '',
-    ].join(';'));
-
-    const csv = '﻿' + [cab, ...linhas].join('\r\n');
-    const filename = `planilha-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    const buffer = await gerarPlanilhaXLSX({ analise, pregao: analise });
+    const filename = `planilha-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    return res.send(csv);
+    return res.send(buffer);
   } catch (e) {
+    console.error('[Edson] planilha:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
   }
 }
 
-module.exports = { listar, disparar, obter, chat, getChatHistorico, planilha };
+async function relatorio(req, res) {
+  const { pregao_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.*,
+              p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome, c.uf
+       FROM analises_edson a
+       JOIN pregoes p ON p.id = a.pregao_id
+       JOIN clientes c ON c.id = p.cliente_id
+       WHERE a.pregao_id = $1 AND a.status = 'pronto'`,
+      [pregao_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
+
+    const pregao  = analise;
+    const cliente = { nome: analise.cliente_nome, uf: analise.uf };
+    const buffer  = await gerarRelatorioPDF({ analise, pregao, cliente });
+
+    const filename = `relatorio-edson-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(buffer);
+  } catch (e) {
+    console.error('[Edson] relatorio:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { listar, disparar, obter, chat, getChatHistorico, planilha, relatorio };

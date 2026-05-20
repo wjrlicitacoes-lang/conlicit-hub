@@ -127,6 +127,7 @@ async function executarMigracoes() {
 
   // Edson — análise de IA por pregão
   await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS numero_controle_pncp VARCHAR(100)`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS link_pncp TEXT`);
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS analises_edson (

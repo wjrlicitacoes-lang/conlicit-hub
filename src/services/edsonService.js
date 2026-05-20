@@ -4,13 +4,23 @@ const db = require('../database/db');
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const PNCP_BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1';
 
+function parsearControle(numeroControle) {
+  // Formato: "45298569000113-1-000053/2026"
+  const partes = numeroControle.split('-');
+  const cnpj = partes[0];
+  const resto = partes[partes.length - 1]; // "000053/2026"
+  const [seq, ano] = resto.split('/');
+  return { cnpj, ano, seq: parseInt(seq, 10).toString() };
+}
+
 async function buscarItensPNCP(cnpj, ano, seq) {
   try {
     const { data } = await axios.get(
       `${PNCP_BASE}/orgaos/${cnpj}/compras/${ano}/${seq}/itens`,
-      { params: { pagina: 1, tamanhoPagina: 500 }, timeout: 15000 },
+      { timeout: 10000 },
     );
-    return data.data ?? [];
+    // O endpoint de itens retorna array direto; endpoint de busca retorna { data: [] }
+    return Array.isArray(data) ? data : (data.data ?? []);
   } catch {
     return [];
   }
@@ -103,9 +113,13 @@ async function analisarPregao(analiseId, pregaoId) {
     let itensPNCP = [];
 
     if (pregao.numero_controle_pncp) {
-      // Formato: {CNPJ}-1-{SEQ:06}/{ANO}
-      const m = pregao.numero_controle_pncp.match(/^(\d+)-\d+-0*(\d+)\/(\d{4})$/);
-      if (m) itensPNCP = await buscarItensPNCP(m[1], m[3], m[2]);
+      try {
+        const { cnpj, ano, seq } = parsearControle(pregao.numero_controle_pncp);
+        itensPNCP = await buscarItensPNCP(cnpj, ano, seq);
+        console.log(`[Edson] PNCP ${pregao.numero_controle_pncp}: ${itensPNCP.length} item(s)`);
+      } catch (e) {
+        console.warn('[Edson] Falha ao parsear número de controle:', e.message);
+      }
     }
 
     const { data } = await axios.post(

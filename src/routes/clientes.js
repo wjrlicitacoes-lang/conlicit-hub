@@ -1,6 +1,6 @@
 const express = require('express');
 const { cadastrar, listar, atualizar, stats } = require('../controllers/clientesController');
-const pregoes      = require('../controllers/pregoesController');
+const pregoes = require('../controllers/pregoesController');
 const mensalidades = require('../controllers/mensalidadesController');
 const documentos   = require('../controllers/documentosController');
 
@@ -17,6 +17,7 @@ router.patch('/:id', atualizar);
 router.get('/:id/pregoes',             pregoes.listar);
 router.post('/:id/pregoes',            pregoes.criar);
 router.patch('/:id/pregoes/:pid',      pregoes.atualizar);
+router.delete('/:id/pregoes/:pid',     pregoes.remover);
 
 router.get('/:id/mensalidades',        mensalidades.listar);
 router.post('/:id/mensalidades',       mensalidades.criar);
