@@ -34,7 +34,7 @@ async function login(req, res) {
 
   try {
     const resultado = await db.query(
-      'SELECT id, email, senha_hash, role FROM usuarios WHERE email = $1',
+      'SELECT id, email, senha_hash, role, cliente_id FROM usuarios WHERE email = $1',
       [email.trim().toLowerCase()],
     );
 
@@ -44,7 +44,7 @@ async function login(req, res) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
 
     const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, role: usuario.role },
+      { id: usuario.id, email: usuario.email, role: usuario.role, cliente_id: usuario.cliente_id ?? null },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRACAO || '8h' },
     );
@@ -57,28 +57,36 @@ async function login(req, res) {
 }
 
 function me(req, res) {
-  return res.json({ id: req.usuario.id, email: req.usuario.email, role: req.usuario.role });
+  return res.json({
+    id: req.usuario.id,
+    email: req.usuario.email,
+    role: req.usuario.role,
+    cliente_id: req.usuario.cliente_id ?? null,
+  });
 }
 
 async function criarUsuario(req, res) {
   if (req.usuario.role !== 'admin')
     return res.status(403).json({ erro: 'Acesso negado' });
 
-  const { nome, email, senha, role } = req.body ?? {};
+  const { nome, email, senha, role, cliente_id } = req.body ?? {};
   if (!email || !senha)
     return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
-  if (!['admin', 'assistente'].includes(role))
-    return res.status(400).json({ erro: 'Role inválido (use admin ou assistente)' });
+  if (!['admin', 'assistente', 'cliente'].includes(role))
+    return res.status(400).json({ erro: 'Role inválido (use admin, assistente ou cliente)' });
+  if (role === 'cliente' && !cliente_id)
+    return res.status(400).json({ erro: 'cliente_id é obrigatório para o role cliente' });
   if (senha.length < 6)
     return res.status(400).json({ erro: 'Senha deve ter no mínimo 6 caracteres' });
 
   try {
     const senhaHash = await bcrypt.hash(senha, 10);
+    const cid = role === 'cliente' ? parseInt(cliente_id, 10) : null;
     const { rows } = await db.query(
-      `INSERT INTO usuarios (nome, email, senha_hash, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, nome, email, role, criado_em`,
-      [nome?.trim() || null, email.trim().toLowerCase(), senhaHash, role],
+      `INSERT INTO usuarios (nome, email, senha_hash, role, cliente_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, nome, email, role, cliente_id, criado_em`,
+      [nome?.trim() || null, email.trim().toLowerCase(), senhaHash, role, cid],
     );
     return res.status(201).json(rows[0]);
   } catch (erro) {
@@ -94,7 +102,11 @@ async function listarUsuarios(req, res) {
 
   try {
     const { rows } = await db.query(
-      'SELECT id, nome, email, role, criado_em FROM usuarios ORDER BY criado_em DESC',
+      `SELECT u.id, u.nome, u.email, u.role, u.cliente_id, u.criado_em,
+              c.nome AS cliente_nome
+       FROM usuarios u
+       LEFT JOIN clientes c ON c.id = u.cliente_id
+       ORDER BY u.criado_em DESC`,
     );
     return res.json({ total: rows.length, dados: rows });
   } catch (erro) {

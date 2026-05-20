@@ -22,6 +22,25 @@ const MODALIDADES = {
   'pre-qualificacao': 11, 'pré-qualificação': 11,
 };
 
+function detectarPortal(link) {
+  if (!link) return null;
+  try {
+    const host = new URL(link).hostname.replace(/^www\./, '');
+    if (host.includes('pncp.gov.br'))        return 'PNCP';
+    if (host.includes('comprasnet.gov.br'))   return 'ComprasNet';
+    if (host.includes('bec.sp.gov.br'))       return 'BEC/SP';
+    if (host.includes('licitacoes-e.com.br')) return 'Licitações-e';
+    if (host.includes('comprasbr.gov.br'))    return 'ComprasBR';
+    if (host.includes('bbmnet.com.br'))       return 'BBMNet';
+    if (host.includes('banrisul.com.br'))     return 'Banrisul';
+    if (host.includes('caixa.gov.br'))        return 'Caixa';
+    if (host.includes('gov.br'))             return 'Gov.br';
+    return host;
+  } catch {
+    return null;
+  }
+}
+
 function formatarMoeda(valor) {
   if (valor == null) return null;
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -59,11 +78,12 @@ function formatarEdital(item) {
     link:                     cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null,
     linkSistemaOrigem:        item.linkSistemaOrigem ?? raw.linkSistemaOrigem ?? null,
     dataEncerramento:         item.dataEncerramentoProposta ?? item.data_encerramento ?? null,
+    portal_disputa:           detectarPortal(item.linkSistemaOrigem ?? raw.linkSistemaOrigem ?? null),
   };
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, pagina, tamanhoPagina }) {
+async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal, pagina, tamanhoPagina }) {
   const condicoes = [`data_encerramento >= NOW()`];
   const params = [];
   let idx = 1;
@@ -125,6 +145,25 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade
     // raio > 150 = sem filtro de localização (nacional)
   }
 
+  if (portal) {
+    // Filtra pelo portal detectado no campo raw->linkSistemaOrigem
+    const portalMap = {
+      pncp:           '%pncp.gov.br%',
+      comprasnet:     '%comprasnet.gov.br%',
+      'bec/sp':       '%bec.sp.gov.br%',
+      'licitacoes-e': '%licitacoes-e.com.br%',
+      comprasbr:      '%comprasbr.gov.br%',
+      bbmnet:         '%bbmnet.com.br%',
+      banrisul:       '%banrisul.com.br%',
+      caixa:          '%caixa.gov.br%',
+    };
+    const pattern = portalMap[portal.toLowerCase()];
+    if (pattern) {
+      condicoes.push(`raw->>'linkSistemaOrigem' ILIKE $${idx++}`);
+      params.push(pattern);
+    }
+  }
+
   const where = condicoes.join(' AND ');
 
   const { rows: [{ n }] } = await db.query(
@@ -157,6 +196,7 @@ async function listarEditais(req, res) {
     modalidade,
     cidade,
     raio_km,
+    portal,
   } = req.query;
 
   if (!dataInicial || !dataFinal) {
@@ -177,7 +217,7 @@ async function listarEditais(req, res) {
 
   const tamanhoSolicitado = Math.max(Number(tamanhoPagina), 10);
   const paginaSolicitada  = Math.max(Number(pagina), 1);
-  const filtraLocal       = !!(q || uf || cidade);
+  const filtraLocal       = !!(q || uf || cidade || portal);
 
   try {
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
@@ -212,7 +252,7 @@ async function listarEditais(req, res) {
     if (totalCache >= 100) {
       // Cache populado → busca no banco (cobertura 100% dos editais sincronizados)
       const { total, dados } = await buscarNaCache({
-        q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km,
+        q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal,
         pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado,
       });
 

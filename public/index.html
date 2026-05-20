@@ -868,6 +868,11 @@
 
     /* ── ROLE ACCESS ── */
     body.role-assistente [data-admin-only] { display: none !important; }
+    body.role-cliente [data-admin-only]   { display: none !important; }
+    body.role-cliente [data-staff-only]   { display: none !important; }
+    body.role-cliente .nav-item:not([data-cliente-visible]) { display: none !important; }
+    body.role-cliente .sidebar-section-label:not([data-cliente-visible]) { display: none !important; }
+    .s-oferta { background: rgba(76,197,215,.12); color: var(--primary); border: 1px solid rgba(76,197,215,.3); }
 
     /* ── EDSON ── */
     .edson-card {
@@ -1045,36 +1050,46 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <nav class="sidebar-nav">
-        <div class="sidebar-section-label">Principal</div>
-        <button class="nav-item active" data-nav="dashboard" onclick="navTo('dashboard')">
+        <!-- Visível para staff (admin/assistente) -->
+        <div class="sidebar-section-label" data-staff-only>Principal</div>
+        <button class="nav-item active" data-nav="dashboard" onclick="navTo('dashboard')" data-staff-only>
           <span class="nav-icon">📊</span>
           <span class="nav-label">Dashboard</span>
         </button>
-        <button class="nav-item" data-nav="editais" onclick="navTo('editais')">
+
+        <!-- Visível para todos -->
+        <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-cliente-visible>
           <span class="nav-icon">🔍</span>
           <span class="nav-label">Buscar Editais</span>
         </button>
 
-        <div class="sidebar-section-label" style="margin-top:.5rem">Gestão</div>
-        <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')">
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>Gestão</div>
+        <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
           <span class="nav-icon">👥</span>
           <span class="nav-label">Clientes</span>
         </button>
-        <button class="nav-item" data-nav="boletins" onclick="navTo('boletins')">
+        <button class="nav-item" data-nav="boletins" onclick="navTo('boletins')" data-staff-only>
           <span class="nav-icon">📨</span>
           <span class="nav-label">Boletins</span>
         </button>
-        <button class="nav-item" data-nav="monitor" onclick="navTo('monitor')">
+        <button class="nav-item" data-nav="monitor" onclick="navTo('monitor')" data-staff-only>
           <span class="nav-icon">🔔</span>
           <span class="nav-label">Monitor</span>
         </button>
-        <button class="nav-item" data-nav="calendario" onclick="navTo('calendario')">
+        <button class="nav-item" data-nav="calendario" onclick="navTo('calendario')" data-staff-only>
           <span class="nav-icon">📅</span>
           <span class="nav-label">Calendário</span>
         </button>
-        <button class="nav-item" data-nav="edson" onclick="navTo('edson')">
+        <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
           <span class="nav-icon">🤖</span>
           <span class="nav-label">Edson IA</span>
+        </button>
+
+        <!-- Exclusivo para role cliente -->
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-cliente-visible id="nav-label-cliente" hidden>Minha Conta</div>
+        <button class="nav-item" data-nav="minha-area" onclick="navTo('minha-area')" data-cliente-visible id="nav-minha-area" hidden>
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Minha Área</span>
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
@@ -1164,6 +1179,20 @@
                 <option value="150">Até 150 km</option>
                 <option value="200">Estado inteiro</option>
                 <option value="999">Todo o Brasil</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="filtro-portal">Portal</label>
+              <select id="filtro-portal">
+                <option value="">Todos os portais</option>
+                <option value="pncp">PNCP</option>
+                <option value="comprasnet">ComprasNet</option>
+                <option value="bec/sp">BEC/SP</option>
+                <option value="licitacoes-e">Licitações-e</option>
+                <option value="comprasbr">ComprasBR</option>
+                <option value="bbmnet">BBMNet</option>
+                <option value="banrisul">Banrisul</option>
+                <option value="caixa">Caixa</option>
               </select>
             </div>
           </div>
@@ -1301,11 +1330,18 @@
                 </div>
                 <div class="form-group">
                   <label for="nu-role">Nível de acesso *</label>
-                  <select id="nu-role">
+                  <select id="nu-role" onchange="toggleClienteField()">
                     <option value="assistente">Assistente</option>
                     <option value="admin">Admin</option>
+                    <option value="cliente">Cliente (acesso restrito)</option>
                   </select>
                 </div>
+              </div>
+              <div id="nu-cliente-field" style="display:none" class="form-group">
+                <label for="nu-cliente-id">Cliente vinculado *</label>
+                <select id="nu-cliente-id">
+                  <option value="">Carregando clientes…</option>
+                </select>
               </div>
               <div id="alert-novo-usuario" class="alert"></div>
               <button type="submit" class="btn btn-primary" id="btn-salvar-usuario">Criar usuário</button>
@@ -1314,6 +1350,35 @@
           <div id="usuarios-lista">
             <div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>
           </div>
+        </div>
+      </section>
+
+      <!-- ── MINHA ÁREA (role cliente) ── -->
+      <section id="section-minha-area" class="section">
+        <div class="section-header">
+          <div>
+            <h1>Minha Área</h1>
+            <p style="color:var(--text-muted);font-size:.83rem;margin-top:.2rem" id="ma-subtitulo">Seus pregões e análises</p>
+          </div>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarMinhaArea()">↻ Atualizar</button>
+          </div>
+        </div>
+
+        <!-- Métricas rápidas -->
+        <div id="ma-metrics" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem"></div>
+
+        <!-- Tabs ofertas / pregões -->
+        <div class="tab-bar" style="margin-bottom:1rem">
+          <button class="tab-btn active" data-ma-tab="ofertas" onclick="switchMaTab('ofertas')">Ofertas pendentes</button>
+          <button class="tab-btn" data-ma-tab="pregoes" onclick="switchMaTab('pregoes')">Meus pregões</button>
+        </div>
+
+        <div id="ma-tab-ofertas" class="tab-pane active">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+        <div id="ma-tab-pregoes" class="tab-pane">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
         </div>
       </section>
 
@@ -1447,9 +1512,25 @@
         <label>Número de controle PNCP</label>
         <input id="of-controle" placeholder="45298569000113-1-000053/2026" />
       </div>
-      <div class="form-group">
-        <label>Link do edital</label>
-        <input id="of-link" type="url" placeholder="https://pncp.gov.br/app/editais/..." />
+      <div class="form-row">
+        <div class="form-group">
+          <label>Link do edital</label>
+          <input id="of-link" type="url" placeholder="https://pncp.gov.br/app/editais/..." />
+        </div>
+        <div class="form-group">
+          <label>Portal de disputa</label>
+          <select id="of-portal">
+            <option value="">Detectar automaticamente</option>
+            <option value="PNCP">PNCP</option>
+            <option value="ComprasNet">ComprasNet</option>
+            <option value="BEC/SP">BEC/SP</option>
+            <option value="Licitações-e">Licitações-e</option>
+            <option value="ComprasBR">ComprasBR</option>
+            <option value="BBMNet">BBMNet</option>
+            <option value="Banrisul">Banrisul</option>
+            <option value="Caixa">Caixa</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Objeto</label>
@@ -1648,13 +1729,19 @@
   let tabsLoaded = {};
   let activeSection = 'dashboard';
   let userRole = null;
+  let userClienteId = null;
 
-  function isAdmin() { return userRole === 'admin'; }
+  function isAdmin()    { return userRole === 'admin'; }
+  function isCliente()  { return userRole === 'cliente'; }
 
   async function fetchRoleAndShowApp() {
     try {
       const r = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) userRole = (await r.json()).role;
+      if (r.ok) {
+        const me = await r.json();
+        userRole = me.role;
+        userClienteId = me.cliente_id ?? null;
+      }
     } catch { /* token válido mas /me falhou — continua sem role */ }
     showApp();
   }
@@ -1733,7 +1820,7 @@
   function logout() {
     localStorage.removeItem('ch_token');
     localStorage.removeItem('ch_email');
-    token = null; currentEmail = null; userRole = null;
+    token = null; currentEmail = null; userRole = null; userClienteId = null;
     document.getElementById('app-section').classList.remove('visible');
     document.getElementById('auth-section').style.display = 'flex';
     document.getElementById('btn-logout').style.display = 'none';
@@ -1750,14 +1837,20 @@
     badge.textContent = currentEmail || '';
     badge.classList.add('visible');
 
-    // Aplicar restrições de role
-    document.body.classList.toggle('role-assistente', !isAdmin());
-    const adminEl = isAdmin();
-    document.getElementById('nav-usuarios').hidden = !adminEl;
-    document.getElementById('nav-label-admin').hidden = !adminEl;
+    // Aplicar classes de role no body
+    document.body.classList.toggle('role-assistente', userRole === 'assistente');
+    document.body.classList.toggle('role-cliente',    userRole === 'cliente');
+
+    const admin    = isAdmin();
+    const cliente  = isCliente();
+
+    document.getElementById('nav-usuarios').hidden    = !admin;
+    document.getElementById('nav-label-admin').hidden = !admin;
+    document.getElementById('nav-minha-area').hidden  = !cliente;
+    document.getElementById('nav-label-cliente').hidden = !cliente;
 
     setDefaultDates();
-    navTo('dashboard');
+    navTo(cliente ? 'minha-area' : 'dashboard');
   }
 
   // ─────────────────────────────────────────
@@ -1766,9 +1859,9 @@
   function navTo(section) {
     activeSection = section;
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`section-${section}`).classList.add('active');
+    document.getElementById(`section-${section}`)?.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelector(`[data-nav="${section}"]`).classList.add('active');
+    document.querySelector(`[data-nav="${section}"]`)?.classList.add('active');
 
     if (section === 'dashboard')       carregarDashboard();
     else if (section === 'clientes')   carregarClientes();
@@ -1777,6 +1870,7 @@
     else if (section === 'usuarios')   carregarUsuarios();
     else if (section === 'calendario') carregarCalendario();
     else if (section === 'edson')      carregarEdson();
+    else if (section === 'minha-area') carregarMinhaArea();
   }
 
   // ─────────────────────────────────────────
@@ -2036,6 +2130,20 @@
               <input id="pn-num-controle" placeholder="Ex: 45298569000113-1-000053/2026" />
               <p style="font-size:.68rem;color:var(--text-muted);margin-top:.3rem">Encontre no PNCP → copie o número de controle para análise precisa</p>
             </div>
+            <div class="form-group" style="margin:0">
+              <label>Portal de disputa</label>
+              <select id="pn-portal">
+                <option value="">Selecione…</option>
+                <option value="PNCP">PNCP</option>
+                <option value="ComprasNet">ComprasNet</option>
+                <option value="BEC/SP">BEC/SP</option>
+                <option value="Licitações-e">Licitações-e</option>
+                <option value="ComprasBR">ComprasBR</option>
+                <option value="BBMNet">BBMNet</option>
+                <option value="Banrisul">Banrisul</option>
+                <option value="Caixa">Caixa</option>
+              </select>
+            </div>
           </div>
           <div style="display:flex;gap:.5rem">
             <button class="btn btn-primary btn-sm" onclick="salvarPregao()">Salvar</button>
@@ -2077,15 +2185,16 @@
     return `<div style="overflow-x:hidden"><table class="data-table" style="table-layout:fixed;width:100%">
       <colgroup>
         <col style="width:110px">
-        <col style="width:140px">
+        <col style="width:130px">
         <col style="min-width:0;width:auto">
-        <col style="width:90px">
-        <col style="width:110px">
-        <col style="width:90px">
-        <col style="width:160px">
+        <col style="width:80px">
+        <col style="width:100px">
+        <col style="width:80px">
+        <col style="width:85px">
+        <col style="width:155px">
       </colgroup>
       <thead><tr>
-        <th>Número</th><th>Órgão</th><th>Objeto</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th>
+        <th>Número</th><th>Órgão</th><th>Objeto</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th>Portal</th><th></th>
       </tr></thead>
       <tbody>${lista.map(p => `<tr data-pid="${p.id}">
         <td style="${ellipsis}"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
@@ -2094,6 +2203,7 @@
         <td class="td-muted" style="white-space:nowrap">${fmtDataAbreviada(p)}</td>
         <td style="white-space:nowrap">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
         <td><span class="s-badge s-${p.status}" style="font-size:.7rem;padding:2px 6px">${p.status.replace('_',' ')}</span></td>
+        <td>${p.portal_disputa ? portalBadge(p.portal_disputa, p.link_pncp) : '<span style="color:var(--text-muted);font-size:.75rem">—</span>'}</td>
         <td><div class="td-actions" style="flex-wrap:nowrap;gap:.2rem">
           ${mostraAcoes ? `
           <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})" style="font-size:11px;padding:3px 8px">Vencido</button>
@@ -2145,6 +2255,7 @@
       valor_estimado:       parseFloat(document.getElementById('pn-valor').value) || null,
       link_pncp:            document.getElementById('pn-link-pncp').value.trim() || null,
       numero_controle_pncp: document.getElementById('pn-num-controle').value.trim() || null,
+      portal_disputa:       document.getElementById('pn-portal').value || null,
     };
     try {
       const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes`, {
@@ -2234,7 +2345,9 @@
     const dtLocal = p.data_hora_abertura ? toLocalInput(p.data_hora_abertura) : '';
     const row = document.createElement('tr');
     row.id = `edit-form-${pid}`;
-    row.innerHTML = `<td colspan="7" style="padding:.75rem .65rem;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
+    const epPortalOpts = ['PNCP','ComprasNet','BEC/SP','Licitações-e','ComprasBR','BBMNet','Banrisul','Caixa']
+      .map(v => `<option value="${v}" ${p.portal_disputa===v?'selected':''}>${v}</option>`).join('');
+    row.innerHTML = `<td colspan="8" style="padding:.75rem .65rem;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-bottom:.5rem">
         <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Número *</label>
           <input id="ep-numero-${pid}" value="${esc(p.numero||'')}" style="width:100%;${inputSty()}" /></div>
@@ -2250,6 +2363,10 @@
             <option value="vencido"    ${p.status==='vencido'?'selected':''}>Vencido</option>
             <option value="perdido"    ${p.status==='perdido'?'selected':''}>Perdido</option>
             <option value="cancelado"  ${p.status==='cancelado'?'selected':''}>Cancelado</option>
+          </select></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Portal de disputa</label>
+          <select id="ep-portal-${pid}" style="width:100%;${inputSty()}">
+            <option value="">Nenhum</option>${epPortalOpts}
           </select></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
@@ -2287,6 +2404,7 @@
       status:               document.getElementById(`ep-status-${pid}`)?.value || null,
       link_pncp:            document.getElementById(`ep-link-${pid}`)?.value.trim() || null,
       numero_controle_pncp: novoControle,
+      portal_disputa:       document.getElementById(`ep-portal-${pid}`)?.value || null,
     };
     try {
       const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
@@ -2709,15 +2827,18 @@
       }
       const roleBadge = r => r === 'admin'
         ? '<span class="s-badge s-vencido">Admin</span>'
+        : r === 'cliente'
+        ? '<span class="s-badge s-oferta">Cliente</span>'
         : '<span class="s-badge s-pendente">Assistente</span>';
       lista.innerHTML = `
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Criado em</th></tr></thead>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Cliente vinculado</th><th>Criado em</th></tr></thead>
             <tbody>${dados.map(u => `<tr>
               <td>${esc(u.nome || '—')}</td>
               <td class="td-muted">${esc(u.email)}</td>
               <td>${roleBadge(u.role)}</td>
+              <td class="td-muted">${u.cliente_nome ? esc(u.cliente_nome) : '—'}</td>
               <td class="td-muted">${u.criado_em ? new Date(u.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
             </tr>`).join('')}</tbody>
           </table>
@@ -2727,16 +2848,34 @@
     }
   }
 
+  async function toggleClienteField() {
+    const role = document.getElementById('nu-role').value;
+    const field = document.getElementById('nu-cliente-field');
+    field.style.display = role === 'cliente' ? 'block' : 'none';
+    if (role === 'cliente' && document.getElementById('nu-cliente-id').options.length <= 1) {
+      // Carregar lista de clientes
+      try {
+        const r = await fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } });
+        const { dados = [] } = await r.json();
+        document.getElementById('nu-cliente-id').innerHTML =
+          '<option value="">Selecione o cliente *</option>' +
+          dados.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      } catch { /* mantém placeholder */ }
+    }
+  }
+
   async function salvarNovoUsuario(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-salvar-usuario');
     btn.disabled = true; btn.textContent = 'Criando…';
     hideAlert('alert-novo-usuario');
+    const role = document.getElementById('nu-role').value;
     const body = {
-      nome:  document.getElementById('nu-nome').value.trim() || null,
-      email: document.getElementById('nu-email').value.trim(),
-      senha: document.getElementById('nu-senha').value,
-      role:  document.getElementById('nu-role').value,
+      nome:       document.getElementById('nu-nome').value.trim() || null,
+      email:      document.getElementById('nu-email').value.trim(),
+      senha:      document.getElementById('nu-senha').value,
+      role,
+      cliente_id: role === 'cliente' ? parseInt(document.getElementById('nu-cliente-id').value) || null : null,
     };
     try {
       const r = await fetch(`${API}/auth/usuarios`, {
@@ -2747,6 +2886,7 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao criar usuário');
       document.getElementById('form-novo-usuario').reset();
+      document.getElementById('nu-cliente-field').style.display = 'none';
       toast('Usuário criado com sucesso!', 'success');
       carregarUsuarios();
     } catch (err) {
@@ -2999,6 +3139,15 @@
     document.getElementById('of-controle').value = e.numeroEdital || '';
     document.getElementById('of-link').value     = e.linkSistemaOrigem || e.link || '';
     document.getElementById('of-objeto').value   = e.objeto || '';
+    // Pre-fill portal from detected value; user can override
+    const detectedPortal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem || e.link);
+    const portalSel = document.getElementById('of-portal');
+    if (detectedPortal) {
+      const opt = [...portalSel.options].find(o => o.value === detectedPortal);
+      portalSel.value = opt ? detectedPortal : '';
+    } else {
+      portalSel.value = '';
+    }
 
     // Carregar clientes ativos
     const sel = document.getElementById('of-cliente');
@@ -3026,13 +3175,16 @@
     const numero = document.getElementById('of-numero').value.trim();
     if (!numero) { toast('Número do pregão é obrigatório', 'error'); return; }
 
+    const ofLink   = document.getElementById('of-link').value.trim() || null;
+    const ofPortal = document.getElementById('of-portal').value || detectarPortal(ofLink) || null;
     const body = {
       numero,
       objeto:               document.getElementById('of-objeto').value.trim() || null,
       data_hora_abertura:   document.getElementById('of-dha').value || null,
       numero_controle_pncp: document.getElementById('of-controle').value.trim() || null,
-      link_pncp:            document.getElementById('of-link').value.trim() || null,
-      status:               'a_disputar',
+      link_pncp:            ofLink,
+      portal_disputa:       ofPortal,
+      status:               'oferta', // cliente aceita/rejeita na Minha Área (duas etapas)
     };
 
     try {
@@ -3060,15 +3212,16 @@
     const uf     = document.getElementById('uf').value;
     const di     = document.getElementById('dataInicial').value;
     const df     = document.getElementById('dataFinal').value;
-    const cidade = document.getElementById('cidade')?.value.trim() || '';
-    const raio   = document.getElementById('raio_km')?.value || '0';
+    const cidade  = document.getElementById('cidade')?.value.trim() || '';
+    const raio    = document.getElementById('raio_km')?.value || '0';
+    const portal  = document.getElementById('filtro-portal')?.value || '';
 
     if (!di || !df) { toast('Informe o período de busca', 'error'); return; }
     if (new Date(di) > new Date(df)) { toast('Data inicial deve ser anterior à data final', 'error'); return; }
 
     const dataInicial = di.replace(/-/g, '');
     const dataFinal   = df.replace(/-/g, '');
-    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio };
+    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal };
     currentPage = pagina;
 
     const btn = document.getElementById('btn-buscar');
@@ -3082,6 +3235,7 @@
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
     if (cidade && parseInt(raio) < 999) { params.set('cidade', cidade); params.set('raio_km', raio); }
+    if (portal) params.set('portal', portal);
 
     try {
       const r = await fetch(`${API}/editais?${params}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -3130,10 +3284,12 @@
     const objeto = e.objeto || '—';
     const valor = e.valorEstimado || '—';
     const local = [e.municipio, e.estado].filter(Boolean).join(' · ') || '—';
+    const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
     return `<div class="card">
       <div class="card-header">
         <span class="card-numero">${esc(e.numeroEdital || '—')}</span>
         ${e.modalidade ? `<span class="card-modalidade">${esc(e.modalidade)}</span>` : ''}
+        ${portal ? portalBadge(portal, e.linkSistemaOrigem || e.link) : ''}
       </div>
       <div class="card-orgao">${esc(e.orgao || '—')}</div>
       <div class="card-objeto" title="${esc(objeto)}">${esc(objeto)}</div>
@@ -3190,6 +3346,42 @@
   // ─────────────────────────────────────────
   function esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function detectarPortal(link) {
+    if (!link) return null;
+    try {
+      const host = new URL(link).hostname.replace(/^www\./, '');
+      if (host.includes('pncp.gov.br'))        return 'PNCP';
+      if (host.includes('comprasnet.gov.br'))   return 'ComprasNet';
+      if (host.includes('bec.sp.gov.br'))       return 'BEC/SP';
+      if (host.includes('licitacoes-e.com.br')) return 'Licitações-e';
+      if (host.includes('comprasbr.gov.br'))    return 'ComprasBR';
+      if (host.includes('bbmnet.com.br'))       return 'BBMNet';
+      if (host.includes('banrisul.com.br'))     return 'Banrisul';
+      if (host.includes('caixa.gov.br'))        return 'Caixa';
+      if (host.includes('gov.br'))             return 'Gov.br';
+      return host;
+    } catch { return null; }
+  }
+
+  const PORTAL_COLORS = {
+    'PNCP':          { bg: 'rgba(76,197,215,.18)', color: '#4CC5D7', border: 'rgba(76,197,215,.4)' },
+    'ComprasNet':    { bg: 'rgba(59,130,246,.15)', color: '#60a5fa', border: 'rgba(59,130,246,.35)' },
+    'BEC/SP':        { bg: 'rgba(251,146,60,.15)', color: '#fb923c', border: 'rgba(251,146,60,.35)' },
+    'Licitações-e':  { bg: 'rgba(167,139,250,.15)', color: '#a78bfa', border: 'rgba(167,139,250,.35)' },
+    'ComprasBR':     { bg: 'rgba(52,211,153,.15)', color: '#34d399', border: 'rgba(52,211,153,.35)' },
+    'BBMNet':        { bg: 'rgba(248,113,113,.15)', color: '#f87171', border: 'rgba(248,113,113,.35)' },
+    'Banrisul':      { bg: 'rgba(99,102,241,.15)', color: '#818cf8', border: 'rgba(99,102,241,.35)' },
+    'Caixa':         { bg: 'rgba(250,204,21,.15)', color: '#d97706', border: 'rgba(250,204,21,.35)' },
+  };
+
+  function portalBadge(portal, link) {
+    if (!portal) return '';
+    const c = PORTAL_COLORS[portal] || { bg: 'rgba(148,163,184,.15)', color: '#94a3b8', border: 'rgba(148,163,184,.35)' };
+    const sty = `background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:4px;font-size:.68rem;font-weight:600;padding:2px 7px;white-space:nowrap;cursor:${link ? 'pointer' : 'default'}`;
+    if (link) return `<a href="${esc(link)}" target="_blank" rel="noopener" style="${sty};text-decoration:none">${esc(portal)}</a>`;
+    return `<span style="${sty}">${esc(portal)}</span>`;
   }
 
   function showAlert(id, msg, type) {
@@ -3837,7 +4029,7 @@
     <div class="cal-card ${cls}" id="cal-card-${p.id}">
       ${timeHtml}
       <div class="cal-card-body">
-        <h4>${esc(p.numero || '—')} ${conflitoBadge}</h4>
+        <h4>${esc(p.numero || '—')} ${conflitoBadge} ${p.portal_disputa ? portalBadge(p.portal_disputa, p.link_pncp) : ''}</h4>
         <div class="cal-card-meta">
           ${esc(p.cliente_nome || '—')} · ${esc((p.orgao || '').slice(0, 40)) || '—'}
         </div>
@@ -3913,6 +4105,165 @@
       await carregarCalendario();
     } catch { alert('Erro ao salvar operador'); }
   }
+
+  // ─────────────────────────────────────────
+  // MINHA ÁREA (role cliente)
+  // ─────────────────────────────────────────
+  let maTabAtiva = 'ofertas';
+
+  function switchMaTab(tab) {
+    maTabAtiva = tab;
+    document.querySelectorAll('[data-ma-tab]').forEach(b => {
+      b.classList.toggle('active', b.dataset.maTab === tab);
+    });
+    document.getElementById('ma-tab-ofertas').classList.toggle('active', tab === 'ofertas');
+    document.getElementById('ma-tab-pregoes').classList.toggle('active', tab === 'pregoes');
+  }
+
+  async function carregarMinhaArea() {
+    if (!userClienteId) {
+      document.getElementById('ma-metrics').innerHTML =
+        '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
+      return;
+    }
+
+    document.getElementById('ma-tab-ofertas').innerHTML =
+      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    document.getElementById('ma-tab-pregoes').innerHTML =
+      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+
+    try {
+      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return; }
+      const { dados = [] } = await r.json();
+
+      const ofertas    = dados.filter(p => p.status === 'oferta');
+      const ativos     = dados.filter(p => p.status === 'a_disputar');
+      const encerrados = dados.filter(p => ['vencido','perdido','cancelado'].includes(p.status));
+
+      // Métricas
+      const proximos = ativos.filter(p => {
+        if (!p.data_hora_abertura) return false;
+        const d = new Date(p.data_hora_abertura);
+        const diff = (d - new Date()) / 86400000;
+        return diff >= 0 && diff <= 7;
+      }).length;
+      document.getElementById('ma-metrics').innerHTML = `
+        <div class="metric-card"><div class="metric-value" style="color:var(--primary)">${ofertas.length}</div><div class="metric-label">Ofertas pendentes</div></div>
+        <div class="metric-card"><div class="metric-value">${ativos.length}</div><div class="metric-label">A disputar</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--warning)">${proximos}</div><div class="metric-label">Nos próximos 7 dias</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--success)">${encerrados.filter(p=>p.status==='vencido').length}</div><div class="metric-label">Vencidos</div></div>`;
+      document.getElementById('ma-subtitulo').textContent = `${dados.length} pregão(ões) registrado(s)`;
+
+      // Tab ofertas
+      if (ofertas.length === 0) {
+        document.getElementById('ma-tab-ofertas').innerHTML =
+          '<div class="state-box"><span class="icon">📭</span><h3>Nenhuma oferta pendente</h3><p>Quando sua equipe identificar um pregão para você, ele aparecerá aqui para sua aprovação.</p></div>';
+      } else {
+        document.getElementById('ma-tab-ofertas').innerHTML =
+          '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
+      }
+
+      // Tab pregões (ativos + encerrados)
+      const todos = [...ativos, ...encerrados];
+      if (todos.length === 0) {
+        document.getElementById('ma-tab-pregoes').innerHTML =
+          '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão ainda</h3><p>Aceite as ofertas para começar a disputar pregões.</p></div>';
+      } else {
+        document.getElementById('ma-tab-pregoes').innerHTML =
+          renderMaTabelaPregoes(todos);
+      }
+    } catch (e) {
+      document.getElementById('ma-tab-ofertas').innerHTML =
+        `<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`;
+    }
+  }
+
+  function renderMaOferta(p) {
+    const dt = p.data_hora_abertura ? new Date(p.data_hora_abertura) : null;
+    const dataStr = dt && !isNaN(dt)
+      ? dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : (p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data');
+
+    return `
+    <div class="cal-card" style="border-left:3px solid var(--primary)">
+      <div class="cal-card-time">
+        <div class="cal-time-date" style="font-size:.75rem">${dataStr.split(' ')[0] || '—'}</div>
+        <div class="cal-time-hour">${dataStr.split(' ')[1] || ''}</div>
+      </div>
+      <div class="cal-card-body" style="flex:1">
+        <h4 style="margin-bottom:.2rem">${esc(p.numero || '—')}
+          <span class="s-badge s-oferta" style="font-size:.68rem;margin-left:.4rem">Oferta</span>
+        </h4>
+        <div class="cal-card-meta">${esc(p.orgao || '—')}</div>
+        ${p.objeto ? `<div style="font-size:.78rem;color:var(--text-muted);margin:.3rem 0">${esc(p.objeto.slice(0,120))}</div>` : ''}
+        ${p.valor_estimado ? `<div style="font-size:.82rem;color:var(--primary);font-weight:600;margin-bottom:.5rem">Valor estimado: ${fmtBRL(p.valor_estimado)}</div>` : ''}
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+          ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📄 Ver edital</a>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})">🤖 Ver análise</button>
+          <button class="btn btn-primary btn-sm" onclick="aceitarOferta(${p.id})">✓ Aceitar</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="rejeitarOferta(${p.id}, '${esc(p.numero||'')}')">✕ Rejeitar</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderMaTabelaPregoes(lista) {
+    const ellipsis = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    return `<div style="overflow-x:hidden"><table class="data-table" style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:120px"><col style="width:auto"><col style="width:90px">
+        <col style="width:110px"><col style="width:80px"><col style="width:80px">
+      </colgroup>
+      <thead><tr><th>Número</th><th>Objeto / Órgão</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th></tr></thead>
+      <tbody>${lista.map(p => `<tr>
+        <td style="${ellipsis}"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
+        <td style="${ellipsis}" title="${esc((p.objeto||'') + ' — ' + (p.orgao||''))}">
+          <span style="font-size:.82rem">${esc((p.objeto||'—').slice(0,60))}</span>
+          <div style="font-size:.72rem;color:var(--text-muted)">${esc((p.orgao||'').slice(0,40))}</div>
+        </td>
+        <td style="white-space:nowrap;font-size:.8rem">${fmtDataAbreviada(p)}</td>
+        <td style="white-space:nowrap;font-size:.82rem">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
+        <td><span class="s-badge s-${p.status}" style="font-size:.68rem;padding:2px 5px">${p.status.replace('_',' ')}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})" style="padding:3px 6px" title="Análise IA">🤖</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  async function aceitarOferta(pid) {
+    try {
+      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'a_disputar' }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Pregão aceito! Agora está em "Meus pregões".', 'success');
+      await carregarMinhaArea();
+    } catch (err) { toast(err.message || 'Erro ao aceitar oferta', 'error'); }
+  }
+
+  async function rejeitarOferta(pid, numero) {
+    const ok = confirm(`Rejeitar a oferta do pregão ${numero}? Ele será marcado como cancelado.`);
+    if (!ok) return;
+    try {
+      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'cancelado' }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Oferta rejeitada.', 'success');
+      await carregarMinhaArea();
+    } catch (err) { toast(err.message || 'Erro ao rejeitar oferta', 'error'); }
+  }
+
+  function verEdsonMinhaArea(pid) {
+    navTo('edson');
+    verEdson(pid);
+  }
+
 </script>
 </body>
 </html>

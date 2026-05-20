@@ -1,8 +1,9 @@
 const express = require('express');
 const { cadastrar, listar, atualizar, stats } = require('../controllers/clientesController');
-const pregoes = require('../controllers/pregoesController');
-const mensalidades = require('../controllers/mensalidadesController');
-const documentos   = require('../controllers/documentosController');
+const pregoes          = require('../controllers/pregoesController');
+const mensalidades     = require('../controllers/mensalidadesController');
+const documentos       = require('../controllers/documentosController');
+const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
 
@@ -13,11 +14,11 @@ router.post('/',     cadastrar);
 router.get('/',      listar);
 router.patch('/:id', atualizar);
 
-// Sub-recursos de cliente
-router.get('/:id/pregoes',             pregoes.listar);
-router.post('/:id/pregoes',            pregoes.criar);
-router.patch('/:id/pregoes/:pid',      pregoes.atualizar);
-router.delete('/:id/pregoes/:pid',     pregoes.remover);
+// Sub-recursos de cliente (protegerCliente garante que role=cliente só acessa o próprio id)
+router.get('/:id/pregoes',             protegerCliente, pregoes.listar);
+router.post('/:id/pregoes',            pregoes.criar);       // bloqueado no controller para cliente
+router.patch('/:id/pregoes/:pid',      protegerCliente, pregoes.atualizar);
+router.delete('/:id/pregoes/:pid',     pregoes.remover);     // bloqueado no controller para cliente
 
 router.get('/:id/mensalidades',        mensalidades.listar);
 router.post('/:id/mensalidades',       mensalidades.criar);

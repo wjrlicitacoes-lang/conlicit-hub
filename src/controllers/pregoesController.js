@@ -15,9 +15,10 @@ async function listar(req, res) {
 }
 
 async function criar(req, res) {
+  if (req.usuario?.role === 'cliente') return res.status(403).json({ erro: 'Acesso negado' });
   const { id } = req.params;
   const { numero, orgao, objeto, data_abertura, valor_estimado, status,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp } = req.body ?? {};
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa } = req.body ?? {};
 
   if (!numero) return res.status(400).json({ erro: 'numero é obrigatório' });
 
@@ -25,15 +26,16 @@ async function criar(req, res) {
     const { rows } = await db.query(
       `INSERT INTO pregoes
          (cliente_id, numero, orgao, objeto, data_abertura, valor_estimado, status,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [id, numero, orgao || null, objeto || null,
        data_abertura || null, parseFloat(valor_estimado) || null,
        status || 'a_disputar',
        data_hora_abertura || null,
        operador_id ? parseInt(operador_id) : null,
        numero_controle_pncp?.trim() || null,
-       link_pncp?.trim() || null],
+       link_pncp?.trim() || null,
+       portal_disputa?.trim() || null],
     );
     return res.status(201).json(rows[0]);
   } catch (erro) {
@@ -45,7 +47,7 @@ async function criar(req, res) {
 async function atualizar(req, res) {
   const { id, pid } = req.params;
   const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp } = req.body ?? {};
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa } = req.body ?? {};
 
   const campos = [];
   const valores = [];
@@ -70,6 +72,7 @@ async function atualizar(req, res) {
   if (operador_id           !== undefined) { campos.push(`operador_id = $${idx++}`);           valores.push(operador_id ? parseInt(operador_id) : null); }
   if (numero_controle_pncp !== undefined) { campos.push(`numero_controle_pncp = $${idx++}`); valores.push(numero_controle_pncp?.trim() || null); }
   if (link_pncp            !== undefined) { campos.push(`link_pncp = $${idx++}`);            valores.push(link_pncp?.trim() || null); }
+  if (portal_disputa       !== undefined) { campos.push(`portal_disputa = $${idx++}`);       valores.push(portal_disputa?.trim() || null); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 
@@ -89,6 +92,7 @@ async function atualizar(req, res) {
 }
 
 async function remover(req, res) {
+  if (req.usuario?.role === 'cliente') return res.status(403).json({ erro: 'Acesso negado' });
   const { id, pid } = req.params;
   try {
     const { rowCount } = await db.query(

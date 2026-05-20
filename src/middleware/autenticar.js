@@ -15,14 +15,15 @@ async function autenticar(req, res, next) {
 
     // Tokens emitidos antes de role ser adicionado ao payload não têm req.usuario.role.
     // Fallback: busca role (e id) no banco para garantir retrocompatibilidade.
-    if (!req.usuario.role && req.usuario.email) {
+    if ((!req.usuario.role || req.usuario.cliente_id === undefined) && req.usuario.email) {
       const { rows } = await db.query(
-        'SELECT id, role FROM usuarios WHERE email = $1',
+        'SELECT id, role, cliente_id FROM usuarios WHERE email = $1',
         [req.usuario.email],
       );
       if (rows[0]) {
-        req.usuario.id   = req.usuario.id   ?? rows[0].id;
-        req.usuario.role = rows[0].role;
+        req.usuario.id         = req.usuario.id   ?? rows[0].id;
+        req.usuario.role       = req.usuario.role ?? rows[0].role;
+        req.usuario.cliente_id = req.usuario.cliente_id ?? rows[0].cliente_id ?? null;
       }
     }
 

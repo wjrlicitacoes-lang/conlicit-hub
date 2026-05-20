@@ -160,6 +160,70 @@ async function executarMigracoes() {
     )
   `);
 
+  // Role cliente — terceiro role com acesso restrito
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
+
+  // Expandir CHECK de role para incluir 'cliente'
+  await db.query(`
+    DO $$
+    DECLARE r record;
+    BEGIN
+      FOR r IN
+        SELECT tc.constraint_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.check_constraints cc ON cc.constraint_name = tc.constraint_name
+        WHERE tc.table_name = 'usuarios' AND tc.constraint_type = 'CHECK'
+          AND cc.check_clause ILIKE '%role%'
+      LOOP
+        EXECUTE 'ALTER TABLE usuarios DROP CONSTRAINT ' || quote_ident(r.constraint_name);
+      END LOOP;
+    END $$
+  `);
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE check_clause ILIKE '%cliente%' AND constraint_name ILIKE '%role%'
+      ) THEN
+        ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+          CHECK (role IN ('admin','assistente','cliente'));
+      END IF;
+    END $$
+  `);
+
+  // Status 'oferta' no fluxo de duas etapas (admin oferece → cliente aceita/rejeita)
+  await db.query(`
+    DO $$
+    DECLARE r record;
+    BEGIN
+      FOR r IN
+        SELECT tc.constraint_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.check_constraints cc ON cc.constraint_name = tc.constraint_name
+        WHERE tc.table_name = 'pregoes' AND tc.constraint_type = 'CHECK'
+          AND cc.check_clause ILIKE '%status%'
+      LOOP
+        EXECUTE 'ALTER TABLE pregoes DROP CONSTRAINT ' || quote_ident(r.constraint_name);
+      END LOOP;
+    END $$
+  `);
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE check_clause ILIKE '%oferta%' AND constraint_name ILIKE '%status%'
+      ) THEN
+        ALTER TABLE pregoes ADD CONSTRAINT pregoes_status_check
+          CHECK (status IN ('a_disputar','vencido','perdido','cancelado','oferta'));
+      END IF;
+    END $$
+  `);
+
+  // Portal de disputa no pregão
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS portal_disputa VARCHAR(100)`);
+
   console.log('Migrações executadas com sucesso');
 }
 
