@@ -16,17 +16,21 @@ async function listar(req, res) {
 
 async function criar(req, res) {
   const { id } = req.params;
-  const { numero, orgao, objeto, data_abertura, valor_estimado, status } = req.body ?? {};
+  const { numero, orgao, objeto, data_abertura, valor_estimado, status,
+          data_hora_abertura, operador_id } = req.body ?? {};
 
   if (!numero) return res.status(400).json({ erro: 'numero é obrigatório' });
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO pregoes (cliente_id, numero, orgao, objeto, data_abertura, valor_estimado, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      `INSERT INTO pregoes
+         (cliente_id, numero, orgao, objeto, data_abertura, valor_estimado, status, data_hora_abertura, operador_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [id, numero, orgao || null, objeto || null,
        data_abertura || null, parseFloat(valor_estimado) || null,
-       status || 'a_disputar'],
+       status || 'a_disputar',
+       data_hora_abertura || null,
+       operador_id ? parseInt(operador_id) : null],
     );
     return res.status(201).json(rows[0]);
   } catch (erro) {
@@ -37,7 +41,8 @@ async function criar(req, res) {
 
 async function atualizar(req, res) {
   const { id, pid } = req.params;
-  const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado } = req.body ?? {};
+  const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado,
+          data_hora_abertura, operador_id } = req.body ?? {};
 
   const campos = [];
   const valores = [];
@@ -49,8 +54,17 @@ async function atualizar(req, res) {
   if (numero          !== undefined) { campos.push(`numero = $${idx++}`);          valores.push(numero); }
   if (orgao           !== undefined) { campos.push(`orgao = $${idx++}`);           valores.push(orgao); }
   if (objeto          !== undefined) { campos.push(`objeto = $${idx++}`);          valores.push(objeto); }
-  if (data_abertura   !== undefined) { campos.push(`data_abertura = $${idx++}`);   valores.push(data_abertura || null); }
-  if (valor_estimado  !== undefined) { campos.push(`valor_estimado = $${idx++}`);  valores.push(parseFloat(valor_estimado) || null); }
+  if (data_abertura       !== undefined) { campos.push(`data_abertura = $${idx++}`);       valores.push(data_abertura || null); }
+  if (valor_estimado      !== undefined) { campos.push(`valor_estimado = $${idx++}`);      valores.push(parseFloat(valor_estimado) || null); }
+  if (data_hora_abertura  !== undefined) {
+    campos.push(`data_hora_abertura = $${idx++}`);
+    valores.push(data_hora_abertura || null);
+    // Reset alert flags so alerts fire again at the new time
+    campos.push(`alerta_vespera_enviado = FALSE`);
+    campos.push(`alerta_2h_enviado = FALSE`);
+    campos.push(`alerta_1h_enviado = FALSE`);
+  }
+  if (operador_id         !== undefined) { campos.push(`operador_id = $${idx++}`);         valores.push(operador_id ? parseInt(operador_id) : null); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 

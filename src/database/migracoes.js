@@ -107,6 +107,13 @@ async function executarMigracoes() {
   await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_uf  ON editais_cache(uf)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_enc ON editais_cache(data_encerramento)`);
 
+  // Calendário de pregões
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS data_hora_abertura     TIMESTAMPTZ`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_id             INTEGER REFERENCES usuarios(id)`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_vespera_enviado  BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_2h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_1h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
+
   // Campos de contato e responsabilidade no cliente
   await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_nome       VARCHAR(255)`);
   await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_cargo      VARCHAR(100)`);
@@ -117,6 +124,40 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255)`);
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente' CHECK (role IN ('admin','assistente'))`);
   await db.query(`UPDATE usuarios SET role = 'admin' WHERE email = 'wjrlicitacoes@gmail.com'`);
+
+  // Edson — análise de IA por pregão
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS numero_controle_pncp VARCHAR(100)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS analises_edson (
+      id                  SERIAL PRIMARY KEY,
+      pregao_id           INTEGER REFERENCES pregoes(id) ON DELETE CASCADE UNIQUE,
+      status              VARCHAR(20) NOT NULL DEFAULT 'processando',
+      score               INTEGER,
+      score_justificativa TEXT,
+      resumo_executivo    TEXT,
+      modalidade          VARCHAR(100),
+      modo_disputa        VARCHAR(100),
+      tipo_julgamento     VARCHAR(100),
+      itens               JSONB NOT NULL DEFAULT '[]',
+      habilitacao         JSONB NOT NULL DEFAULT '[]',
+      riscos              JSONB NOT NULL DEFAULT '[]',
+      checklist           JSONB NOT NULL DEFAULT '{"antes":[],"durante":[]}',
+      erro_mensagem       TEXT,
+      criado_em           TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS chat_edson (
+      id          SERIAL PRIMARY KEY,
+      analise_id  INTEGER REFERENCES analises_edson(id) ON DELETE CASCADE,
+      role        VARCHAR(10) NOT NULL,
+      content     TEXT NOT NULL,
+      criado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 
   console.log('Migrações executadas com sucesso');
 }

@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { dispararBoletim } = require('../services/boletimService');
 const { sincronizarPNCP } = require('../services/pncpSyncService');
+const { processarAlertas } = require('../services/alertasService');
 
 function iniciarAgendador() {
   // Sincronização do cache PNCP — todo dia às 6h (antes do boletim das 7h)
@@ -33,8 +34,22 @@ function iniciarAgendador() {
     { timezone: 'America/Sao_Paulo' },
   );
 
+  // Alertas de pregão — a cada 30 min
+  cron.schedule(
+    '*/30 * * * *',
+    async () => {
+      try {
+        await processarAlertas();
+      } catch (e) {
+        console.error('[Cron] Erro nos alertas:', e.message);
+      }
+    },
+    { timezone: 'America/Sao_Paulo' },
+  );
+
   console.log(`[Cron] Sync PNCP agendado: "${cronSync}" (America/Sao_Paulo)`);
   console.log(`[Cron] Boletim agendado: "${cronBoletim}" (America/Sao_Paulo)`);
+  console.log('[Cron] Alertas de pregão agendados: */30 * * * * (America/Sao_Paulo)');
 }
 
 module.exports = { iniciarAgendador };

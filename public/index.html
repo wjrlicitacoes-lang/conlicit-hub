@@ -869,6 +869,115 @@
     /* ── ROLE ACCESS ── */
     body.role-assistente [data-admin-only] { display: none !important; }
 
+    /* ── EDSON ── */
+    .edson-card {
+      background: var(--sec-card); border: 1px solid var(--sec-border);
+      border-radius: var(--radius); padding: 1.25rem;
+      display: flex; align-items: flex-start; gap: 1rem; transition: border-color .2s;
+    }
+    .edson-card:hover { border-color: rgba(76,197,215,.3); }
+    .edson-score-circle {
+      width: 56px; height: 56px; border-radius: 50%; border: 3px solid;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-condensed); font-size: 1.35rem; font-weight: 700; flex-shrink: 0;
+    }
+    .edson-score-big {
+      width: 96px; height: 96px; border-radius: 50%; border: 4px solid;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .edson-score-big .score-num { font-family: var(--font-condensed); font-size: 2rem; font-weight: 700; line-height: 1; }
+    .edson-score-big .score-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .5px; margin-top: .1rem; }
+    .score-verde   { border-color: var(--primary);  color: var(--primary); }
+    .score-amarelo { border-color: var(--warning);  color: var(--warning); }
+    .score-vermelho{ border-color: var(--danger);   color: var(--danger); }
+    .edson-chat-area {
+      background: rgba(0,0,0,.15); border-radius: var(--radius-sm); padding: 1rem;
+      max-height: 420px; overflow-y: auto; display: flex; flex-direction: column;
+      gap: .75rem; margin-bottom: 1rem; scroll-behavior: smooth;
+    }
+    .edson-msg { display: flex; align-items: flex-start; gap: .55rem; }
+    .edson-msg.user { flex-direction: row-reverse; }
+    .edson-msg-bubble {
+      background: var(--sec-card); border: 1px solid var(--sec-border);
+      border-radius: var(--radius-sm); padding: .6rem .85rem; font-size: .875rem;
+      max-width: 80%; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+    }
+    .edson-msg.user .edson-msg-bubble {
+      background: rgba(76,197,215,.1); border-color: rgba(76,197,215,.25);
+    }
+    .edson-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--secondary); border: 2px solid var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; color: var(--primary); flex-shrink: 0;
+    }
+    .edson-chat-input { display: flex; gap: .5rem; align-items: flex-end; }
+    .edson-pills { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .5rem; }
+
+    /* ── CALENDÁRIO ── */
+    .cal-nav { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.5rem; }
+    .cal-nav-title {
+      font-family: var(--font-condensed); font-size: 1.3rem; font-weight: 700;
+      color: var(--text); min-width: 180px; text-align: center;
+    }
+    .cal-grid-wrap {
+      background: var(--sec-card); border: 1px solid var(--sec-border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem;
+    }
+    .cal-weekdays {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      background: rgba(0,0,0,.2); border-bottom: 1px solid var(--sec-border);
+    }
+    .cal-weekday {
+      padding: .5rem; text-align: center; font-size: .7rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted);
+    }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .cal-day {
+      min-height: 78px; padding: .45rem; border-right: 1px solid var(--sec-border);
+      border-bottom: 1px solid var(--sec-border); transition: background .15s;
+    }
+    .cal-day:nth-child(7n) { border-right: none; }
+    .cal-day.other-month { opacity: .25; }
+    .cal-day.today { background: rgba(76,197,215,.06); }
+    .cal-day-num { font-size: .75rem; font-weight: 600; color: var(--text-muted); margin-bottom: .3rem; }
+    .cal-day.today .cal-day-num { color: var(--primary); }
+    .cal-dot {
+      display: block; background: rgba(76,197,215,.12); border: 1px solid rgba(76,197,215,.25);
+      border-radius: 3px; padding: .1rem .35rem; font-size: .68rem; color: var(--primary);
+      margin-bottom: 2px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cal-dot:hover { background: rgba(76,197,215,.22); }
+    .cal-dot.conflito { background: rgba(224,92,92,.12); border-color: rgba(224,92,92,.3); color: #f08080; }
+    .cal-dot.sem-hora { background: rgba(240,168,64,.1); border-color: rgba(240,168,64,.25); color: var(--warning); }
+    .cal-list { display: flex; flex-direction: column; gap: .6rem; }
+    .cal-card {
+      background: var(--sec-card); border: 1px solid var(--sec-border);
+      border-radius: var(--radius-sm); padding: .9rem 1.1rem;
+      display: flex; align-items: flex-start; gap: .9rem;
+    }
+    .cal-card.conflito { border-left: 3px solid var(--danger); }
+    .cal-card.sem-hora  { border-left: 3px solid var(--warning); }
+    .cal-card-time {
+      min-width: 82px; text-align: center; background: rgba(0,0,0,.2);
+      border-radius: var(--radius-sm); padding: .45rem .5rem; flex-shrink: 0;
+    }
+    .cal-time-date { font-size: .68rem; color: var(--text-muted); margin-bottom: .1rem; }
+    .cal-time-hour { font-family: var(--font-condensed); font-size: 1.25rem; font-weight: 700; color: var(--primary); line-height: 1; }
+    .cal-time-no   { font-size: .68rem; color: var(--warning); }
+    .cal-card-body { flex: 1; min-width: 0; }
+    .cal-card-body h4 { font-size: .88rem; font-weight: 600; color: var(--text); margin-bottom: .15rem; }
+    .cal-card-meta { font-size: .77rem; color: var(--text-muted); margin-bottom: .35rem; }
+    .cal-card-actions { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .45rem; }
+    .cal-inline-form { margin-top: .6rem; padding: .65rem; background: rgba(0,0,0,.2); border-radius: var(--radius-sm); display: none; }
+    .cal-inline-form.open { display: block; }
+    .conflict-badge {
+      display: inline-flex; align-items: center; gap: .2rem;
+      background: rgba(224,92,92,.12); border: 1px solid rgba(224,92,92,.3);
+      border-radius: 99px; font-size: .68rem; font-weight: 700; color: #f08080; padding: .1rem .45rem;
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       :root { --sidebar-w: 56px; }
@@ -958,6 +1067,14 @@
         <button class="nav-item" data-nav="monitor" onclick="navTo('monitor')">
           <span class="nav-icon">🔔</span>
           <span class="nav-label">Monitor</span>
+        </button>
+        <button class="nav-item" data-nav="calendario" onclick="navTo('calendario')">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Calendário</span>
+        </button>
+        <button class="nav-item" data-nav="edson" onclick="navTo('edson')">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">Edson IA</span>
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
@@ -1182,6 +1299,106 @@
           <div id="usuarios-lista">
             <div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>
           </div>
+        </div>
+      </section>
+
+      <!-- ── EDSON ── -->
+      <section id="section-edson" class="section">
+
+        <!-- LIST VIEW -->
+        <div id="edson-main">
+          <div class="section-header">
+            <div>
+              <h1>Edson <span style="font-size:.75em;color:var(--primary);font-family:var(--font-condensed)">IA</span></h1>
+              <p style="color:var(--text-muted);font-size:.83rem;margin-top:.2rem">Análise inteligente de pregões com Claude</p>
+            </div>
+            <div class="section-header-actions">
+              <button class="btn btn-ghost btn-sm" onclick="carregarEdson()">↻ Atualizar</button>
+            </div>
+          </div>
+          <div id="edson-lista">
+            <div class="state-box"><div class="spinner spinner-lg"></div></div>
+          </div>
+        </div>
+
+        <!-- DETAIL VIEW -->
+        <div id="edson-detalhe" style="display:none">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Voltar</button>
+              <div>
+                <h1 id="edson-detalhe-titulo">Análise Edson</h1>
+                <p id="edson-detalhe-sub" style="color:var(--text-muted);font-size:.82rem;margin-top:.2rem"></p>
+              </div>
+            </div>
+            <div class="section-header-actions" id="edson-detalhe-acoes"></div>
+          </div>
+
+          <!-- Processando -->
+          <div id="edson-processando" class="state-box" style="padding:3rem;display:none">
+            <div class="spinner spinner-lg" style="width:3rem;height:3rem;border-width:4px"></div>
+            <h3 style="margin-top:1.25rem">Edson está analisando o pregão…</h3>
+            <p>Isso pode levar até 30 segundos</p>
+          </div>
+
+          <!-- Erro -->
+          <div id="edson-erro" style="display:none">
+            <div class="state-box" style="padding:2rem">
+              <span class="icon">❌</span>
+              <h3>Erro na análise</h3>
+              <p id="edson-erro-msg"></p>
+              <button class="btn btn-primary btn-sm" style="margin-top:1rem"
+                onclick="reanalisarEdson(edsonAtualPregaoId)">Tentar novamente</button>
+            </div>
+          </div>
+
+          <!-- Resultado -->
+          <div id="edson-resultado" style="display:none">
+            <div class="tab-bar">
+              <button class="tab-btn active" data-etab="resumo"     onclick="switchEdsonTab('resumo')">Resumo</button>
+              <button class="tab-btn"        data-etab="itens"      onclick="switchEdsonTab('itens')">Itens</button>
+              <button class="tab-btn"        data-etab="habilitacao" onclick="switchEdsonTab('habilitacao')">Habilitação</button>
+              <button class="tab-btn"        data-etab="riscos"     onclick="switchEdsonTab('riscos')">Riscos</button>
+              <button class="tab-btn"        data-etab="checklist"  onclick="switchEdsonTab('checklist')">Checklist</button>
+              <button class="tab-btn"        data-etab="chat"       onclick="switchEdsonTab('chat')">💬 Pergunte ao Edson</button>
+            </div>
+            <div id="etab-resumo"></div>
+            <div id="etab-itens"      style="display:none"></div>
+            <div id="etab-habilitacao" style="display:none"></div>
+            <div id="etab-riscos"     style="display:none"></div>
+            <div id="etab-checklist"  style="display:none"></div>
+            <div id="etab-chat"       style="display:none"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── CALENDÁRIO ── -->
+      <section id="section-calendario" class="section">
+        <div class="section-header">
+          <h1>Calendário de Pregões</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarCalendario()">↻ Atualizar</button>
+          </div>
+        </div>
+
+        <div class="cal-nav">
+          <button class="btn btn-ghost btn-sm" onclick="calMesAnterior()">‹ Anterior</button>
+          <span class="cal-nav-title" id="cal-mes-titulo">—</span>
+          <button class="btn btn-ghost btn-sm" onclick="calProximoMes()">Próximo ›</button>
+        </div>
+
+        <div class="cal-grid-wrap">
+          <div class="cal-weekdays">
+            <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div>
+            <div class="cal-weekday">Ter</div><div class="cal-weekday">Qua</div>
+            <div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div>
+            <div class="cal-weekday">Sáb</div>
+          </div>
+          <div class="cal-grid" id="cal-grade"></div>
+        </div>
+
+        <div id="cal-lista">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
         </div>
       </section>
 
@@ -1496,6 +1713,8 @@
     else if (section === 'boletins')   carregarBoletins();
     else if (section === 'monitor')    renderMonitor();
     else if (section === 'usuarios')   carregarUsuarios();
+    else if (section === 'calendario') carregarCalendario();
+    else if (section === 'edson')      carregarEdson();
   }
 
   // ─────────────────────────────────────────
@@ -1780,6 +1999,7 @@
         ${mostraAcoes ? `<td><div class="td-actions">
           <button class="btn btn-primary btn-sm" onclick="abrirMarcarVencido(${p.id})">Vencido</button>
           <button class="btn btn-ghost btn-sm" onclick="atualizarStatusPregao(${p.id},'perdido')">Perdido</button>
+          <button class="btn btn-ghost btn-sm" onclick="verEdson(${p.id})" title="Analisar com IA">🤖</button>
         </div></td>` : ''}
       </tr>`).join('')}</tbody>
     </table></div>`;
@@ -2700,6 +2920,652 @@
       document.getElementById('modal-detalhe').classList.remove('visible');
     }
   });
+
+  // ─────────────────────────────────────────
+  // EDSON IA
+  // ─────────────────────────────────────────
+  let edsonAtualPregaoId = null;
+  let edsonPollingTimer  = null;
+  let edsonAnaliseAtual  = null;
+  const EDSON_TABS = ['resumo','itens','habilitacao','riscos','checklist','chat'];
+
+  function scoreClass(s) {
+    return s >= 70 ? 'score-verde' : s >= 40 ? 'score-amarelo' : 'score-vermelho';
+  }
+  function scoreLabel(s) {
+    return s >= 70 ? 'Excelente' : s >= 40 ? 'Regular' : 'Difícil';
+  }
+
+  async function carregarEdson() {
+    const lista = document.getElementById('edson-lista');
+    lista.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/edson`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return; }
+      const { dados = [] } = await r.json();
+      if (!dados.length) {
+        lista.innerHTML = `<div class="state-box">
+          <span class="icon">🤖</span>
+          <h3>Nenhuma análise ainda</h3>
+          <p>Clique em 🤖 em um pregão "A disputar" para iniciar uma análise com o Edson.</p>
+        </div>`;
+        return;
+      }
+      lista.innerHTML = '<div style="display:flex;flex-direction:column;gap:.6rem">'
+        + dados.map(renderEdsonCard).join('') + '</div>';
+    } catch {
+      lista.innerHTML = '<p style="color:var(--text-muted)">Erro ao carregar análises.</p>';
+    }
+  }
+
+  function renderEdsonCard(a) {
+    const statusBadge = {
+      processando: '<span class="s-badge s-pendente">⟳ Processando…</span>',
+      pronto:      '<span class="s-badge s-recebido">✓ Pronto</span>',
+      erro:        '<span class="s-badge s-atrasado">✗ Erro</span>',
+    }[a.status] || '';
+
+    const circleHtml = a.status === 'processando'
+      ? '<div class="spinner" style="width:40px;height:40px;flex-shrink:0"></div>'
+      : (a.score != null
+          ? `<div class="edson-score-circle ${scoreClass(a.score)}">${a.score}</div>`
+          : `<div class="edson-score-circle score-vermelho">—</div>`);
+
+    const resumo = a.resumo_executivo
+      ? esc(a.resumo_executivo.slice(0, 160)) + (a.resumo_executivo.length > 160 ? '…' : '')
+      : '<span style="color:var(--text-muted)">—</span>';
+
+    return `<div class="edson-card">
+      ${circleHtml}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
+          <strong style="font-size:.9rem">${esc(a.cliente_nome)} — ${esc(a.pregao_numero||'—')}</strong>
+          ${statusBadge}
+        </div>
+        <div style="font-size:.77rem;color:var(--text-muted);margin-bottom:.45rem">${esc((a.orgao||'').slice(0,70))}</div>
+        <div style="font-size:.83rem;line-height:1.55;margin-bottom:.7rem">${resumo}</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="abrirEdsonDetalhe(${a.pregao_id})">Ver análise completa</button>
+          <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${a.pregao_id})">↻ Reanalisar</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function verEdson(pregaoId) {
+    navTo('edson');
+    // Show detail immediately; list loads in background
+    await abrirEdsonDetalhe(pregaoId);
+  }
+
+  async function abrirEdsonDetalhe(pregaoId) {
+    pararEdsonPolling();
+    edsonAtualPregaoId = pregaoId;
+    edsonAnaliseAtual  = null;
+
+    document.getElementById('edson-main').style.display = 'none';
+    document.getElementById('edson-detalhe').style.display = 'block';
+    document.getElementById('edson-processando').style.display = 'block';
+    document.getElementById('edson-erro').style.display = 'none';
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-detalhe-titulo').textContent = 'Carregando…';
+    document.getElementById('edson-detalhe-sub').textContent = '';
+    document.getElementById('edson-detalhe-acoes').innerHTML = '';
+
+    await _carregarEdsonDetalhe(pregaoId);
+  }
+
+  async function _carregarEdsonDetalhe(pregaoId) {
+    try {
+      let r = await fetch(`${API}/edson/${pregaoId}`, { headers: { Authorization: `Bearer ${token}` } });
+
+      if (r.status === 404) {
+        await fetch(`${API}/edson/${pregaoId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+        r = await fetch(`${API}/edson/${pregaoId}`, { headers: { Authorization: `Bearer ${token}` } });
+      }
+      if (!r.ok) throw new Error('Erro ao carregar análise');
+
+      const analise = await r.json();
+      edsonAnaliseAtual = analise;
+
+      document.getElementById('edson-detalhe-titulo').textContent =
+        `Análise — Pregão ${analise.pregao_numero || pregaoId}`;
+      document.getElementById('edson-detalhe-sub').textContent =
+        `${analise.cliente_nome || ''} · ${(analise.orgao || '').slice(0, 60)}`;
+
+      if (analise.status === 'processando') {
+        document.getElementById('edson-processando').style.display = 'block';
+        document.getElementById('edson-erro').style.display = 'none';
+        document.getElementById('edson-resultado').style.display = 'none';
+        if (!edsonPollingTimer)
+          edsonPollingTimer = setInterval(() => _carregarEdsonDetalhe(pregaoId), 3000);
+        return;
+      }
+
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+
+      if (analise.status === 'erro') {
+        document.getElementById('edson-erro').style.display = 'block';
+        document.getElementById('edson-erro-msg').textContent = analise.erro_mensagem || 'Erro desconhecido';
+        return;
+      }
+
+      // pronto
+      document.getElementById('edson-resultado').style.display = 'block';
+      document.getElementById('edson-detalhe-acoes').innerHTML = `
+        <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">⬇ Planilha CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
+      `;
+      switchEdsonTab('resumo');
+
+    } catch (e) {
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+      document.getElementById('edson-erro').style.display = 'block';
+      document.getElementById('edson-erro-msg').textContent = e.message;
+    }
+  }
+
+  function pararEdsonPolling() {
+    if (edsonPollingTimer) { clearInterval(edsonPollingTimer); edsonPollingTimer = null; }
+  }
+
+  function voltarListaEdson() {
+    pararEdsonPolling();
+    edsonAtualPregaoId = null;
+    edsonAnaliseAtual  = null;
+    document.getElementById('edson-main').style.display = 'block';
+    document.getElementById('edson-detalhe').style.display = 'none';
+    carregarEdson();
+  }
+
+  async function reanalisarEdson(pregaoId) {
+    try {
+      await fetch(`${API}/edson/${pregaoId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    } catch {}
+    abrirEdsonDetalhe(pregaoId);
+  }
+
+  function switchEdsonTab(tabName) {
+    EDSON_TABS.forEach(t => {
+      document.getElementById(`etab-${t}`).style.display = t === tabName ? 'block' : 'none';
+    });
+    document.querySelectorAll('#section-edson .tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.etab === tabName);
+    });
+    const a = edsonAnaliseAtual;
+    if (!a) return;
+    const pid = edsonAtualPregaoId;
+    if      (tabName === 'resumo')      renderEdsonResumo(a, pid);
+    else if (tabName === 'itens')       document.getElementById('etab-itens').innerHTML = renderEdsonItens(a.itens);
+    else if (tabName === 'habilitacao') document.getElementById('etab-habilitacao').innerHTML = renderEdsonHabilitacao(a.habilitacao);
+    else if (tabName === 'riscos')      document.getElementById('etab-riscos').innerHTML = renderEdsonRiscos(a.riscos);
+    else if (tabName === 'checklist')   document.getElementById('etab-checklist').innerHTML = renderEdsonChecklist(a.checklist, pid);
+    else if (tabName === 'chat')        iniciarEdsonChat(pid);
+  }
+
+  function renderEdsonResumo(a, pid) {
+    const sc = a.score ?? null;
+    const cls = sc != null ? scoreClass(sc) : 'score-vermelho';
+    const lbl = sc != null ? scoreLabel(sc) : '—';
+    document.getElementById('etab-resumo').innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap;margin-bottom:2rem">
+        <div class="edson-score-big ${cls}">
+          <div class="score-num">${sc ?? '—'}</div>
+          <div class="score-label">${lbl}</div>
+        </div>
+        <div style="flex:1;min-width:180px">
+          <p style="font-size:.87rem;color:var(--text-muted);line-height:1.6;margin-bottom:.9rem">${esc(a.score_justificativa||'—')}</p>
+          <div class="edson-pills">
+            ${a.modalidade    ? `<span class="s-badge s-vencido">${esc(a.modalidade)}</span>` : ''}
+            ${a.modo_disputa  ? `<span class="s-badge s-pendente">${esc(a.modo_disputa)}</span>` : ''}
+            ${a.tipo_julgamento ? `<span class="s-badge s-recebido">${esc(a.tipo_julgamento)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="dados-bloco">
+        <h4>Resumo executivo</h4>
+        <p style="font-size:.9rem;color:var(--text);line-height:1.75;margin-top:.75rem">${esc(a.resumo_executivo||'—')}</p>
+      </div>
+      <div style="margin-top:1.5rem">
+        <button class="btn btn-primary btn-sm" onclick="baixarPlanilhaEdson(${pid})">⬇ Baixar planilha de itens</button>
+      </div>`;
+  }
+
+  function renderEdsonItens(itens) {
+    if (!itens?.length) return '<div class="state-box"><p>Nenhum item disponível para este pregão.</p></div>';
+    const total = itens.reduce((acc, i) =>
+      acc + (parseFloat(i.quantidade)||0) * (parseFloat(i.valor_unitario_estimado)||0), 0);
+    return `<div class="table-wrap"><table class="data-table">
+      <thead><tr>
+        <th style="text-align:center">Nº</th><th>Descrição</th>
+        <th style="text-align:center">Unidade</th><th style="text-align:right">Qtd</th>
+        <th style="text-align:right">Valor Unit. Est.</th><th style="text-align:right">Valor Total Est.</th>
+      </tr></thead>
+      <tbody>${itens.map(i => {
+        const vu = parseFloat(i.valor_unitario_estimado)||0;
+        const qt = parseFloat(i.quantidade)||0;
+        return `<tr>
+          <td style="text-align:center;color:var(--text-muted)">${i.numero||'—'}</td>
+          <td>${esc(i.descricao||'—')}</td>
+          <td style="text-align:center;color:var(--text-muted)">${esc(i.unidade||'—')}</td>
+          <td style="text-align:right">${qt.toLocaleString('pt-BR')}</td>
+          <td style="text-align:right">${fmtBRL(vu)}</td>
+          <td style="text-align:right;font-weight:600">${fmtBRL(vu*qt)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    ${total > 0 ? `<div style="text-align:right;padding:.65rem 1rem;font-size:.85rem;color:var(--text-muted)">
+      Total estimado: <strong style="color:var(--primary);font-size:1rem">${fmtBRL(total)}</strong>
+    </div>` : ''}`;
+  }
+
+  function renderEdsonHabilitacao(habilitacao) {
+    if (!habilitacao?.length) return '<div class="state-box"><p>Sem dados de habilitação.</p></div>';
+    return habilitacao.map(g => `
+      <div class="dados-bloco" style="margin-bottom:1.25rem">
+        <h4>${esc(g.categoria||'—')}</h4>
+        <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.75rem">
+          ${(g.documentos||[]).map(d => `
+            <div style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--sec-border)">
+              <span style="font-size:.85rem">${d.obrigatorio ? '🔴' : '🟡'}</span>
+              <span style="font-size:.85rem;flex:1">${esc(d.nome||'—')}</span>
+              <span class="s-badge ${d.obrigatorio ? 's-atrasado' : 's-pendente'}">${d.obrigatorio ? 'Obrigatório' : 'Opcional'}</span>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  function renderEdsonRiscos(riscos) {
+    if (!riscos?.length) return '<div class="state-box"><p>Nenhum risco identificado.</p></div>';
+    const cls = n => n === 'Alto' ? 's-atrasado' : n === 'Médio' ? 's-pendente' : 's-recebido';
+    return `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Risco identificado</th><th>Nível</th><th>Recomendação</th></tr></thead>
+      <tbody>${riscos.map(r => `<tr>
+        <td style="max-width:220px">${esc(r.risco||'—')}</td>
+        <td><span class="s-badge ${cls(r.nivel)}">${esc(r.nivel||'—')}</span></td>
+        <td style="color:var(--text-muted);font-size:.82rem">${esc(r.recomendacao||'—')}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderEdsonChecklist(checklist, pregaoId) {
+    const saved = JSON.parse(localStorage.getItem(`edson-cl-${pregaoId}`) || '{}');
+    const grupo = (titulo, items, g) => {
+      if (!items?.length) return '';
+      return `<div class="dados-bloco" style="margin-bottom:1.25rem">
+        <h4>${titulo}</h4>
+        <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem">
+          ${items.map((item, i) => {
+            const checked = !!saved[`${g}-${i}`];
+            return `<label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
+              <input type="checkbox" ${checked?'checked':''} style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary)"
+                onchange="toggleEdsonChecklist(${pregaoId},'${g}',${i},this)" />
+              <span id="ecl-${pregaoId}-${g}-${i}" style="font-size:.875rem;${checked?'opacity:.45;text-decoration:line-through':''}">${esc(item)}</span>
+            </label>`;
+          }).join('')}
+        </div>
+      </div>`;
+    };
+    return grupo('Antes do pregão', checklist?.antes, 'antes')
+         + grupo('Durante o pregão', checklist?.durante, 'durante');
+  }
+
+  function toggleEdsonChecklist(pregaoId, grupo, idx, el) {
+    const key = `edson-cl-${pregaoId}`;
+    const saved = JSON.parse(localStorage.getItem(key) || '{}');
+    saved[`${grupo}-${idx}`] = el.checked;
+    localStorage.setItem(key, JSON.stringify(saved));
+    const lbl = document.getElementById(`ecl-${pregaoId}-${grupo}-${idx}`);
+    if (lbl) { lbl.style.opacity = el.checked ? '.45' : ''; lbl.style.textDecoration = el.checked ? 'line-through' : ''; }
+  }
+
+  async function iniciarEdsonChat(pregaoId) {
+    const container = document.getElementById('etab-chat');
+    container.innerHTML = `
+      <div id="edson-chat-msgs" class="edson-chat-area">
+        <div class="state-box" style="padding:1.5rem"><div class="spinner"></div></div>
+      </div>
+      <div class="edson-chat-input">
+        <textarea id="edson-chat-input" rows="2"
+          placeholder="Pergunte ao Edson sobre este pregão…"
+          style="flex:1;resize:none"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMsgEdson(${pregaoId});}"></textarea>
+        <button class="btn btn-primary" id="edson-chat-btn" onclick="enviarMsgEdson(${pregaoId})">Enviar</button>
+      </div>
+      <p style="font-size:.7rem;color:var(--text-muted);margin-top:.4rem">Enter para enviar · Shift+Enter para quebrar linha</p>`;
+    try {
+      const r = await fetch(`${API}/edson/${pregaoId}/chat`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      renderMsgsEdson(dados);
+    } catch {
+      renderMsgsEdson([]);
+    }
+  }
+
+  function renderMsgsEdson(msgs) {
+    const area = document.getElementById('edson-chat-msgs');
+    if (!area) return;
+    if (!msgs.length) {
+      area.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:1.5rem">Nenhuma mensagem ainda. Pergunte ao Edson!</div>';
+      return;
+    }
+    area.innerHTML = msgs.map(m => {
+      const isUser = m.role === 'user';
+      return `<div class="edson-msg ${isUser ? 'user' : ''}">
+        ${!isUser ? '<div class="edson-avatar">E</div>' : ''}
+        <div class="edson-msg-bubble">${esc(m.content)}</div>
+        ${isUser ? '<div class="edson-avatar" style="background:rgba(76,197,215,.08);border-color:rgba(76,197,215,.25);color:var(--text-muted)">U</div>' : ''}
+      </div>`;
+    }).join('');
+    area.scrollTop = area.scrollHeight;
+  }
+
+  async function enviarMsgEdson(pregaoId) {
+    const input = document.getElementById('edson-chat-input');
+    const btn   = document.getElementById('edson-chat-btn');
+    const msg   = input?.value?.trim();
+    if (!msg) return;
+    input.value = '';
+    btn.disabled = true;
+
+    const area = document.getElementById('edson-chat-msgs');
+    const addMsg = (role, html) => {
+      const div = document.createElement('div');
+      div.className = `edson-msg ${role === 'user' ? 'user' : ''}`;
+      div.innerHTML = role === 'user'
+        ? `<div class="edson-msg-bubble">${html}</div>
+           <div class="edson-avatar" style="background:rgba(76,197,215,.08);border-color:rgba(76,197,215,.25);color:var(--text-muted)">U</div>`
+        : `<div class="edson-avatar">E</div><div class="edson-msg-bubble">${html}</div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+      return div;
+    };
+
+    addMsg('user', esc(msg));
+    const loadDiv = addMsg('assistant', '<div class="spinner" style="width:14px;height:14px;margin:2px 0"></div>');
+
+    try {
+      const r = await fetch(`${API}/edson/${pregaoId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ mensagem: msg }),
+      });
+      const data = await r.json();
+      area.removeChild(loadDiv);
+      addMsg('assistant', esc(data.resposta || data.erro || 'Erro'));
+    } catch {
+      area.removeChild(loadDiv);
+      addMsg('assistant', '<span style="color:var(--danger)">Erro ao processar</span>');
+    }
+    btn.disabled = false;
+    input?.focus();
+  }
+
+  async function baixarPlanilhaEdson(pregaoId) {
+    try {
+      const r = await fetch(`${API}/edson/${pregaoId}/planilha`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { alert('Planilha não disponível. Aguarde a análise concluir.'); return; }
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `planilha-pregao-${pregaoId}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert('Erro ao baixar planilha'); }
+  }
+
+  // ─────────────────────────────────────────
+  // CALENDÁRIO
+  // ─────────────────────────────────────────
+  const MESES_CAL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                     'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let calMes = new Date().getMonth() + 1;
+  let calAno = new Date().getFullYear();
+  let calDados = [];
+  let calOperadores = [];
+
+  function calMesAnterior() {
+    calMes--; if (calMes < 1) { calMes = 12; calAno--; }
+    carregarCalendario();
+  }
+  function calProximoMes() {
+    calMes++; if (calMes > 12) { calMes = 1; calAno++; }
+    carregarCalendario();
+  }
+
+  async function carregarCalendario() {
+    document.getElementById('cal-lista').innerHTML =
+      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    document.getElementById('cal-grade').innerHTML = '';
+    document.getElementById('cal-mes-titulo').textContent =
+      `${MESES_CAL[calMes - 1]} ${calAno}`;
+
+    try {
+      const [rCal, rUsr] = await Promise.all([
+        fetch(`${API}/calendario?mes=${calMes}&ano=${calAno}`,
+          { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/auth/usuarios`,
+          { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (rCal.status === 401) { logout(); return; }
+      const { dados = [] } = await rCal.json();
+      calDados = dados;
+      if (rUsr.ok) {
+        const { dados: usrs = [] } = await rUsr.json();
+        calOperadores = usrs;
+      }
+      renderGradeCalendario(dados);
+      renderListaCalendario(dados);
+    } catch (e) {
+      document.getElementById('cal-lista').innerHTML =
+        '<p style="color:var(--text-muted)">Erro ao carregar calendário.</p>';
+    }
+  }
+
+  function renderGradeCalendario(dados) {
+    const grade = document.getElementById('cal-grade');
+    const primeiroDia = new Date(calAno, calMes - 1, 1).getDay();
+    const diasNoMes = new Date(calAno, calMes, 0).getDate();
+    const hoje = new Date();
+
+    const porDia = {};
+    dados.forEach(p => {
+      let dia = null;
+      if (p.data_hora_abertura) {
+        const d = new Date(p.data_hora_abertura);
+        if (d.getMonth() + 1 === calMes && d.getFullYear() === calAno)
+          dia = d.getDate();
+      } else if (p.data_abertura) {
+        const d = new Date(p.data_abertura + 'T12:00:00');
+        if (d.getMonth() + 1 === calMes && d.getFullYear() === calAno)
+          dia = d.getDate();
+      }
+      if (dia) {
+        if (!porDia[dia]) porDia[dia] = [];
+        porDia[dia].push(p);
+      }
+    });
+
+    const cells = [];
+    for (let i = 0; i < primeiroDia; i++)
+      cells.push('<div class="cal-day other-month"></div>');
+
+    for (let d = 1; d <= diasNoMes; d++) {
+      const isHoje = d === hoje.getDate()
+        && calMes === hoje.getMonth() + 1
+        && calAno === hoje.getFullYear();
+      const prgs = porDia[d] || [];
+      const dots = prgs.slice(0, 3).map(p => {
+        const cls = parseInt(p.conflitos) > 0 ? 'conflito'
+          : (!p.data_hora_abertura ? 'sem-hora' : '');
+        return `<div class="cal-dot ${cls}" onclick="scrollToCalCard(${p.id})"
+          title="${esc(p.numero||'')} — ${esc(p.cliente_nome||'')}">${esc((p.numero||'').slice(0,14))}</div>`;
+      }).join('');
+      const mais = prgs.length > 3
+        ? `<div style="font-size:.62rem;color:var(--text-muted)">+${prgs.length - 3} mais</div>` : '';
+      cells.push(
+        `<div class="cal-day ${isHoje ? 'today' : ''} ${prgs.length ? 'has-event' : ''}">`
+        + `<div class="cal-day-num">${d}</div>${dots}${mais}</div>`
+      );
+    }
+
+    const total = primeiroDia + diasNoMes;
+    const rem = total % 7;
+    if (rem) for (let i = 0; i < 7 - rem; i++)
+      cells.push('<div class="cal-day other-month"></div>');
+
+    grade.innerHTML = cells.join('');
+  }
+
+  function scrollToCalCard(id) {
+    const el = document.getElementById(`cal-card-${id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function renderListaCalendario(dados) {
+    const container = document.getElementById('cal-lista');
+    if (!dados.length) {
+      container.innerHTML =
+        '<div class="state-box"><p>Nenhum pregão agendado neste mês.</p></div>';
+      return;
+    }
+    const sorted = [...dados].sort((a, b) => {
+      const ta = a.data_hora_abertura ? new Date(a.data_hora_abertura).getTime() : 0;
+      const tb = b.data_hora_abertura ? new Date(b.data_hora_abertura).getTime() : 0;
+      if (!ta && tb) return 1;
+      if (ta && !tb) return -1;
+      return ta - tb;
+    });
+    container.innerHTML =
+      '<div class="cal-list">' + sorted.map(renderCalCard).join('') + '</div>';
+  }
+
+  function renderCalCard(p) {
+    const temHora = !!p.data_hora_abertura;
+    const conflito = parseInt(p.conflitos) > 0;
+    const cls = conflito ? 'conflito' : (!temHora ? 'sem-hora' : '');
+
+    let timeHtml;
+    if (temHora) {
+      const dt = new Date(p.data_hora_abertura);
+      const dataStr = dt.toLocaleDateString('pt-BR',
+        { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
+      const horaStr = dt.toLocaleTimeString('pt-BR',
+        { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+      timeHtml = `<div class="cal-card-time">
+        <div class="cal-time-date">${dataStr}</div>
+        <div class="cal-time-hour">${horaStr}</div>
+      </div>`;
+    } else {
+      const dataStr = p.data_abertura
+        ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      timeHtml = `<div class="cal-card-time">
+        <div class="cal-time-date">${dataStr}</div>
+        <div class="cal-time-no">Sem horário</div>
+      </div>`;
+    }
+
+    const conflitoBadge = conflito
+      ? `<span class="conflict-badge">⚠ ${p.conflitos} conflito${p.conflitos > 1 ? 's' : ''}</span>`
+      : '';
+
+    const operadorStr = p.operador_nome
+      ? esc(p.operador_nome)
+      : `<span style="color:var(--warning)">Sem operador</span>`;
+
+    const opcoesOp = [
+      '<option value="">Sem operador</option>',
+      ...calOperadores.map(u =>
+        `<option value="${u.id}" ${p.operador_id == u.id ? 'selected' : ''}>${esc(u.nome || u.email)}</option>`),
+    ].join('');
+
+    const btnOp = isAdmin()
+      ? `<button class="btn btn-ghost btn-sm" onclick="toggleCalForm('operador-${p.id}')">
+           👤 ${p.operador_nome ? 'Alterar' : 'Atribuir'} operador
+         </button>`
+      : '';
+
+    return `
+    <div class="cal-card ${cls}" id="cal-card-${p.id}">
+      ${timeHtml}
+      <div class="cal-card-body">
+        <h4>${esc(p.numero || '—')} ${conflitoBadge}</h4>
+        <div class="cal-card-meta">
+          ${esc(p.cliente_nome || '—')} · ${esc((p.orgao || '').slice(0, 40)) || '—'}
+        </div>
+        ${p.objeto ? `<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.35rem">${esc(p.objeto.slice(0, 120))}</div>` : ''}
+        <div style="font-size:.77rem;color:var(--text-muted)">👤 ${operadorStr}</div>
+        <div class="cal-card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('horario-${p.id}')">
+            📅 ${temHora ? 'Alterar horário' : 'Definir horário'}
+          </button>
+          ${btnOp}
+        </div>
+        <div class="cal-inline-form" id="cal-form-horario-${p.id}">
+          <div class="form-row" style="margin-bottom:.5rem">
+            <div class="form-group" style="margin:0">
+              <label>Data e hora de abertura</label>
+              <input type="datetime-local" id="cal-hora-${p.id}"
+                value="${p.data_hora_abertura ? toLocalInput(p.data_hora_abertura) : ''}" />
+            </div>
+          </div>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-primary btn-sm" onclick="salvarCalHorario(${p.id})">Salvar</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('horario-${p.id}')">Cancelar</button>
+          </div>
+        </div>
+        <div class="cal-inline-form" id="cal-form-operador-${p.id}">
+          <div class="form-group" style="margin-bottom:.5rem">
+            <label>Operador responsável</label>
+            <select id="cal-op-${p.id}">${opcoesOp}</select>
+          </div>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-primary btn-sm" onclick="salvarCalOperador(${p.id})">Salvar</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('operador-${p.id}')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function toggleCalForm(key) {
+    const el = document.getElementById(`cal-form-${key}`);
+    if (el) el.classList.toggle('open');
+  }
+
+  function toLocalInput(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  }
+
+  async function salvarCalHorario(pid) {
+    const val = document.getElementById(`cal-hora-${pid}`).value;
+    try {
+      const r = await fetch(`${API}/calendario/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ data_hora_abertura: val || null }),
+      });
+      if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
+      await carregarCalendario();
+    } catch { alert('Erro ao salvar horário'); }
+  }
+
+  async function salvarCalOperador(pid) {
+    const val = document.getElementById(`cal-op-${pid}`).value;
+    try {
+      const r = await fetch(`${API}/calendario/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ operador_id: val ? parseInt(val, 10) : null }),
+      });
+      if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
+      await carregarCalendario();
+    } catch { alert('Erro ao salvar operador'); }
+  }
 </script>
 </body>
 </html>
