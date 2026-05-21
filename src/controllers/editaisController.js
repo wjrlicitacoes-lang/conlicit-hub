@@ -103,12 +103,8 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade
   }
 
   if (modalidade) {
-    const codigo = MODALIDADES[modalidade.toLowerCase().trim()];
-    if (codigo) {
-      // modalidade_nome contém o texto, não o código
-      condicoes.push(`modalidade_nome ILIKE $${idx++}`);
-      params.push(`%${modalidade}%`);
-    }
+    condicoes.push(`modalidade_nome ILIKE $${idx++}`);
+    params.push(`%${modalidade}%`);
   }
 
   if (dataInicial) {

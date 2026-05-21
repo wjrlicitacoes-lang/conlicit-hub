@@ -224,6 +224,10 @@ async function executarMigracoes() {
   // Portal de disputa no pregão
   await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS portal_disputa VARCHAR(100)`);
 
+  // Edson: análise avulsa (sem pregão vinculado) + rubrica de score
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS referencia TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS criterios_score JSONB`);
+
   console.log('Migrações executadas com sucesso');
 }
 

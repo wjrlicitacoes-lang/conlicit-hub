@@ -1,25 +1,38 @@
 const multer = require('multer');
 const db = require('../database/db');
-const { analisarPregao, analisarPDF, chamarClaude } = require('../services/edsonService');
+const { analisarPregao, analisarPDF, analisarAvulso, chamarClaude } = require('../services/edsonService');
+const { gerarPlanilhaXLSX } = require('../services/planilhaService');
+const { gerarRelatorioPDF }  = require('../services/relatorioService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype === 'application/pdf'),
 });
-const { gerarPlanilhaXLSX } = require('../services/planilhaService');
-const { gerarRelatorioPDF }  = require('../services/relatorioService');
+
+// ── SELECT helpers ─────────────────────────────────────────────────────────────
+
+const SELECT_ANALISE_COMPLETA = `
+  SELECT a.*, a.referencia,
+         p.numero AS pregao_numero, p.orgao, p.objeto, p.link_pncp, p.numero_controle_pncp,
+         p.valor_estimado,
+         c.nome AS cliente_nome, c.uf
+  FROM analises_edson a
+  LEFT JOIN pregoes p ON p.id = a.pregao_id
+  LEFT JOIN clientes c ON c.id = p.cliente_id`;
+
+// ── Listar ────────────────────────────────────────────────────────────────────
 
 async function listar(req, res) {
   try {
     const { rows } = await db.query(
-      `SELECT a.id, a.pregao_id, a.status, a.score, a.resumo_executivo,
+      `SELECT a.id, a.pregao_id, a.referencia, a.status, a.score, a.resumo_executivo,
               a.criado_em, a.atualizado_em,
               p.numero AS pregao_numero, p.orgao,
               c.nome AS cliente_nome
        FROM analises_edson a
-       JOIN pregoes p ON p.id = a.pregao_id
-       JOIN clientes c ON c.id = p.cliente_id
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
        ORDER BY a.atualizado_em DESC
        LIMIT 50`,
     );
@@ -29,6 +42,8 @@ async function listar(req, res) {
     return res.status(500).json({ erro: 'Erro interno' });
   }
 }
+
+// ── Disparar (por pregão) ──────────────────────────────────────────────────────
 
 async function disparar(req, res) {
   const { pregao_id } = req.params;
@@ -44,13 +59,12 @@ async function disparar(req, res) {
          resumo_executivo = NULL, modalidade = NULL, modo_disputa = NULL,
          tipo_julgamento = NULL, itens = '[]', habilitacao = '[]',
          riscos = '[]', checklist = '{"antes":[],"durante":[]}',
-         erro_mensagem = NULL, atualizado_em = NOW()
+         criterios_score = NULL, erro_mensagem = NULL, atualizado_em = NOW()
        RETURNING id`,
       [pregao_id],
     );
 
     analisarPregao(analise.id, parseInt(pregao_id, 10)).catch(console.error);
-
     return res.json({ id: analise.id, status: 'processando' });
   } catch (e) {
     console.error('[Edson] disparar:', e.message);
@@ -58,18 +72,52 @@ async function disparar(req, res) {
   }
 }
 
+// ── Avulso ────────────────────────────────────────────────────────────────────
+
+async function avulso(req, res) {
+  try {
+    const { numero_controle_pncp, referencia, cliente_id } = req.body ?? {};
+    if (!referencia?.trim() && !numero_controle_pncp?.trim() && !req.file) {
+      return res.status(400).json({ erro: 'Informe referência, número PNCP ou PDF' });
+    }
+
+    let clienteNome = null, clienteUF = null, palavrasChave = null;
+    if (cliente_id) {
+      const { rows: [c] } = await db.query(
+        'SELECT nome, uf, palavras_chave FROM clientes WHERE id = $1', [cliente_id],
+      );
+      if (c) { clienteNome = c.nome; clienteUF = c.uf; palavrasChave = c.palavras_chave; }
+    }
+
+    const { rows: [analise] } = await db.query(
+      `INSERT INTO analises_edson (pregao_id, referencia, status)
+       VALUES (NULL, $1, 'processando')
+       RETURNING id`,
+      [referencia?.trim() || numero_controle_pncp || 'Análise avulsa'],
+    );
+
+    analisarAvulso(analise.id, {
+      numero_controle_pncp: numero_controle_pncp?.trim() || null,
+      referencia: referencia?.trim() || numero_controle_pncp || 'Análise avulsa',
+      clienteNome, clienteUF,
+      palavrasChave: Array.isArray(palavrasChave) ? palavrasChave.join(', ') : palavrasChave,
+      pdfBuffer: req.file?.buffer || null,
+    }).catch(console.error);
+
+    return res.json({ mensagem: 'Análise avulsa iniciada', analise_id: analise.id });
+  } catch (e) {
+    console.error('[Edson] avulso:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Obter por pregao_id ───────────────────────────────────────────────────────
+
 async function obter(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero AS pregao_numero, p.orgao, p.objeto,
-              p.link_pncp, p.numero_controle_pncp,
-              c.nome AS cliente_nome
-       FROM analises_edson a
-       JOIN pregoes p ON p.id = a.pregao_id
-       JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.pregao_id = $1`,
-      [pregao_id],
+      `${SELECT_ANALISE_COMPLETA} WHERE a.pregao_id = $1`, [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
     return res.json(analise);
@@ -78,6 +126,23 @@ async function obter(req, res) {
   }
 }
 
+// ── Obter por analise_id (avulso) ─────────────────────────────────────────────
+
+async function obterPorId(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `${SELECT_ANALISE_COMPLETA} WHERE a.id = $1`, [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
+    return res.json(analise);
+  } catch (e) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
 async function chat(req, res) {
   const { pregao_id } = req.params;
   const { mensagem } = req.body ?? {};
@@ -85,12 +150,12 @@ async function chat(req, res) {
 
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.id, a.status, a.score, a.resumo_executivo,
+      `SELECT a.id, a.status, a.score, a.resumo_executivo, a.referencia,
               p.numero, p.orgao, p.objeto, p.valor_estimado,
               c.nome AS cliente_nome, c.uf
        FROM analises_edson a
-       JOIN pregoes p ON p.id = a.pregao_id
-       JOIN clientes c ON c.id = p.cliente_id
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
        WHERE a.pregao_id = $1`,
       [pregao_id],
     );
@@ -108,18 +173,25 @@ async function chat(req, res) {
       [analise.id, mensagem.trim()],
     );
 
-    const systemPrompt = `Você é o Edson, assistente especialista em licitações públicas brasileiras do ConlicitHub.
+    const systemPrompt = `Você é o Edson, especialista sênior em licitações da Conlicit.
 
-Pregão em análise:
-- Número: ${analise.numero}
+Licitação em análise:
+- Número/Ref: ${analise.numero || analise.referencia || '—'}
 - Órgão: ${analise.orgao || '—'}
 - Objeto: ${analise.objeto || '—'}
 - Valor estimado: ${analise.valor_estimado ? `R$ ${analise.valor_estimado}` : '—'}
-- Cliente: ${analise.cliente_nome} (${analise.uf || '—'})
-- Score de oportunidade: ${analise.score}/100
+- Cliente: ${analise.cliente_nome || '—'} (${analise.uf || '—'})
+- Score: ${analise.score}/100
 - Resumo: ${analise.resumo_executivo || '—'}
 
-Responda de forma concisa e prática. Use markdown quando útil.`;
+REGRAS ABSOLUTAS:
+1. Máximo 2 frases por resposta
+2. NUNCA copie texto do edital — use suas próprias palavras
+3. Responda o que fazer, não o que o edital diz
+4. Sem markdown, sem bullets, sem títulos
+5. Se não tiver certeza: diga o valor ou prazo exato que encontrou, sem qualificações
+Exemplo ERRADO: "Conforme o edital, o prazo de entrega é de até 5 dias úteis por pedido de fornecimento"
+Exemplo CERTO: "5 dias úteis por pedido. Contagem começa na emissão da Ordem de Fornecimento."`;
 
     const messages = [
       ...historico.map((h) => ({ role: h.role, content: h.content })),
@@ -140,6 +212,59 @@ Responda de forma concisa e prática. Use markdown quando útil.`;
   }
 }
 
+// ── Chat por analise_id ───────────────────────────────────────────────────────
+
+async function chatPorId(req, res) {
+  const { analise_id } = req.params;
+  const { mensagem } = req.body ?? {};
+  if (!mensagem?.trim()) return res.status(400).json({ erro: 'mensagem é obrigatória' });
+
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.id, a.status, a.score, a.resumo_executivo, a.referencia,
+              p.numero, p.orgao, p.objeto, p.valor_estimado,
+              c.nome AS cliente_nome, c.uf
+       FROM analises_edson a
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
+       WHERE a.id = $1`,
+      [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
+    if (analise.status !== 'pronto')
+      return res.status(400).json({ erro: 'Análise ainda não concluída' });
+
+    const { rows: historico } = await db.query(
+      `SELECT role, content FROM chat_edson WHERE analise_id = $1 ORDER BY criado_em ASC`,
+      [analise.id],
+    );
+
+    await db.query(
+      `INSERT INTO chat_edson (analise_id, role, content) VALUES ($1, 'user', $2)`,
+      [analise.id, mensagem.trim()],
+    );
+
+    const systemPrompt = `Você é o Edson, especialista sênior em licitações da Conlicit.
+Licitação: ${analise.numero || analise.referencia || '—'} | Score: ${analise.score}/100
+REGRAS: máximo 2 frases, sem markdown, responda o que fazer (não o que diz o edital).`;
+
+    const messages = [
+      ...historico.map((h) => ({ role: h.role, content: h.content })),
+      { role: 'user', content: mensagem.trim() },
+    ];
+
+    const resposta = await chamarClaude(systemPrompt, messages);
+    await db.query(
+      `INSERT INTO chat_edson (analise_id, role, content) VALUES ($1, 'assistant', $2)`,
+      [analise.id, resposta],
+    );
+    return res.json({ resposta });
+  } catch (e) {
+    console.error('[Edson] chatPorId:', e.message);
+    return res.status(500).json({ erro: 'Erro ao processar pergunta' });
+  }
+}
+
 async function getChatHistorico(req, res) {
   const { pregao_id } = req.params;
   try {
@@ -147,7 +272,6 @@ async function getChatHistorico(req, res) {
       `SELECT id FROM analises_edson WHERE pregao_id = $1`, [pregao_id],
     );
     if (!analise) return res.json({ dados: [] });
-
     const { rows } = await db.query(
       `SELECT role, content, criado_em FROM chat_edson WHERE analise_id = $1 ORDER BY criado_em ASC`,
       [analise.id],
@@ -157,6 +281,21 @@ async function getChatHistorico(req, res) {
     return res.status(500).json({ erro: 'Erro interno' });
   }
 }
+
+async function getChatHistoricoPorId(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rows } = await db.query(
+      `SELECT role, content, criado_em FROM chat_edson WHERE analise_id = $1 ORDER BY criado_em ASC`,
+      [analise_id],
+    );
+    return res.json({ dados: rows });
+  } catch {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Planilha / Relatório ──────────────────────────────────────────────────────
 
 async function planilha(req, res) {
   const { pregao_id } = req.params;
@@ -172,7 +311,6 @@ async function planilha(req, res) {
       [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
-
     const buffer = await gerarPlanilhaXLSX({ analise, pregao: analise });
     const filename = `planilha-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -188,8 +326,7 @@ async function relatorio(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*,
-              p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
               c.nome AS cliente_nome, c.uf
        FROM analises_edson a
        JOIN pregoes p ON p.id = a.pregao_id
@@ -198,11 +335,7 @@ async function relatorio(req, res) {
       [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
-
-    const pregao  = analise;
-    const cliente = { nome: analise.cliente_nome, uf: analise.uf };
-    const buffer  = await gerarRelatorioPDF({ analise, pregao, cliente });
-
+    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.uf } });
     const filename = `relatorio-edson-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -213,11 +346,12 @@ async function relatorio(req, res) {
   }
 }
 
+// ── Upload PDF ────────────────────────────────────────────────────────────────
+
 async function uploadPDF(req, res) {
   const { pregao_id } = req.params;
   try {
     if (!req.file) return res.status(400).json({ erro: 'Arquivo PDF obrigatório (campo: edital)' });
-
     const { rows: [pregao] } = await db.query('SELECT id FROM pregoes WHERE id = $1', [pregao_id]);
     if (!pregao) return res.status(404).json({ erro: 'Pregão não encontrado' });
 
@@ -229,13 +363,12 @@ async function uploadPDF(req, res) {
          resumo_executivo = NULL, modalidade = NULL, modo_disputa = NULL,
          tipo_julgamento = NULL, itens = '[]', habilitacao = '[]',
          riscos = '[]', checklist = '{"antes":[],"durante":[]}',
-         erro_mensagem = NULL, atualizado_em = NOW()
+         criterios_score = NULL, erro_mensagem = NULL, atualizado_em = NOW()
        RETURNING id`,
       [pregao_id],
     );
 
     analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer).catch(console.error);
-
     return res.json({ mensagem: 'Análise iniciada', analise_id: analise.id });
   } catch (e) {
     console.error('[Edson] uploadPDF:', e.message);
@@ -243,4 +376,8 @@ async function uploadPDF(req, res) {
   }
 }
 
-module.exports = { listar, disparar, obter, chat, getChatHistorico, planilha, relatorio, uploadPDF, upload };
+module.exports = {
+  listar, disparar, avulso, obter, obterPorId,
+  chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
+  planilha, relatorio, uploadPDF, upload,
+};

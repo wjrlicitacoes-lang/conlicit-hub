@@ -1206,17 +1206,33 @@
               </select>
             </div>
             <div class="form-group" style="margin:0">
-              <label for="filtro-portal">Portal</label>
+              <label for="filtro-modalidade">Modalidade</label>
+              <select id="filtro-modalidade">
+                <option value="">Todas as modalidades</option>
+                <option value="Pregão Eletrônico">Pregão Eletrônico</option>
+                <option value="Dispensa Eletrônica">Dispensa Eletrônica</option>
+                <option value="Concorrência">Concorrência</option>
+                <option value="Credenciamento">Credenciamento</option>
+                <option value="Diálogo Competitivo">Diálogo Competitivo</option>
+                <option value="Inexigibilidade">Inexigibilidade</option>
+                <option value="Leilão">Leilão</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="filtro-portal">Portal de disputa</label>
               <select id="filtro-portal">
                 <option value="">Todos os portais</option>
-                <option value="pncp">PNCP</option>
-                <option value="comprasnet">ComprasNet</option>
-                <option value="bec/sp">BEC/SP</option>
-                <option value="licitacoes-e">Licitações-e</option>
-                <option value="comprasbr">ComprasBR</option>
-                <option value="bbmnet">BBMNet</option>
-                <option value="banrisul">Banrisul</option>
-                <option value="caixa">Caixa</option>
+                <option value="Licitar Digital">Licitar Digital</option>
+                <option value="Compras.gov">Compras.gov.br</option>
+                <option value="Portal MG">Portal MG</option>
+                <option value="BLL">BLL Compras</option>
+                <option value="BBMNET">BBMNET</option>
+                <option value="Portal de Compras">Portal de Compras Públicas</option>
+                <option value="Sigmix">Sigmix</option>
+                <option value="Licitações-e">Licitações-e</option>
+                <option value="ComprasNet">ComprasNet</option>
+                <option value="BEC">BEC/SP</option>
+                <option value="PNCP">PNCP</option>
               </select>
             </div>
           </div>
@@ -1417,6 +1433,7 @@
               <p style="color:var(--text-muted);font-size:.83rem;margin-top:.2rem">Análise inteligente de pregões com Claude</p>
             </div>
             <div class="section-header-actions">
+              <button class="btn btn-primary btn-sm" onclick="abrirModalAvulso()">+ Nova análise</button>
               <button class="btn btn-ghost btn-sm" onclick="carregarEdson()">↻ Atualizar</button>
             </div>
           </div>
@@ -3250,14 +3267,15 @@
     const df     = document.getElementById('dataFinal').value;
     const cidade  = document.getElementById('cidade')?.value.trim() || '';
     const raio    = document.getElementById('raio_km')?.value || '0';
-    const portal  = document.getElementById('filtro-portal')?.value || '';
+    const portal     = document.getElementById('filtro-portal')?.value || '';
+    const modalidade = document.getElementById('filtro-modalidade')?.value || '';
 
     if (!di || !df) { toast('Informe o período de busca', 'error'); return; }
     if (new Date(di) > new Date(df)) { toast('Data inicial deve ser anterior à data final', 'error'); return; }
 
     const dataInicial = di.replace(/-/g, '');
     const dataFinal   = df.replace(/-/g, '');
-    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal };
+    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal, modalidade };
     currentPage = pagina;
 
     const btn = document.getElementById('btn-buscar');
@@ -3272,6 +3290,7 @@
     if (uf) params.set('uf', uf);
     if (cidade && parseInt(raio) < 999) { params.set('cidade', cidade); params.set('raio_km', raio); }
     if (portal) params.set('portal', portal);
+    if (modalidade) params.set('modalidade', modalidade);
 
     try {
       const r = await fetch(`${API}/editais?${params}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -3460,10 +3479,33 @@
   const EDSON_TABS = ['resumo','itens','habilitacao','riscos','checklist','chat'];
 
   function scoreClass(s) {
-    return s >= 70 ? 'score-verde' : s >= 40 ? 'score-amarelo' : 'score-vermelho';
+    return s >= 85 ? 'score-verde' : s >= 70 ? 'score-verde' : s >= 40 ? 'score-amarelo' : 'score-vermelho';
   }
   function scoreLabel(s) {
-    return s >= 70 ? 'Excelente' : s >= 40 ? 'Regular' : 'Difícil';
+    return s >= 85 ? 'Excelente' : s >= 70 ? 'Alta' : s >= 40 ? 'Regular' : 'Baixa';
+  }
+
+  function numeroAmigavel(a) {
+    if (a.pregao_numero && a.pregao_numero.trim()) return a.pregao_numero;
+    if (a.numero_controle_pncp) {
+      const partes = a.numero_controle_pncp.split('-');
+      const ultimo = partes[partes.length - 1];
+      const seq = parseInt(ultimo.split('/')[0]);
+      const ano = ultimo.split('/')[1];
+      return seq + '/' + ano;
+    }
+    return a.referencia || 'Análise avulsa';
+  }
+
+  function parseMarkdown(text) {
+    if (!text) return '';
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^## (.*$)/gim, '<h4 style="margin:6px 0 3px;font-size:12px;color:var(--primary)">$1</h4>')
+      .replace(/^> (.*$)/gim, '<div style="border-left:3px solid var(--primary);padding-left:8px;color:var(--text-muted);margin:3px 0;font-size:11px">$1</div>')
+      .replace(/^[-•] (.*$)/gim, '<div style="padding-left:10px;margin:1px 0">• $1</div>')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
   }
 
   async function carregarEdson() {
@@ -3509,14 +3551,15 @@
       ${circleHtml}
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
-          <strong style="font-size:.9rem">${esc(a.cliente_nome)} — ${esc(a.pregao_numero||'—')}</strong>
+          <strong style="font-size:.9rem">${esc(a.cliente_nome || 'Avulsa')} — ${esc(numeroAmigavel(a))}</strong>
+          ${a.pregao_id == null ? '<span class="s-badge" style="background:rgba(124,58,237,.12);color:#7c3aed">Avulsa</span>' : ''}
           ${statusBadge}
         </div>
         <div style="font-size:.77rem;color:var(--text-muted);margin-bottom:.45rem">${esc((a.orgao||'').slice(0,70))}</div>
         <div style="font-size:.83rem;line-height:1.55;margin-bottom:.7rem">${resumo}</div>
         <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="abrirEdsonDetalhe(${a.pregao_id})">Ver análise completa</button>
-          <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${a.pregao_id})">↻ Reanalisar</button>
+          <button class="btn btn-primary btn-sm" onclick="${a.pregao_id == null ? `abrirEdsonDetalhePorId(${a.id})` : `abrirEdsonDetalhe(${a.pregao_id})`}">Ver análise completa</button>
+          ${a.pregao_id != null ? `<button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${a.pregao_id})">↻ Reanalisar</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -3559,9 +3602,9 @@
       edsonAnaliseAtual = analise;
 
       document.getElementById('edson-detalhe-titulo').textContent =
-        `Análise — Pregão ${analise.pregao_numero || pregaoId}`;
+        `Análise — ${numeroAmigavel(analise)}`;
       document.getElementById('edson-detalhe-sub').textContent =
-        `${analise.cliente_nome || ''} · ${(analise.orgao || '').slice(0, 60)}`;
+        `${analise.cliente_nome || (analise.referencia ? 'Avulsa' : '')} · ${(analise.orgao || '').slice(0, 60)}`;
 
       if (analise.status === 'processando') {
         document.getElementById('edson-processando').style.display = 'block';
@@ -3825,9 +3868,10 @@
     }
     area.innerHTML = msgs.map(m => {
       const isUser = m.role === 'user';
+      const conteudo = isUser ? esc(m.content) : parseMarkdown(m.content);
       return `<div class="edson-msg ${isUser ? 'user' : ''}">
         ${!isUser ? '<div class="edson-avatar">E</div>' : ''}
-        <div class="edson-msg-bubble">${esc(m.content)}</div>
+        <div class="edson-msg-bubble">${conteudo}</div>
         ${isUser ? '<div class="edson-avatar" style="background:rgba(76,197,215,.08);border-color:rgba(76,197,215,.25);color:var(--text-muted)">U</div>' : ''}
       </div>`;
     }).join('');
@@ -3866,7 +3910,7 @@
       });
       const data = await r.json();
       area.removeChild(loadDiv);
-      addMsg('assistant', esc(data.resposta || data.erro || 'Erro'));
+      addMsg('assistant', parseMarkdown(data.resposta || data.erro || 'Erro'));
     } catch {
       area.removeChild(loadDiv);
       addMsg('assistant', '<span style="color:var(--danger)">Erro ao processar</span>');
@@ -4334,6 +4378,187 @@
     verEdson(pid);
   }
 
+  // ── Edson Avulso ──────────────────────────────────────────────────────────
+
+  function abrirModalAvulso() {
+    document.getElementById('modal-avulso').classList.add('visible');
+    document.getElementById('avulso-referencia').value = '';
+    document.getElementById('avulso-pncp').value = '';
+    document.getElementById('avulso-pdf-input').value = '';
+    document.getElementById('avulso-pdf-nome').textContent = '';
+    document.getElementById('avulso-erro').style.display = 'none';
+    carregarClientesAvulso();
+  }
+
+  function fecharModalAvulso(e) {
+    if (e && e.target !== document.getElementById('modal-avulso')) return;
+    document.getElementById('modal-avulso').classList.remove('visible');
+  }
+
+  function fecharModalAvulsoBtn() {
+    document.getElementById('modal-avulso').classList.remove('visible');
+  }
+
+  async function carregarClientesAvulso() {
+    const sel = document.getElementById('avulso-cliente');
+    sel.innerHTML = '<option value="">Sem cliente (análise geral)</option>';
+    try {
+      const r = await fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      const { dados = [] } = await r.json();
+      dados.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id; opt.textContent = c.nome;
+        sel.appendChild(opt);
+      });
+    } catch {}
+  }
+
+  async function confirmarAvulso() {
+    const referencia = document.getElementById('avulso-referencia').value.trim();
+    const pncp       = document.getElementById('avulso-pncp').value.trim();
+    const clienteId  = document.getElementById('avulso-cliente').value;
+    const pdfFile    = document.getElementById('avulso-pdf-input').files[0];
+    const errEl      = document.getElementById('avulso-erro');
+
+    if (!referencia && !pncp && !pdfFile) {
+      errEl.textContent = 'Informe pelo menos a referência, número PNCP ou um PDF.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    const btn = document.getElementById('avulso-btn');
+    btn.disabled = true; btn.textContent = 'Iniciando…';
+
+    try {
+      const form = new FormData();
+      if (referencia) form.append('referencia', referencia);
+      if (pncp)       form.append('numero_controle_pncp', pncp);
+      if (clienteId)  form.append('cliente_id', clienteId);
+      if (pdfFile)    form.append('edital', pdfFile);
+
+      const r = await fetch(`${API}/edson/avulso`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao criar análise');
+
+      fecharModalAvulsoBtn();
+      abrirEdsonDetalhePorId(d.analise_id);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Iniciar análise';
+    }
+  }
+
+  // ── Edson detalhe por analise_id (avulso) ────────────────────────────────
+
+  let edsonAnaliseIdAtual = null;
+
+  async function abrirEdsonDetalhePorId(analiseId) {
+    edsonAnaliseIdAtual = analiseId;
+    edsonAtualPregaoId  = null;
+    edsonAnaliseAtual   = null;
+
+    document.getElementById('edson-main').style.display = 'none';
+    document.getElementById('edson-detalhe').style.display = 'block';
+    document.getElementById('edson-processando').style.display = 'block';
+    document.getElementById('edson-erro').style.display = 'none';
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-detalhe-titulo').textContent = 'Carregando…';
+    document.getElementById('edson-detalhe-sub').textContent = '';
+    document.getElementById('edson-detalhe-acoes').innerHTML = '';
+
+    await _carregarEdsonDetalhePorId(analiseId);
+  }
+
+  async function _carregarEdsonDetalhePorId(analiseId) {
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error('Erro ao carregar análise');
+      const analise = await r.json();
+      edsonAnaliseAtual = analise;
+
+      document.getElementById('edson-detalhe-titulo').textContent = `Análise — ${numeroAmigavel(analise)}`;
+      document.getElementById('edson-detalhe-sub').textContent =
+        `${analise.cliente_nome || 'Avulsa'} · ${(analise.orgao || '').slice(0, 60)}`;
+
+      if (analise.status === 'processando') {
+        document.getElementById('edson-processando').style.display = 'block';
+        document.getElementById('edson-erro').style.display = 'none';
+        document.getElementById('edson-resultado').style.display = 'none';
+        if (!edsonPollingTimer)
+          edsonPollingTimer = setInterval(() => _carregarEdsonDetalhePorId(analiseId), 3000);
+        return;
+      }
+
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+
+      if (analise.status === 'erro') {
+        document.getElementById('edson-erro').style.display = 'block';
+        document.getElementById('edson-erro-msg').textContent = analise.erro_mensagem || 'Erro desconhecido';
+        return;
+      }
+
+      document.getElementById('edson-resultado').style.display = 'block';
+      document.getElementById('edson-detalhe-acoes').innerHTML =
+        `<button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Lista</button>`;
+      switchEdsonTab('resumo');
+    } catch (e) {
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+      document.getElementById('edson-erro').style.display = 'block';
+      document.getElementById('edson-erro-msg').textContent = e.message;
+    }
+  }
+
 </script>
+
+<!-- MODAL: Edson Análise Avulsa -->
+<div class="modal-overlay" id="modal-avulso" onclick="fecharModalAvulso(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="modal-header">
+      <h3>Nova análise Edson</h3>
+      <button class="modal-close" onclick="fecharModalAvulsoBtn()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Referência <span style="color:var(--text-muted);font-size:.8rem">(nome livre para identificar)</span></label>
+        <input type="text" id="avulso-referencia" placeholder="Ex: PE 001/2026 — Câmara Municipal" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Número de controle PNCP <span style="color:var(--text-muted);font-size:.8rem">(opcional)</span></label>
+        <input type="text" id="avulso-pncp" placeholder="Ex: 45298569000113-1-000053/2026" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>PDF do edital <span style="color:var(--text-muted);font-size:.8rem">(opcional)</span></label>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <input type="file" id="avulso-pdf-input" accept=".pdf" style="display:none"
+            onchange="document.getElementById('avulso-pdf-nome').textContent = this.files[0]?.name || ''">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('avulso-pdf-input').click()">📎 Selecionar PDF</button>
+          <span id="avulso-pdf-nome" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Cliente <span style="color:var(--text-muted);font-size:.8rem">(opcional)</span></label>
+        <select id="avulso-cliente">
+          <option value="">Sem cliente (análise geral)</option>
+        </select>
+      </div>
+      <div id="avulso-erro" style="display:none;color:var(--danger);font-size:.84rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModalAvulsoBtn()">Cancelar</button>
+      <button class="btn btn-primary" id="avulso-btn" onclick="confirmarAvulso()">Iniciar análise</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
