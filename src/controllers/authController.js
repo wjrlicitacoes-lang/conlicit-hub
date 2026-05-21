@@ -65,17 +65,24 @@ function me(req, res) {
   });
 }
 
+const SENHA_PADRAO = 'Conlicit@2024';
+
 async function criarUsuario(req, res) {
   if (req.usuario.role !== 'admin')
     return res.status(403).json({ erro: 'Acesso negado' });
 
-  const { nome, email, senha, role, cliente_id } = req.body ?? {};
-  if (!email || !senha)
-    return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
+  const { nome, email, role, cliente_id } = req.body ?? {};
+  let { senha } = req.body ?? {};
+
+  if (!email)
+    return res.status(400).json({ erro: 'Email é obrigatório' });
   if (!['admin', 'assistente', 'cliente'].includes(role))
     return res.status(400).json({ erro: 'Role inválido (use admin, assistente ou cliente)' });
   if (role === 'cliente' && !cliente_id)
     return res.status(400).json({ erro: 'cliente_id é obrigatório para o role cliente' });
+
+  const senhaGerada = !senha;
+  if (senhaGerada) senha = SENHA_PADRAO;
   if (senha.length < 6)
     return res.status(400).json({ erro: 'Senha deve ter no mínimo 6 caracteres' });
 
@@ -88,7 +95,10 @@ async function criarUsuario(req, res) {
        RETURNING id, nome, email, role, cliente_id, criado_em`,
       [nome?.trim() || null, email.trim().toLowerCase(), senhaHash, role, cid],
     );
-    return res.status(201).json(rows[0]);
+    return res.status(201).json({
+      ...rows[0],
+      ...(senhaGerada ? { senha_provisoria: senha } : {}),
+    });
   } catch (erro) {
     if (erro.code === '23505') return res.status(409).json({ erro: 'Email já cadastrado' });
     console.error('Erro ao criar usuário:', erro);

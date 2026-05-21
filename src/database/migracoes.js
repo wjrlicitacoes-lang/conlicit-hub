@@ -163,32 +163,20 @@ async function executarMigracoes() {
   // Role cliente — terceiro role com acesso restrito
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
 
-  // Expandir CHECK de role para incluir 'cliente'
-  await db.query(`
-    DO $$
-    DECLARE r record;
-    BEGIN
-      FOR r IN
-        SELECT tc.constraint_name
-        FROM information_schema.table_constraints tc
-        JOIN information_schema.check_constraints cc ON cc.constraint_name = tc.constraint_name
-        WHERE tc.table_name = 'usuarios' AND tc.constraint_type = 'CHECK'
-          AND cc.check_clause ILIKE '%role%'
-      LOOP
-        EXECUTE 'ALTER TABLE usuarios DROP CONSTRAINT ' || quote_ident(r.constraint_name);
-      END LOOP;
-    END $$
-  `);
+  // Expandir CHECK de role para incluir 'cliente' — drop + recreate idempotente
   await db.query(`
     DO $$
     BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.check_constraints
-        WHERE check_clause ILIKE '%cliente%' AND constraint_name ILIKE '%role%'
+      -- Remove qualquer constraint de role existente (com ou sem 'cliente')
+      IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
       ) THEN
-        ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-          CHECK (role IN ('admin','assistente','cliente'));
+        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
       END IF;
+      -- Recria sempre com os três roles
+      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+        CHECK (role IN ('admin','assistente','cliente'));
     END $$
   `);
 
