@@ -1,5 +1,12 @@
+const multer = require('multer');
 const db = require('../database/db');
-const { analisarPregao, chamarClaude } = require('../services/edsonService');
+const { analisarPregao, analisarPDF, chamarClaude } = require('../services/edsonService');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, file.mimetype === 'application/pdf'),
+});
 const { gerarPlanilhaXLSX } = require('../services/planilhaService');
 const { gerarRelatorioPDF }  = require('../services/relatorioService');
 
@@ -206,4 +213,34 @@ async function relatorio(req, res) {
   }
 }
 
-module.exports = { listar, disparar, obter, chat, getChatHistorico, planilha, relatorio };
+async function uploadPDF(req, res) {
+  const { pregao_id } = req.params;
+  try {
+    if (!req.file) return res.status(400).json({ erro: 'Arquivo PDF obrigatório (campo: edital)' });
+
+    const { rows: [pregao] } = await db.query('SELECT id FROM pregoes WHERE id = $1', [pregao_id]);
+    if (!pregao) return res.status(404).json({ erro: 'Pregão não encontrado' });
+
+    const { rows: [analise] } = await db.query(
+      `INSERT INTO analises_edson (pregao_id, status)
+       VALUES ($1, 'processando')
+       ON CONFLICT (pregao_id) DO UPDATE SET
+         status = 'processando', score = NULL, score_justificativa = NULL,
+         resumo_executivo = NULL, modalidade = NULL, modo_disputa = NULL,
+         tipo_julgamento = NULL, itens = '[]', habilitacao = '[]',
+         riscos = '[]', checklist = '{"antes":[],"durante":[]}',
+         erro_mensagem = NULL, atualizado_em = NOW()
+       RETURNING id`,
+      [pregao_id],
+    );
+
+    analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer).catch(console.error);
+
+    return res.json({ mensagem: 'Análise iniciada', analise_id: analise.id });
+  } catch (e) {
+    console.error('[Edson] uploadPDF:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { listar, disparar, obter, chat, getChatHistorico, planilha, relatorio, uploadPDF, upload };

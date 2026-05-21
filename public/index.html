@@ -1077,8 +1077,8 @@
           <span class="nav-label">Dashboard</span>
         </button>
 
-        <!-- Visível para todos -->
-        <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-cliente-visible>
+        <!-- Visível para staff -->
+        <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-staff-only>
           <span class="nav-icon">🔍</span>
           <span class="nav-label">Buscar Editais</span>
         </button>
@@ -1110,6 +1110,10 @@
         <button class="nav-item" data-nav="minha-area" onclick="navTo('minha-area')" data-cliente-visible id="nav-minha-area" hidden>
           <span class="nav-icon">🏠</span>
           <span class="nav-label">Minha Área</span>
+        </button>
+        <button class="nav-item" data-nav="meus-pregoes" onclick="navTo('meus-pregoes')" data-cliente-visible id="nav-meus-pregoes" hidden>
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Meus Pregões</span>
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
@@ -1432,6 +1436,15 @@
               </div>
             </div>
             <div class="section-header-actions" id="edson-detalhe-acoes"></div>
+          </div>
+
+          <!-- Upload PDF -->
+          <div id="edson-pdf-area" style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+            <input type="file" id="edson-pdf-input" accept=".pdf" style="display:none" onchange="uploadEdsonPDF(this)">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('edson-pdf-input').click()">
+              📎 Enviar PDF do edital
+            </button>
+            <span id="edson-pdf-status" style="font-size:.85rem;color:var(--text-muted)"></span>
           </div>
 
           <!-- Processando -->
@@ -1866,7 +1879,8 @@
 
     document.getElementById('nav-usuarios').hidden    = !admin;
     document.getElementById('nav-label-admin').hidden = !admin;
-    document.getElementById('nav-minha-area').hidden  = !cliente;
+    document.getElementById('nav-minha-area').hidden   = !cliente;
+    document.getElementById('nav-meus-pregoes').hidden  = !cliente;
     document.getElementById('nav-label-cliente').hidden = !cliente;
 
     setDefaultDates();
@@ -1878,19 +1892,21 @@
   // ─────────────────────────────────────────
   function navTo(section) {
     activeSection = section;
+    const htmlSection = section === 'meus-pregoes' ? 'minha-area' : section;
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`section-${section}`)?.classList.add('active');
+    document.getElementById(`section-${htmlSection}`)?.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.querySelector(`[data-nav="${section}"]`)?.classList.add('active');
 
-    if (section === 'dashboard')       carregarDashboard();
-    else if (section === 'clientes')   carregarClientes();
-    else if (section === 'boletins')   carregarBoletins();
-    else if (section === 'monitor')    renderMonitor();
-    else if (section === 'usuarios')   carregarUsuarios();
-    else if (section === 'calendario') carregarCalendario();
-    else if (section === 'edson')      carregarEdson();
-    else if (section === 'minha-area') carregarMinhaArea();
+    if (section === 'dashboard')           carregarDashboard();
+    else if (section === 'clientes')       carregarClientes();
+    else if (section === 'boletins')       carregarBoletins();
+    else if (section === 'monitor')        renderMonitor();
+    else if (section === 'usuarios')       carregarUsuarios();
+    else if (section === 'calendario')     carregarCalendario();
+    else if (section === 'edson')          carregarEdson();
+    else if (section === 'minha-area')     carregarMinhaArea();
+    else if (section === 'meus-pregoes')   { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
   // ─────────────────────────────────────────
@@ -3600,6 +3616,40 @@
       await fetch(`${API}/edson/${pregaoId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
     } catch {}
     abrirEdsonDetalhe(pregaoId);
+  }
+
+  async function uploadEdsonPDF(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file || !edsonAtualPregaoId) return;
+
+    const statusEl = document.getElementById('edson-pdf-status');
+    statusEl.style.color = 'var(--text-muted)';
+    statusEl.textContent = 'Edson está lendo o edital…';
+
+    const form = new FormData();
+    form.append('edital', file);
+
+    try {
+      const r = await fetch(`${API}/edson/${edsonAtualPregaoId}/upload-pdf`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro no upload');
+
+      statusEl.textContent = '';
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'block';
+      document.getElementById('edson-erro').style.display = 'none';
+      document.getElementById('edson-resultado').style.display = 'none';
+      const pid = edsonAtualPregaoId;
+      edsonPollingTimer = setInterval(() => _carregarEdsonDetalhe(pid), 3000);
+    } catch (e) {
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = e.message;
+    }
   }
 
   function switchEdsonTab(tabName) {
