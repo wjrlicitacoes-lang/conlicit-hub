@@ -384,12 +384,11 @@ async function relatorioSimples(req, res) {
   try {
     const { rows: [analise] } = await db.query(
       `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
-              p.data_abertura, p.data_hora_abertura, p.municipio, p.uf,
-              p.modalidade_nome,
-              c.nome AS cliente_nome, c.uf AS cliente_uf
+              p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome
        FROM analises_edson a
        LEFT JOIN pregoes p ON p.id = a.pregao_id
-       LEFT JOIN clientes c ON c.id = COALESCE(p.cliente_id, a.cliente_id)
+       LEFT JOIN clientes c ON c.id = p.cliente_id
        WHERE a.pregao_id = $1`,
       [pregao_id],
     );

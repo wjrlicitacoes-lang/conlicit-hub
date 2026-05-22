@@ -11,13 +11,13 @@ const RED    = '#E53E3E';
 
 function scoreLabel(score) {
   if (score >= 70) return 'Alta';
-  if (score >= 45) return 'Regular';
+  if (score >= 40) return 'Regular';
   return 'Baixa';
 }
 
 function scoreColor(score) {
   if (score >= 70) return GREEN;
-  if (score >= 45) return ORANGE;
+  if (score >= 40) return ORANGE;
   return RED;
 }
 
@@ -44,7 +44,8 @@ async function gerarRelatorioSimplesPDF({ analise, pregao }) {
       size: 'A4',
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
       bufferPages: false,
-      info: { Title: 'Oportunidade de Licitação — Conlicit' },
+      compress: false,
+      info: { Title: 'Oportunidade de Licitacao — Conlicit' },
     });
 
     const chunks = [];
@@ -93,15 +94,21 @@ async function gerarRelatorioSimplesPDF({ analise, pregao }) {
     doc.fillColor(WHITE).fontSize(9).font('Helvetica-Bold')
       .text(scLabel, boxX, 133, { width: 90, align: 'center' });
 
+    // ── OBJETO ────────────────────────────────────────────────────
+    const objetoText = fmt(pregao.objeto || analise.objeto).slice(0, 220);
+    doc.fillColor(MID).fontSize(8).font('Helvetica-Oblique')
+      .text(objetoText, ML, 130, { width: CW - 100, height: 24, ellipsis: true });
+
     // ── 4 INFO CARDS ──────────────────────────────────────────────
-    const cardY = 145;
+    const cardY = 160;
     const cardH = 52;
     const cardW = (CW - 12) / 4;
+    const modalDisp = [analise.modalidade, analise.modo_disputa].filter(Boolean).join(' · ') || '—';
     const cards = [
-      { icon: 'R$', label: 'Valor estimado', val: fmtBRL(pregao.valor_estimado) },
-      { icon: '📅', label: 'Data da sessão',  val: fmtDate(pregao.data_hora_abertura || pregao.data_abertura) },
-      { icon: '🏛',  label: 'Modalidade',     val: fmt(analise.modalidade || pregao.modalidade_nome) },
-      { icon: '📍',  label: 'Local',          val: `${fmt(pregao.municipio || pregao.cidade || '—')}/${fmt(pregao.uf || '—')}` },
+      { icon: '$',    label: 'Valor estimado', val: fmtBRL(pregao.valor_estimado) },
+      { icon: 'DATA', label: 'Data da sessao',  val: fmtDate(pregao.data_hora_abertura || pregao.data_abertura) },
+      { icon: 'MOD.', label: 'Modalidade',      val: modalDisp },
+      { icon: 'UF',   label: 'Local',           val: fmt(pregao.uf || analise.uf || '—') },
     ];
 
     cards.forEach((c, i) => {
@@ -121,13 +128,13 @@ async function gerarRelatorioSimplesPDF({ analise, pregao }) {
     doc.fillColor(WHITE).fontSize(9).font('Helvetica-Bold')
       .text('Por que participar', ML + 8, sect1Y + 3, { width: CW - 16 });
 
-    const justText = fmt(analise.score_justificativa).split('\n').slice(0, 3).join(' ').slice(0, 350);
+    const justText = fmt(analise.score_justificativa).split('\n').slice(0, 4).join(' ').slice(0, 600);
     doc.fillColor(DARK).fontSize(8.5).font('Helvetica')
-      .text(justText || fmt(analise.resumo_executivo).slice(0, 350),
-        ML, sect1Y + 20, { width: CW, height: 44, ellipsis: true });
+      .text(justText || fmt(analise.resumo_executivo).slice(0, 600),
+        ML, sect1Y + 20, { width: CW, height: 68, ellipsis: true });
 
     // ── ITENS SIMPLIFICADOS ────────────────────────────────────────
-    const sect2Y = sect1Y + 80;
+    const sect2Y = sect1Y + 98;
     doc.rect(ML, sect2Y, CW, 16).fill(NAVY);
     doc.fillColor(WHITE).fontSize(9).font('Helvetica-Bold')
       .text('Itens principais', ML + 8, sect2Y + 3, { width: CW - 16 });
@@ -163,25 +170,30 @@ async function gerarRelatorioSimplesPDF({ analise, pregao }) {
     }
 
     // ── PRÓXIMOS PASSOS ────────────────────────────────────────────
-    const passosY = sect2Y + 110;
+    const passosY = sect2Y + 120;
     doc.rect(ML, passosY, CW, 16).fill(NAVY);
     doc.fillColor(WHITE).fontSize(9).font('Helvetica-Bold')
       .text('Próximos passos', ML + 8, passosY + 3, { width: CW - 16 });
 
-    const checklist = analise.checklist || {};
-    const antes     = Array.isArray(checklist.antes)   ? checklist.antes.slice(0, 3)   : [];
-    const durante   = Array.isArray(checklist.durante) ? checklist.durante.slice(0, 1)  : [];
-    const passos    = [...antes, ...durante].slice(0, 3);
+    const checklist = typeof analise.checklist === 'string'
+      ? JSON.parse(analise.checklist)
+      : (analise.checklist || {});
+    const checklistAntes  = Array.isArray(checklist.antes)   ? checklist.antes.slice(0, 3)  : [];
+    const checklistDur    = Array.isArray(checklist.durante) ? checklist.durante.slice(0, 1) : [];
+    const passos          = [...checklistAntes, ...checklistDur].slice(0, 3);
 
     if (passos.length === 0) {
       doc.fillColor(MID).fontSize(8).font('Helvetica-Oblique')
         .text('Checklist não disponível.', ML, passosY + 22, { width: CW });
     } else {
-      passos.forEach((p, i) => {
-        const py = passosY + 22 + i * 16;
-        doc.rect(ML, py, 12, 12).strokeColor(TEAL).stroke();
+      let passoY = passosY + 22;
+      passos.forEach((p) => {
+        doc.rect(ML, passoY, 12, 12).strokeColor(TEAL).stroke();
+        const txt = fmt(p).slice(0, 180);
+        const textH = doc.heightOfString(txt, { width: CW - 22, fontSize: 8.5 });
         doc.fillColor(DARK).fontSize(8.5).font('Helvetica')
-          .text(fmt(p), ML + 18, py + 1, { width: CW - 18, lineBreak: false, ellipsis: true });
+          .text(txt, ML + 18, passoY + 1, { width: CW - 22 });
+        passoY += Math.max(textH + 6, 18);
       });
     }
 
