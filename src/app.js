@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 
 if (!process.env.JWT_SECRET) {
   console.warn('AVISO: JWT_SECRET não definida — logins falharão até que a variável seja configurada.');
@@ -29,6 +30,24 @@ const { iniciarAgendador } = require('./cron/agendador');
 const path = require('path');
 
 const app = express();
+
+const origensPermitidas = [
+  'http://localhost:3000',
+  'https://web-production-18d79.up.railway.app',
+  'https://hub.conlicit.com',
+  'http://hub.conlicit.com',
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || origensPermitidas.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origem não permitida pelo CORS'));
+    }
+  },
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
