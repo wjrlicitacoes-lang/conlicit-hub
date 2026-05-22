@@ -216,6 +216,9 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS referencia TEXT`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS criterios_score JSONB`);
 
+  // Vincular análise avulsa diretamente a um cliente
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
+
   console.log('Migrações executadas com sucesso');
 }
 

@@ -29,14 +29,41 @@
       --radius-sm: 8px;
       --shadow: 0 4px 24px rgba(0,0,0,.35);
       --sidebar-w: 220px;
+      /* ── tema-aware ── */
+      --bg:        #0f1e29;
+      --card-bg:   #1a2f3e;
+      --t1:        #e8f4f7;
+      --t2:        #7a9aaa;
+      --bd:        rgba(255,255,255,0.08);
+      --th-bg:     transparent;
+      --row-hover: rgba(255,255,255,0.02);
+    }
+
+    body.tema-light {
+      --bg:        #F0F2F5;
+      --card-bg:   #FFFFFF;
+      --t1:        #080808;
+      --t2:        #5F7A8A;
+      --bd:        rgba(0,0,0,0.08);
+      --th-bg:     #F8FAFB;
+      --row-hover: #F8FAFB;
+    }
+    body.tema-dark {
+      --bg:        #0f1e29;
+      --card-bg:   #1a2f3e;
+      --t1:        #e8f4f7;
+      --t2:        #7a9aaa;
+      --bd:        rgba(255,255,255,0.08);
+      --th-bg:     transparent;
+      --row-hover: rgba(255,255,255,0.02);
     }
 
     html { scroll-behavior: smooth; }
 
     body {
       font-family: var(--font);
-      background: var(--secondary);
-      color: var(--text);
+      background: var(--bg);
+      color: var(--t1);
       min-height: 100vh;
       line-height: 1.6;
     }
@@ -130,10 +157,10 @@
     }
     input, select, textarea {
       width: 100%;
-      background: rgba(0,0,0,.25);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius-sm);
-      color: var(--text);
+      color: var(--t1);
       font-family: var(--font);
       font-size: .9rem;
       padding: .65rem .9rem;
@@ -142,7 +169,7 @@
       appearance: none;
     }
     input:focus, select:focus, textarea:focus { border-color: var(--primary); }
-    input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: .7; }
+    input::placeholder, textarea::placeholder { color: var(--t2); opacity: .7; }
     textarea { resize: vertical; min-height: 80px; }
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237fa8bb' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
@@ -176,8 +203,8 @@
       padding: 2rem 1rem;
     }
     .auth-card {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 2.5rem;
       width: 100%;
@@ -320,8 +347,8 @@
       margin-bottom: 2rem;
     }
     .metric-card {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.4rem 1.25rem;
       display: flex;
@@ -347,7 +374,7 @@
       color: var(--primary);
       line-height: 1;
     }
-    .metric-label { font-size: .8rem; color: var(--text-muted); font-weight: 500; }
+    .metric-label { font-size: .8rem; color: var(--t2); font-weight: 500; }
 
     /* ── QUICK ACTIONS ── */
     .quick-grid {
@@ -357,8 +384,8 @@
       margin-bottom: 2rem;
     }
     .quick-card {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.25rem;
       cursor: pointer;
@@ -381,8 +408,8 @@
 
     /* ── SEARCH BOX ── */
     .search-box {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.5rem 1.75rem;
       margin-bottom: 1.75rem;
@@ -464,8 +491,8 @@
       gap: 1.25rem;
     }
     .card {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.5rem;
       display: flex;
@@ -544,7 +571,7 @@
       min-width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
       border-radius: var(--radius-sm); border: 1px solid var(--sec-border);
-      background: var(--sec-card); color: var(--text-muted);
+      background: var(--card-bg); color: var(--text-muted);
       font-family: var(--font); font-size: .875rem; cursor: pointer; transition: all .18s; padding: 0 .6rem;
     }
     .page-btn:hover { border-color: var(--primary); color: var(--primary); }
@@ -555,7 +582,7 @@
     #toast {
       position: fixed;
       bottom: 1.5rem; right: 1.5rem;
-      background: var(--sec-card);
+      background: var(--card-bg);
       border: 1px solid var(--sec-border);
       border-radius: var(--radius-sm);
       padding: .85rem 1.25rem;
@@ -583,8 +610,8 @@
     }
     .modal-overlay.visible { display: flex; }
     .modal {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       width: 100%;
       max-width: 600px;
@@ -639,8 +666,8 @@
       gap: 1rem;
     }
     .client-card {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.25rem;
       cursor: pointer;
@@ -685,8 +712,8 @@
     .boletim-filters select { width: auto; flex-shrink: 0; }
     .boletim-list { display: flex; flex-direction: column; gap: .75rem; }
     .boletim-item {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.1rem 1.25rem;
       display: flex; align-items: flex-start; gap: 1rem;
@@ -720,8 +747,8 @@
 
     /* ── MONITOR ── */
     .monitor-add-box {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.25rem 1.5rem;
       margin-bottom: 1.5rem;
@@ -738,8 +765,8 @@
     }
     .monitor-list { display: flex; flex-direction: column; gap: .75rem; }
     .monitor-item {
-      background: var(--sec-card);
-      border: 1px solid var(--sec-border);
+      background: var(--card-bg);
+      border: 1px solid var(--bd);
       border-radius: var(--radius);
       padding: 1.1rem 1.25rem;
       display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
@@ -793,14 +820,15 @@
     .data-table th {
       text-align: left; padding: .45rem .65rem;
       font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
-      color: var(--text-muted); border-bottom: 1px solid var(--sec-border); white-space: nowrap;
+      color: var(--t2); border-bottom: 1px solid var(--sec-border); white-space: nowrap;
+      background: var(--th-bg);
     }
     .data-table td {
-      padding: .55rem .65rem; border-bottom: 1px solid rgba(36,61,80,.5);
-      color: var(--text); vertical-align: middle;
+      padding: .55rem .65rem; border-bottom: 1px solid var(--bd);
+      color: var(--t1); vertical-align: middle;
     }
     .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: rgba(255,255,255,.02); }
+    .data-table tr:hover td { background: var(--row-hover); }
     .data-table .td-muted { color: var(--text-muted); font-size: .78rem; }
     .data-table .td-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
     .btn-icon {
@@ -896,7 +924,7 @@
 
     /* ── EDSON ── */
     .edson-card {
-      background: var(--sec-card); border: 1px solid var(--sec-border);
+      background: var(--card-bg); border: 1px solid var(--sec-border);
       border-radius: var(--radius); padding: 1.25rem;
       display: flex; align-items: flex-start; gap: 1rem; transition: border-color .2s;
     }
@@ -924,7 +952,7 @@
     .edson-msg { display: flex; align-items: flex-start; gap: .55rem; }
     .edson-msg.user { flex-direction: row-reverse; }
     .edson-msg-bubble {
-      background: var(--sec-card); border: 1px solid var(--sec-border);
+      background: var(--card-bg); border: 1px solid var(--sec-border);
       border-radius: var(--radius-sm); padding: .6rem .85rem; font-size: .875rem;
       max-width: 80%; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
     }
@@ -947,7 +975,7 @@
       color: var(--text); min-width: 180px; text-align: center;
     }
     .cal-grid-wrap {
-      background: var(--sec-card); border: 1px solid var(--sec-border);
+      background: var(--card-bg); border: 1px solid var(--sec-border);
       border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem;
     }
     .cal-weekdays {
@@ -978,7 +1006,7 @@
     .cal-dot.sem-hora { background: rgba(240,168,64,.1); border-color: rgba(240,168,64,.25); color: var(--warning); }
     .cal-list { display: flex; flex-direction: column; gap: .6rem; }
     .cal-card {
-      background: var(--sec-card); border: 1px solid var(--sec-border);
+      background: var(--card-bg); border: 1px solid var(--sec-border);
       border-radius: var(--radius-sm); padding: .9rem 1.1rem;
       display: flex; align-items: flex-start; gap: .9rem;
     }
@@ -1032,6 +1060,7 @@
     </a>
     <div class="header-right">
       <span class="user-badge" id="user-badge"></span>
+      <button class="btn btn-ghost btn-sm" id="btn-tema" onclick="alternarTema()" title="Alternar tema" style="font-size:1rem;padding:.3rem .6rem">🌙</button>
       <button class="btn btn-ghost btn-sm" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
     </div>
   </div>
@@ -1464,6 +1493,16 @@
             <span id="edson-pdf-status" style="font-size:.85rem;color:var(--text-muted)"></span>
           </div>
 
+          <!-- Banner análise avulsa sem cliente -->
+          <input type="hidden" id="edson-avulso-analise-id">
+          <div id="edson-avulso-banner" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:var(--radius-sm);padding:.85rem 1.1rem;margin-bottom:1rem">
+            <span style="font-size:.88rem;color:var(--t2)">⚠️ Esta análise não está vinculada a nenhum cliente.</span>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-primary btn-sm" onclick="abrirModalVincularAvulso()">👤 Vincular a cliente</button>
+              <button class="btn btn-danger btn-sm" onclick="descartarAnaliseAvulsa()">🗑️ Descartar</button>
+            </div>
+          </div>
+
           <!-- Processando -->
           <div id="edson-processando" class="state-box" style="padding:3rem;display:none">
             <div class="spinner spinner-lg" style="width:3rem;height:3rem;border-width:4px"></div>
@@ -1774,6 +1813,24 @@
 
   let clientesCache = [];
   let boletinsCache = [];
+
+  // ── Tema Light/Dark ────────────────────────────────────────────
+  (function aplicarTemaInicial() {
+    const salvo = localStorage.getItem('conlicit-tema') || 'dark';
+    document.body.classList.add(salvo === 'light' ? 'tema-light' : 'tema-dark');
+    const btn = document.getElementById('btn-tema');
+    if (btn) btn.textContent = salvo === 'light' ? '☀️' : '🌙';
+  })();
+
+  function alternarTema() {
+    const isLight = document.body.classList.contains('tema-light');
+    document.body.classList.toggle('tema-light', !isLight);
+    document.body.classList.toggle('tema-dark',   isLight);
+    const novoTema = isLight ? 'dark' : 'light';
+    localStorage.setItem('conlicit-tema', novoTema);
+    const btn = document.getElementById('btn-tema');
+    if (btn) btn.textContent = novoTema === 'light' ? '☀️' : '🌙';
+  }
   let clienteAtual = null;
   let pregoesMap = {};
   let tabsLoaded = {};
@@ -3629,6 +3686,7 @@
       document.getElementById('edson-detalhe-acoes').innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pregaoId})">📄 Relatório PDF</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${pregaoId})">📋 Relatório para Reunião</button>
         <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
       `;
       switchEdsonTab('resumo');
@@ -4509,6 +4567,17 @@
       document.getElementById('edson-resultado').style.display = 'block';
       document.getElementById('edson-detalhe-acoes').innerHTML =
         `<button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Lista</button>`;
+
+      // Banner avulso: sem cliente vinculado
+      const banner = document.getElementById('edson-avulso-banner');
+      if (banner) {
+        const semCliente = !analise.pregao_id && !analise.cliente_id && !analise.cliente_nome;
+        banner.style.display = semCliente ? 'flex' : 'none';
+        if (semCliente) {
+          document.getElementById('edson-avulso-analise-id').value = analiseId;
+        }
+      }
+
       switchEdsonTab('resumo');
     } catch (e) {
       pararEdsonPolling();
@@ -4518,7 +4587,96 @@
     }
   }
 
+  // ── Relatório Simples (Reunião de Vendas) ────────────────────────────────
+  async function baixarRelatorioSimples(pregaoId) {
+    try {
+      const r = await fetch(`${API}/edson/${pregaoId}/relatorio-simples`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) { mostrarToast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `reuniao-${pregaoId}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      mostrarToast('Erro ao baixar relatório: ' + e.message, 'error');
+    }
+  }
+
+  // ── Vincular análise avulsa a cliente ────────────────────────────────────
+  async function confirmarVincularCliente() {
+    const analiseId = document.getElementById('edson-avulso-analise-id').value;
+    const clienteId = document.getElementById('edson-avulso-select').value;
+    if (!clienteId) { mostrarToast('Selecione um cliente', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}/vincular`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cliente_id: parseInt(clienteId, 10) }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro');
+      mostrarToast(`Análise vinculada a ${d.cliente_nome}`, 'success');
+      document.getElementById('edson-avulso-banner').style.display = 'none';
+      document.getElementById('modal-vincular-avulso').classList.remove('visible');
+    } catch (e) {
+      mostrarToast(e.message, 'error');
+    }
+  }
+
+  function abrirModalVincularAvulso() {
+    const sel = document.getElementById('edson-avulso-select');
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        const ativos = (d.dados || []).filter(c => c.ativo);
+        sel.innerHTML = '<option value="">Selecione o cliente</option>' +
+          ativos.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      }).catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+    document.getElementById('modal-vincular-avulso').classList.add('visible');
+  }
+
+  async function descartarAnaliseAvulsa() {
+    const analiseId = document.getElementById('edson-avulso-analise-id').value;
+    if (!confirm('Descartar esta análise? A ação não pode ser desfeita.')) return;
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro');
+      mostrarToast('Análise descartada', 'success');
+      voltarListaEdson();
+    } catch (e) {
+      mostrarToast(e.message, 'error');
+    }
+  }
+
 </script>
+
+<!-- MODAL: Vincular análise avulsa a cliente -->
+<div class="modal-overlay" id="modal-vincular-avulso" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Vincular a cliente</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-vincular-avulso').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin:0">
+        <label>Cliente</label>
+        <select id="edson-avulso-select">
+          <option value="">Selecione o cliente</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-vincular-avulso').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarVincularCliente()">Vincular</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Edson Análise Avulsa -->
 <div class="modal-overlay" id="modal-avulso" onclick="fecharModalAvulso(event)">

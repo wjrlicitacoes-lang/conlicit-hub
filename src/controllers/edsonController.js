@@ -1,8 +1,9 @@
 const multer = require('multer');
 const db = require('../database/db');
 const { analisarPregao, analisarPDF, analisarAvulso, chamarClaude } = require('../services/edsonService');
-const { gerarPlanilhaXLSX } = require('../services/planilhaService');
-const { gerarRelatorioPDF }  = require('../services/relatorioService');
+const { gerarPlanilhaXLSX }       = require('../services/planilhaService');
+const { gerarRelatorioPDF }        = require('../services/relatorioService');
+const { gerarRelatorioSimplesPDF } = require('../services/relatorioSimplesService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -376,8 +377,78 @@ async function uploadPDF(req, res) {
   }
 }
 
+// ── Relatório Simples (1 pág para reunião de vendas) ─────────────────────────
+
+async function relatorioSimples(req, res) {
+  const { pregao_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
+              p.data_abertura, p.data_hora_abertura, p.municipio, p.uf,
+              p.modalidade_nome,
+              c.nome AS cliente_nome, c.uf AS cliente_uf
+       FROM analises_edson a
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = COALESCE(p.cliente_id, a.cliente_id)
+       WHERE a.pregao_id = $1`,
+      [pregao_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
+
+    const buffer = await gerarRelatorioSimplesPDF({ analise, pregao: analise });
+    const safeName = (analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="reuniao-${safeName}.pdf"`);
+    return res.send(buffer);
+  } catch (e) {
+    console.error('[Edson] relatorioSimples:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Vincular análise avulsa a um cliente ─────────────────────────────────────
+
+async function vincularCliente(req, res) {
+  const { analise_id } = req.params;
+  const { cliente_id } = req.body ?? {};
+  if (!cliente_id) return res.status(400).json({ erro: 'cliente_id é obrigatório' });
+
+  try {
+    const { rows: [cliente] } = await db.query(
+      'SELECT id, nome FROM clientes WHERE id = $1', [cliente_id],
+    );
+    if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado' });
+
+    await db.query(
+      'UPDATE analises_edson SET cliente_id = $1, atualizado_em = NOW() WHERE id = $2',
+      [cliente_id, analise_id],
+    );
+    return res.json({ mensagem: `Análise vinculada a ${cliente.nome}`, cliente_nome: cliente.nome });
+  } catch (e) {
+    console.error('[Edson] vincularCliente:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Descartar análise avulsa ──────────────────────────────────────────────────
+
+async function descartarAnalise(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rowCount } = await db.query(
+      'DELETE FROM analises_edson WHERE id = $1', [analise_id],
+    );
+    if (rowCount === 0) return res.status(404).json({ erro: 'Análise não encontrada' });
+    return res.json({ mensagem: 'Análise descartada' });
+  } catch (e) {
+    console.error('[Edson] descartarAnalise:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
 module.exports = {
   listar, disparar, avulso, obter, obterPorId,
   chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
-  planilha, relatorio, uploadPDF, upload,
+  planilha, relatorio, relatorioSimples, uploadPDF, upload,
+  vincularCliente, descartarAnalise,
 };
