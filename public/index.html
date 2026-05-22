@@ -4565,8 +4565,13 @@
       }
 
       document.getElementById('edson-resultado').style.display = 'block';
-      document.getElementById('edson-detalhe-acoes').innerHTML =
-        `<button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Lista</button>`;
+      const _pid = analise.pregao_id;
+      document.getElementById('edson-detalhe-acoes').innerHTML = _pid
+        ? `<button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${_pid})">📊 Planilha XLSX</button>
+           <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${_pid})">📄 Relatório PDF</button>
+           <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid})">📋 Relatório para Reunião</button>
+           <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Lista</button>`;
 
       // Banner avulso: sem cliente vinculado
       const banner = document.getElementById('edson-avulso-banner');
