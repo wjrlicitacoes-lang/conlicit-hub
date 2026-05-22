@@ -3803,6 +3803,7 @@
       <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="baixarPlanilhaEdson(${pid})">📊 Baixar Planilha</button>
         <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pid})">📄 Baixar Relatório</button>
+        ${pid ? `<button class="btn btn-ghost btn-sm" onclick="baixarRelatorioSimples(${pid})">📋 Relatório para Reunião</button>` : ''}
       </div>`;
   }
 
