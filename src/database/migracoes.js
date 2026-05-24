@@ -244,40 +244,26 @@ async function executarMigracoes() {
     )
   `);
 
-  // Renomear status 'oferta' → 'sugerido' (cliente vê oferta pendente)
-  // 1. Dropar constraint existente primeiro
+  // Renomear status 'oferta' → 'sugerido' (abordagem idempotente)
+  // 1. Drop direto com IF EXISTS (seguro se não existir)
   await db.query(`
-    DO $$
-    DECLARE r record;
-    BEGIN
-      FOR r IN
-        SELECT tc.constraint_name
-        FROM information_schema.table_constraints tc
-        JOIN information_schema.check_constraints cc ON cc.constraint_name = tc.constraint_name
-        WHERE tc.table_name = 'pregoes' AND tc.constraint_type = 'CHECK'
-          AND cc.check_clause ILIKE '%status%'
-          AND tc.constraint_name NOT LIKE '%not_null%'
-      LOOP
-        BEGIN
-          EXECUTE 'ALTER TABLE pregoes DROP CONSTRAINT IF EXISTS ' || quote_ident(r.constraint_name);
-        EXCEPTION WHEN OTHERS THEN NULL;
-        END;
-      END LOOP;
+    DO $$ BEGIN
+      ALTER TABLE pregoes DROP CONSTRAINT IF EXISTS pregoes_status_check;
+    EXCEPTION WHEN OTHERS THEN NULL;
     END $$
   `);
-  // 2. Migrar dados antes de recriar constraint
+  // 2. Migrar dados: oferta → sugerido; qualquer outro inválido → a_disputar
   await db.query(`UPDATE pregoes SET status = 'sugerido' WHERE status = 'oferta'`);
-  // 3. Recriar constraint com 'sugerido'
   await db.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.check_constraints
-        WHERE check_clause ILIKE '%sugerido%' AND constraint_name ILIKE '%status%'
-      ) THEN
-        ALTER TABLE pregoes ADD CONSTRAINT pregoes_status_check
-          CHECK (status IN ('a_disputar','vencido','perdido','cancelado','sugerido'));
-      END IF;
+    UPDATE pregoes SET status = 'a_disputar'
+    WHERE status NOT IN ('a_disputar','vencido','perdido','cancelado','sugerido')
+  `);
+  // 3. Recriar constraint — ignora se já existir
+  await db.query(`
+    DO $$ BEGIN
+      ALTER TABLE pregoes ADD CONSTRAINT pregoes_status_check
+        CHECK (status IN ('a_disputar','vencido','perdido','cancelado','sugerido'));
+    EXCEPTION WHEN duplicate_object THEN NULL;
     END $$
   `);
 

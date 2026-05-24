@@ -1,5 +1,5 @@
 const db = require('../database/db');
-const { analisarPDF } = require('../services/edsonService');
+const { analisarPDF, analisarPregao } = require('../services/edsonService');
 
 async function listar(req, res) {
   const { id } = req.params;
@@ -19,7 +19,8 @@ async function criar(req, res) {
   if (req.usuario?.role === 'cliente') return res.status(403).json({ erro: 'Acesso negado' });
   const { id } = req.params;
   const { numero, orgao, objeto, data_abertura, valor_estimado, status,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa } = req.body ?? {};
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa,
+          acionar_edson } = req.body ?? {};
 
   if (!numero) return res.status(400).json({ erro: 'numero é obrigatório' });
 
@@ -38,8 +39,10 @@ async function criar(req, res) {
        link_pncp?.trim() || null,
        portal_disputa?.trim() || null],
     );
-    // Se PDF enviado junto com a oferta, disparar análise Edson em background
+    // Disparar análise Edson em background
+    const acionarEdson = acionar_edson === true || acionar_edson === 'true';
     if (req.file) {
+      // PDF enviado: analisar via conteúdo do arquivo
       try {
         const { rows: [analise] } = await db.query(
           `INSERT INTO analises_edson (pregao_id, status) VALUES ($1, 'processando')
@@ -47,9 +50,22 @@ async function criar(req, res) {
            RETURNING id`,
           [rows[0].id],
         );
-        analisarPDF(analise.id, rows[0].id, req.file.buffer).catch(console.error);
+        analisarPDF(analise.id, rows[0].id, req.file.buffer).catch(e => console.error('[Edson] PDF:', e.message));
       } catch (e2) {
-        console.error('[Pregão] Edson auto-análise:', e2.message);
+        console.error('[Pregão] Edson auto-análise PDF:', e2.message);
+      }
+    } else if (acionarEdson || numero_controle_pncp?.trim()) {
+      // Sem PDF: analisar via dados do PNCP/pregão
+      try {
+        const { rows: [analise] } = await db.query(
+          `INSERT INTO analises_edson (pregao_id, status) VALUES ($1, 'processando')
+           ON CONFLICT (pregao_id) DO UPDATE SET status = 'processando', atualizado_em = NOW()
+           RETURNING id`,
+          [rows[0].id],
+        );
+        analisarPregao(analise.id, rows[0].id).catch(e => console.error('[Edson] PNCP:', e.message));
+      } catch (e2) {
+        console.error('[Pregão] Edson auto-análise PNCP:', e2.message);
       }
     }
 

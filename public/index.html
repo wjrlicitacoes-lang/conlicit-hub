@@ -3459,6 +3459,7 @@
         fd.append('link_pncp',            ofLink   || '');
         fd.append('portal_disputa',       ofPortal || '');
         fd.append('status',               'sugerido');
+        fd.append('acionar_edson',        String(acionar));
         fd.append('edital_pdf',           pdfFile);
         r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
           method: 'POST',
@@ -3477,20 +3478,16 @@
             link_pncp:            ofLink,
             portal_disputa:       ofPortal,
             status:               'sugerido',
+            acionar_edson:        acionar,
           }),
         });
       }
 
       if (!r.ok) { toast((await r.json()).erro || 'Erro ao oferecer', 'error'); return; }
-      const pregao = await r.json();
-
-      // Se sem PDF e Edson marcado, disparar via PNCP/dados
-      if (!pdfFile && acionar && pregao.id) {
-        fetch(`${API}/edson/${pregao.id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-          .catch(() => {});
-      }
-
-      toast(`Oferta enviada para ${clienteNome}. Aparecerá na área dele para aprovação.`, 'success');
+      const toast_msg = acionar
+        ? `Oferta enviada para ${clienteNome}. Edson já analisando o edital.`
+        : `Oferta enviada para ${clienteNome}. Aparecerá na área dele para aprovação.`;
+      toast(toast_msg, 'success');
       document.getElementById('modal-oferecer').classList.remove('visible');
       document.getElementById('of-pdf').value = '';
     } catch (err) { toast(err.message || 'Erro ao oferecer', 'error'); }

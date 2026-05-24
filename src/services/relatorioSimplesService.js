@@ -328,11 +328,15 @@ async function gerarRelatorioSimplesPDF({ analise, pregao }) {
     y2 = drawSectionLabel(doc, 'PONTOS DE ATENCAO', y2);
 
     const pontosRaw = riscos.slice(0, 4).map(r => {
-      if (typeof r === 'string') return { titulo: 'Atencao', desc: r };
-      return {
-        titulo: fmt(r.tipo || r.titulo || r.category || 'Atencao'),
-        desc:   fmt(r.descricao || r.description || r.detail || JSON.stringify(r)),
-      };
+      if (typeof r === 'string') return { titulo: 'ATENCAO', desc: r };
+      // Estrutura padrão do Edson: {nivel, risco, recomendacao}
+      const titulo = r.nivel || r.tipo  || r.level   || r.category || 'ATENCAO';
+      const desc   = r.risco || r.descricao || r.description || r.texto  || '';
+      const rec    = r.recomendacao || r.recomendação || r.recommendation || '';
+      const fullDesc = desc
+        ? (rec ? `${desc} — Rec.: ${trunc(rec, 100)}` : desc)
+        : (rec || fmt(titulo));
+      return { titulo: fmt(titulo), desc: fmt(fullDesc) };
     });
     if (pontosRaw.length === 0) {
       pontosRaw.push({ titulo: 'SEM RISCOS IDENTIFICADOS', desc: 'Nenhum risco especifico foi identificado nesta analise.' });
