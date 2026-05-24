@@ -258,10 +258,12 @@
     .app-layout { display: flex; width: 100%; min-height: calc(100vh - 60px); }
 
     /* ── SIDEBAR ── */
-    .sidebar {
+    /* ── Sidebar e topbar: sempre navy independente do tema ── */
+    .sidebar,
+    body.tema-light .sidebar {
       width: var(--sidebar-w);
       flex-shrink: 0;
-      background: var(--sidebar-bg, #182A39);
+      background: #182A39 !important;
       border-right: 1px solid rgba(76,197,215,0.12);
       display: flex;
       flex-direction: column;
@@ -270,6 +272,10 @@
       height: calc(100vh - 60px);
       overflow-y: auto;
     }
+    header,
+    body.tema-light header {
+      background: #182A39 !important;
+    }
     .sidebar-nav {
       flex: 1;
       padding: 1rem 0;
@@ -277,24 +283,26 @@
       flex-direction: column;
       gap: 2px;
     }
-    .sidebar-section-label {
+    .sidebar-section-label,
+    body.tema-light .sidebar-section-label {
       font-size: .67rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: var(--text-muted);
-      opacity: .5;
+      color: rgba(255,255,255,0.4) !important;
+      opacity: 1;
       padding: .75rem 1.1rem .3rem;
     }
-    .nav-item {
+    .nav-item,
+    body.tema-light .nav-item {
       display: flex;
       align-items: center;
       gap: .7rem;
       width: 100%;
       padding: .65rem 1.1rem;
       border: none;
-      background: transparent;
-      color: var(--text-muted);
+      background: transparent !important;
+      color: rgba(255,255,255,0.6) !important;
       font-family: var(--font);
       font-size: .88rem;
       font-weight: 500;
@@ -304,10 +312,15 @@
       border-radius: 0;
       position: relative;
     }
-    .nav-item:hover { background: rgba(76,197,215,.07); color: var(--text); }
-    .nav-item.active {
-      background: rgba(76,197,215,.12);
-      color: var(--primary);
+    .nav-item:hover,
+    body.tema-light .nav-item:hover {
+      background: rgba(76,197,215,.07) !important;
+      color: #FFFFFF !important;
+    }
+    .nav-item.active,
+    body.tema-light .nav-item.active {
+      background: rgba(76,197,215,.12) !important;
+      color: #4CC5D7 !important;
       font-weight: 600;
     }
     .nav-item.active::before {
@@ -315,9 +328,12 @@
       position: absolute;
       left: 0; top: 0; bottom: 0;
       width: 3px;
-      background: var(--primary);
+      background: #4CC5D7;
       border-radius: 0 2px 2px 0;
     }
+    /* Emojis e ícones da sidebar sempre visíveis */
+    .nav-icon,
+    body.tema-light .nav-icon { color: inherit !important; }
     .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
     .nav-badge {
       margin-left: auto;
@@ -330,9 +346,30 @@
       min-width: 18px;
       text-align: center;
     }
-    .sidebar-footer {
+    .sidebar-footer,
+    body.tema-light .sidebar-footer {
       padding: 1rem;
-      border-top: 1px solid var(--sec-border);
+      border-top: 1px solid rgba(76,197,215,0.15);
+    }
+    .sidebar-footer .btn,
+    body.tema-light .sidebar-footer .btn {
+      color: rgba(255,255,255,0.6) !important;
+      border-color: rgba(255,255,255,0.15) !important;
+    }
+    .sidebar-footer .btn:hover,
+    body.tema-light .sidebar-footer .btn:hover {
+      color: #FFFFFF !important;
+      border-color: rgba(76,197,215,0.4) !important;
+    }
+    /* user-badge e botão logout no header sempre brancos */
+    .user-badge,
+    body.tema-light .user-badge { color: rgba(255,255,255,0.6) !important; }
+    #btn-tema,
+    body.tema-light #btn-tema,
+    #btn-logout,
+    body.tema-light #btn-logout {
+      color: rgba(255,255,255,0.8) !important;
+      border-color: rgba(255,255,255,0.2) !important;
     }
 
     /* ── CONTENT AREA ── */
