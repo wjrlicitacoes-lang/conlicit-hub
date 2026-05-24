@@ -4107,10 +4107,19 @@
     }
   }
 
+  function pillValida(v) {
+    if (!v) return false;
+    const s = String(v).trim().toLowerCase();
+    return s && s !== '—' && s !== 'null' && !s.includes('não identificado') && !s.includes('nao identificado') && !s.includes('não informado');
+  }
+
   function renderEdsonResumo(a, pid) {
     const sc = a.score ?? null;
     const cls = sc != null ? scoreClass(sc) : 'score-vermelho';
     const lbl = sc != null ? scoreLabel(sc) : '—';
+    const modalidade    = pillValida(a.modalidade)    ? a.modalidade    : null;
+    const modoDisputa   = pillValida(a.modo_disputa)  ? a.modo_disputa  : null;
+    const tipoJulgamento = pillValida(a.tipo_julgamento) ? a.tipo_julgamento : null;
     document.getElementById('etab-resumo').innerHTML = `
       <div style="display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap;margin-bottom:2rem">
         <div class="edson-score-big ${cls}">
@@ -4119,11 +4128,11 @@
         </div>
         <div style="flex:1;min-width:180px">
           <p style="font-size:.87rem;color:var(--text-muted);line-height:1.6;margin-bottom:.9rem">${esc(a.score_justificativa||'—')}</p>
-          <div class="edson-pills">
-            ${a.modalidade    ? `<span class="s-badge s-vencido">${esc(a.modalidade)}</span>` : ''}
-            ${a.modo_disputa  ? `<span class="s-badge s-pendente">${esc(a.modo_disputa)}</span>` : ''}
-            ${a.tipo_julgamento ? `<span class="s-badge s-recebido">${esc(a.tipo_julgamento)}</span>` : ''}
-          </div>
+          ${(modalidade || modoDisputa || tipoJulgamento) ? `<div class="edson-pills">
+            ${modalidade     ? `<span class="s-badge s-vencido">${esc(modalidade)}</span>` : ''}
+            ${modoDisputa    ? `<span class="s-badge s-pendente">${esc(modoDisputa)}</span>` : ''}
+            ${tipoJulgamento ? `<span class="s-badge s-recebido">${esc(tipoJulgamento)}</span>` : ''}
+          </div>` : ''}
         </div>
       </div>
       ${a.link_pncp ? `

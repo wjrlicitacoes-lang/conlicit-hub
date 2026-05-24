@@ -383,8 +383,8 @@ async function relatorioSimples(req, res) {
   try {
     const { rows: [analise] } = await db.query(
       `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
-              p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome
+              p.data_abertura, p.data_hora_abertura, p.portal_disputa,
+              c.nome AS cliente_nome, c.uf
        FROM analises_edson a
        LEFT JOIN pregoes p ON p.id = a.pregao_id
        LEFT JOIN clientes c ON c.id = p.cliente_id
@@ -411,8 +411,8 @@ async function relatorioSimplesAvulso(req, res) {
   try {
     const { rows: [analise] } = await db.query(
       `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
-              p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome
+              p.data_abertura, p.data_hora_abertura, p.portal_disputa,
+              c.nome AS cliente_nome, c.uf
        FROM analises_edson a
        LEFT JOIN pregoes p ON p.id = a.pregao_id
        LEFT JOIN clientes c ON c.id = p.cliente_id
