@@ -211,6 +211,8 @@ async function executarMigracoes() {
         ALTER TABLE pregoes ADD CONSTRAINT pregoes_status_check
           CHECK (status IN ('a_disputar','vencido','perdido','cancelado','oferta'));
       END IF;
+    EXCEPTION WHEN OTHERS THEN
+      NULL; -- ignora se rows existentes violarem (serão corrigidas pelo step seguinte)
     END $$
   `);
 
