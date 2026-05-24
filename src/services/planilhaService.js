@@ -14,9 +14,10 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
     { key: 'C', width: 12 },
     { key: 'D', width: 8  },
     { key: 'E', width: 18 },
-    { key: 'F', width: 20 },
-    { key: 'G', width: 18 },
-    { key: 'H', width: 18 },
+    { key: 'F', width: 18 }, // Preço Sugerido (95%)
+    { key: 'G', width: 20 }, // Meu Vr Unitário
+    { key: 'H', width: 18 }, // Meu Vr Total
+    { key: 'I', width: 18 }, // Vr Total Geral
   ];
 
   const NAVY   = 'FF182A39';
@@ -39,7 +40,7 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   }
 
   // ── Row 1: title ──────────────────────────────────────────────
-  merge(1, 1, 1, 8);
+  merge(1, 1, 1, 9);
   setVal(1, 1, 'PLANILHA DE PROPOSTA DE PREÇOS');
   const r1 = ws.getRow(1);
   r1.height = 22;
@@ -54,29 +55,29 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   bold(2, 1);
   merge(2, 3, 2, 5);
   setVal(2, 3, `Sessão: ${pregao.data_hora_abertura ? new Date(pregao.data_hora_abertura).toLocaleString('pt-BR') : (pregao.data_abertura || '—')}`);
-  merge(2, 6, 2, 8);
+  merge(2, 6, 2, 9);
   setVal(2, 6, `Tipo de Julgamento: ${analise.tipo_julgamento || 'Menor Preço'}`);
   ws.getRow(2).height = 16;
-  for (let c = 1; c <= 8; c++) {
+  for (let c = 1; c <= 9; c++) {
     cell(2, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } };
   }
 
   // ── Row 3: company info (blank for user to fill) ──────────────
   merge(3, 1, 3, 4);
   setVal(3, 1, 'Empresa: _______________________________________________');
-  merge(3, 5, 3, 8);
+  merge(3, 5, 3, 9);
   setVal(3, 5, 'CNPJ: ____________________________________');
   ws.getRow(3).height = 15;
 
   // ── Row 4: bank info ──────────────────────────────────────────
   merge(4, 1, 4, 4);
   setVal(4, 1, 'Banco: ____________  Agência: __________  Conta: _________________');
-  merge(4, 5, 4, 8);
+  merge(4, 5, 4, 9);
   setVal(4, 5, 'Validade da Proposta: 90 (noventa) dias');
   ws.getRow(4).height = 15;
 
   // ── Row 5: instructions ───────────────────────────────────────
-  merge(5, 1, 5, 8);
+  merge(5, 1, 5, 9);
   setVal(5, 1, 'Preencha as colunas em amarelo (Meu Preço Unitário). O total por item e o total geral são calculados automaticamente.');
   const instrCell = cell(5, 1);
   instrCell.font      = { italic: true, size: 9, color: { argb: 'FF555555' } };
@@ -84,7 +85,7 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   ws.getRow(5).height = 14;
 
   // ── Row 6: header ─────────────────────────────────────────────
-  const headers = ['Nº Item', 'Descrição', 'Unidade', 'Qtd', 'Vr Unit. Estimado', 'Meu Vr Unitário', 'Meu Vr Total', 'Vr Total Geral'];
+  const headers = ['Nº Item', 'Descrição', 'Unidade', 'Qtd', 'Vr Unit. Estimado', 'Preço Sugerido (R$)', 'Meu Vr Unitário', 'Meu Vr Total', 'Vr Total Geral'];
   headers.forEach((h, i) => {
     const c = cell(6, i + 1);
     c.value     = h;
@@ -155,29 +156,38 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
     cE.fill      = rowFill;
     cE.border    = borderThin;
 
-    // Col F: meu preço unitário (yellow — user fills)
+    // Col F: preço sugerido = 95% do estimado
     const cF = cell(rowNum, 6);
-    cF.value     = null;
+    cF.value     = item.valor_unitario_estimado ? { formula: `E${rowNum}*0.95` } : '';
     cF.numFmt    = 'R$ #,##0.00';
     cF.alignment = { horizontal: 'right', vertical: 'middle' };
-    cF.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: YELLOW } };
+    cF.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }; // verde claro
     cF.border    = borderThin;
+    cF.font      = { color: { argb: 'FF2E7D32' } };
 
-    // Col G: meu preço total = F * D (yellow)
+    // Col G: meu preço unitário (yellow — user fills)
     const cG = cell(rowNum, 7);
-    cG.value     = { formula: `IF(F${rowNum}="","",F${rowNum}*D${rowNum})` };
+    cG.value     = null;
     cG.numFmt    = 'R$ #,##0.00';
     cG.alignment = { horizontal: 'right', vertical: 'middle' };
     cG.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: YELLOW } };
     cG.border    = borderThin;
 
-    // Col H: valor total geral (estimado * qtd)
+    // Col H: meu preço total = G * D (yellow)
     const cH = cell(rowNum, 8);
-    cH.value     = { formula: `IF(E${rowNum}="","",E${rowNum}*D${rowNum})` };
+    cH.value     = { formula: `IF(G${rowNum}="","",G${rowNum}*D${rowNum})` };
     cH.numFmt    = 'R$ #,##0.00';
     cH.alignment = { horizontal: 'right', vertical: 'middle' };
-    cH.fill      = rowFill;
+    cH.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: YELLOW } };
     cH.border    = borderThin;
+
+    // Col I: valor total geral (estimado * qtd)
+    const cI = cell(rowNum, 9);
+    cI.value     = { formula: `IF(E${rowNum}="","",E${rowNum}*D${rowNum})` };
+    cI.numFmt    = 'R$ #,##0.00';
+    cI.alignment = { horizontal: 'right', vertical: 'middle' };
+    cI.fill      = rowFill;
+    cI.border    = borderThin;
   });
 
   // ── Total row ─────────────────────────────────────────────────
@@ -198,11 +208,8 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   cTotF.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } };
 
   const cTotG = cell(totalRow, 7);
-  cTotG.value  = itens.length > 0 ? { formula: `IFERROR(SUM(G${dataStart}:G${lastItem}),0)` } : 0;
-  cTotG.numFmt = 'R$ #,##0.00';
-  cTotG.font   = { bold: true };
+  cTotG.value  = '';
   cTotG.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } };
-  cTotG.border = borderThin;
 
   const cTotH = cell(totalRow, 8);
   cTotH.value  = itens.length > 0 ? { formula: `IFERROR(SUM(H${dataStart}:H${lastItem}),0)` } : 0;
@@ -211,14 +218,31 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   cTotH.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } };
   cTotH.border = borderThin;
 
+  const cTotI = cell(totalRow, 9);
+  cTotI.value  = itens.length > 0 ? { formula: `IFERROR(SUM(I${dataStart}:I${lastItem}),0)` } : 0;
+  cTotI.numFmt = 'R$ #,##0.00';
+  cTotI.font   = { bold: true };
+  cTotI.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } };
+  cTotI.border = borderThin;
+
+  // ── Alerta de inexequibilidade ────────────────────────────────
+  const alertRow = totalRow + 1;
+  merge(alertRow, 1, alertRow, 9);
+  setVal(alertRow, 1, '⚠️ Propostas abaixo de 70% do valor estimado podem ser declaradas inexequíveis (art. 59, Lei 14.133/2021). O Preço Sugerido (coluna F) já aplica margem de segurança de 5%.');
+  const alertCell = cell(alertRow, 1);
+  alertCell.font      = { italic: true, size: 9, color: { argb: 'FF8B4513' } };
+  alertCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+  alertCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  ws.getRow(alertRow).height = 20;
+
   // ── Footer rows ───────────────────────────────────────────────
-  const f1 = totalRow + 2;
-  merge(f1, 1, f1, 8);
+  const f1 = totalRow + 3;
+  merge(f1, 1, f1, 9);
   setVal(f1, 1, '* Validade da proposta: 90 (noventa) dias corridos a partir da data de abertura da sessão.');
   cell(f1, 1).font = { italic: true, size: 9 };
 
   const f2 = f1 + 1;
-  merge(f2, 1, f2, 8);
+  merge(f2, 1, f2, 9);
   setVal(f2, 1, '* Prazo de entrega/execução conforme edital. Forma de fornecimento: conforme especificações do termo de referência.');
   cell(f2, 1).font = { italic: true, size: 9 };
 
@@ -234,11 +258,11 @@ async function gerarPlanilhaXLSX({ analise, pregao }) {
   cell(f4, 1).alignment = { horizontal: 'center' };
   cell(f4, 1).font      = { size: 9 };
 
-  merge(f4, 5, f4, 8);
-  ws.getRow(f4).getCell(5).border = { bottom: { style: 'thin' } };
-  setVal(f4, 5, 'Local e data');
-  cell(f4, 5).alignment = { horizontal: 'center' };
-  cell(f4, 5).font      = { size: 9 };
+  merge(f4, 6, f4, 9);
+  ws.getRow(f4).getCell(6).border = { bottom: { style: 'thin' } };
+  setVal(f4, 6, 'Local e data');
+  cell(f4, 6).alignment = { horizontal: 'center' };
+  cell(f4, 6).font      = { size: 9 };
 
   // ── Freeze top rows, print settings ───────────────────────────
   ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 6 }];

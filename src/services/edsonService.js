@@ -358,6 +358,7 @@ async function analisarPregao(analiseId, pregaoId) {
     const raw = await callClaude(buildPrompt(pregao, itensPNCP, dataSessao));
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
+    gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro na análise:', e.message);
     await salvarErro(analiseId, e.message);
@@ -384,6 +385,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
     const raw = await callClaude(buildPromptPDF(pregao, pdfText, dataSessao));
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
+    gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro no PDF:', e.message);
     await salvarErro(analiseId, e.message);
@@ -414,10 +416,39 @@ async function analisarAvulso(analiseId, opts) {
     const raw = await callClaude(buildPromptAvulso(opts, itensPNCP, pdfText));
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
+    gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro avulso:', e.message);
     await salvarErro(analiseId, e.message);
   }
+}
+
+// ── Perguntas proativas pós-análise ──────────────────────────────────────────
+
+async function gerarPerguntasProativas(analiseId) {
+  const { rows: [a] } = await db.query(
+    `SELECT ae.score, ae.resumo_executivo, ae.riscos, ae.referencia,
+            p.numero, p.orgao, p.objeto, p.valor_estimado
+     FROM analises_edson ae
+     LEFT JOIN pregoes p ON p.id = ae.pregao_id
+     WHERE ae.id = $1`,
+    [analiseId],
+  );
+  if (!a) return;
+
+  const riscos = Array.isArray(a.riscos) ? a.riscos : (() => { try { return JSON.parse(a.riscos || '[]'); } catch { return []; } })();
+  const top3 = riscos.slice(0, 3).map(r => r.risco || String(r)).join(' | ') || '—';
+  const objeto = a.objeto || a.referencia || '—';
+
+  const resposta = await chamarClaude(
+    'Você é o Edson, especialista sênior em licitações. Responda de forma direta e prática.',
+    [{ role: 'user', content: `Análise concluída: "${objeto}" | Score: ${a.score}/100 | Riscos: ${top3}\n\nGere EXATAMENTE 3 perguntas diagnósticas que o consultor deve responder antes de decidir participar. Retorne apenas as 3 perguntas numeradas, sem introdução.` }],
+  );
+
+  await db.query(
+    `INSERT INTO chat_edson (analise_id, role, content) VALUES ($1, 'assistant', $2)`,
+    [analiseId, resposta],
+  );
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────

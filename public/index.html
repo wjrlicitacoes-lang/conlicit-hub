@@ -1168,6 +1168,10 @@
           <span class="nav-icon">📊</span>
           <span class="nav-label">Dashboard</span>
         </button>
+        <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">Edson IA</span>
+        </button>
 
         <!-- Visível para staff -->
         <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-staff-only>
@@ -1191,10 +1195,6 @@
         <button class="nav-item" data-nav="calendario" onclick="navTo('calendario')" data-staff-only>
           <span class="nav-icon">📅</span>
           <span class="nav-label">Calendário</span>
-        </button>
-        <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
-          <span class="nav-icon">🤖</span>
-          <span class="nav-label">Edson IA</span>
         </button>
 
         <!-- Exclusivo para role cliente -->
@@ -1633,19 +1633,21 @@
           <!-- Resultado -->
           <div id="edson-resultado" style="display:none">
             <div class="tab-bar">
-              <button class="tab-btn active" data-etab="resumo"     onclick="switchEdsonTab('resumo')">Resumo</button>
+              <button class="tab-btn active" data-etab="rapido"     onclick="switchEdsonTab('rapido')">⚡ Modo Rápido</button>
+              <button class="tab-btn"        data-etab="resumo"     onclick="switchEdsonTab('resumo')">Resumo</button>
               <button class="tab-btn"        data-etab="itens"      onclick="switchEdsonTab('itens')">Itens</button>
               <button class="tab-btn"        data-etab="habilitacao" onclick="switchEdsonTab('habilitacao')">Habilitação</button>
               <button class="tab-btn"        data-etab="riscos"     onclick="switchEdsonTab('riscos')">Riscos</button>
               <button class="tab-btn"        data-etab="checklist"  onclick="switchEdsonTab('checklist')">Checklist</button>
               <button class="tab-btn"        data-etab="chat"       onclick="switchEdsonTab('chat')">💬 Pergunte ao Edson</button>
             </div>
-            <div id="etab-resumo"></div>
-            <div id="etab-itens"      style="display:none"></div>
+            <div id="etab-rapido"></div>
+            <div id="etab-resumo"      style="display:none"></div>
+            <div id="etab-itens"       style="display:none"></div>
             <div id="etab-habilitacao" style="display:none"></div>
-            <div id="etab-riscos"     style="display:none"></div>
-            <div id="etab-checklist"  style="display:none"></div>
-            <div id="etab-chat"       style="display:none"></div>
+            <div id="etab-riscos"      style="display:none"></div>
+            <div id="etab-checklist"   style="display:none"></div>
+            <div id="etab-chat"        style="display:none"></div>
           </div>
         </div>
       </section>
@@ -3605,6 +3607,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="abrirModalOferecer(${idx})" style="font-size:.8rem">+ Oferecer para cliente</button>
+        <button class="btn btn-primary btn-sm" onclick="analisarComEdson(${idx})" style="font-size:.8rem">🤖 Analisar com Edson</button>
       </div>
     </div>`;
   }
@@ -3709,7 +3712,7 @@
   let edsonAtualPregaoId = null;
   let edsonPollingTimer  = null;
   let edsonAnaliseAtual  = null;
-  const EDSON_TABS = ['resumo','itens','habilitacao','riscos','checklist','chat'];
+  const EDSON_TABS = ['rapido','resumo','itens','habilitacao','riscos','checklist','chat'];
 
   function scoreClass(s) {
     return s >= 85 ? 'score-verde' : s >= 70 ? 'score-verde' : s >= 40 ? 'score-amarelo' : 'score-vermelho';
@@ -3865,7 +3868,7 @@
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${pregaoId},null)">📋 Relatório para Reunião</button>
         <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
       `;
-      switchEdsonTab('resumo');
+      switchEdsonTab('rapido');
 
     } catch (e) {
       pararEdsonPolling();
@@ -3939,12 +3942,169 @@
     const a = edsonAnaliseAtual;
     if (!a) return;
     const pid = edsonAtualPregaoId;
-    if      (tabName === 'resumo')      renderEdsonResumo(a, pid);
+    const aid = edsonAtualAnaliseId || a.id;
+    if      (tabName === 'rapido')      renderEdsonModoRapido(a, pid, aid);
+    else if (tabName === 'resumo')      renderEdsonResumo(a, pid);
     else if (tabName === 'itens')       document.getElementById('etab-itens').innerHTML = renderEdsonItens(a.itens);
     else if (tabName === 'habilitacao') document.getElementById('etab-habilitacao').innerHTML = renderEdsonHabilitacao(a.habilitacao);
     else if (tabName === 'riscos')      document.getElementById('etab-riscos').innerHTML = renderEdsonRiscos(a.riscos);
     else if (tabName === 'checklist')   document.getElementById('etab-checklist').innerHTML = renderEdsonChecklist(a.checklist, pid);
-    else if (tabName === 'chat')        iniciarEdsonChat(pid);
+    else if (tabName === 'chat')        iniciarEdsonChat(pid, aid);
+  }
+
+  function renderEdsonModoRapido(a, pid, aid) {
+    const sc = a.score ?? null;
+    const cls = sc != null ? scoreClass(sc) : 'score-vermelho';
+    const lbl = sc != null ? scoreLabel(sc) : '—';
+    const riscos = Array.isArray(a.riscos) ? a.riscos : [];
+    const top3 = riscos.slice(0, 3);
+    const valor = a.valor_estimado ? fmtBRL(parseFloat(a.valor_estimado)) : '—';
+    const data  = a.data_hora_abertura
+      ? new Date(a.data_hora_abertura).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : (a.data_abertura || '—');
+    const portal = a.portal_disputa || '—';
+    const riscoCls = n => n === 'Alto' ? 's-atrasado' : n === 'Médio' ? 's-pendente' : 's-recebido';
+
+    document.getElementById('etab-rapido').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+        <div class="edson-score-big ${cls}" style="justify-self:start">
+          <div class="score-num">${sc ?? '—'}</div>
+          <div class="score-label">${lbl}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.6rem;justify-content:center">
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div><span style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Valor estimado</span><br>
+              <strong style="font-size:1.1rem;color:var(--primary)">${valor}</strong></div>
+            <div><span style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Sessão</span><br>
+              <strong style="font-size:.9rem">${data}</strong></div>
+            <div><span style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Portal</span><br>
+              <strong style="font-size:.9rem">${esc(portal)}</strong></div>
+          </div>
+          <p style="font-size:.82rem;color:var(--text-muted);margin:0;line-height:1.5">${esc((a.score_justificativa||'').slice(0,200))}</p>
+        </div>
+      </div>
+
+      ${top3.length ? `<div class="dados-bloco" style="margin-bottom:1.25rem">
+        <h4 style="margin-bottom:.75rem">Top ${top3.length} Riscos</h4>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          ${top3.map(r => `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.5rem .75rem;border-radius:var(--radius-sm);background:var(--sec-bg)">
+            <span class="s-badge ${riscoCls(r.nivel)}" style="white-space:nowrap">${esc(r.nivel||'—')}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:500">${esc(r.risco||'—')}</div>
+              ${r.recomendacao ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.2rem">${esc(r.recomendacao)}</div>` : ''}
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
+        <button class="btn btn-ghost btn-sm" onclick="switchEdsonTab('resumo')">Ver análise completa</button>
+        <button class="btn btn-ghost btn-sm" onclick="switchEdsonTab('chat')">💬 Perguntar ao Edson</button>
+        <button class="btn btn-primary btn-sm" onclick="copiarCardWhatsapp(edsonAnaliseAtual)">📱 Copiar para WhatsApp</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalEnviarCliente(${pid||'null'},${aid})">📤 Enviar para cliente</button>
+      </div>`;
+  }
+
+  function gerarCardWhatsapp(a) {
+    const sc = a.score ?? '—';
+    const lbl = a.score != null ? scoreLabel(a.score) : '—';
+    const valor = a.valor_estimado ? `R$ ${parseFloat(a.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+    const riscos = Array.isArray(a.riscos) ? a.riscos : [];
+    const top3 = riscos.slice(0, 3).map((r, i) => `${i + 1}. [${r.nivel||'?'}] ${r.risco||'—'}`).join('\n');
+    const objeto = a.objeto || a.referencia || '—';
+    const orgao  = a.orgao || '—';
+    return `*Análise Edson — Conlicit*\n\n*Pregão:* ${objeto.slice(0, 120)}\n*Órgão:* ${orgao.slice(0, 80)}\n*Valor estimado:* ${valor}\n*Score:* ${sc}/100 — ${lbl}\n\n*Principais riscos:*\n${top3 || '— Nenhum identificado'}\n\n_Análise gerada pelo Edson IA (Conlicit)_`;
+  }
+
+  async function copiarCardWhatsapp(analise) {
+    const texto = gerarCardWhatsapp(typeof analise === 'string' ? JSON.parse(analise) : analise);
+    try {
+      await navigator.clipboard.writeText(texto);
+      mostrarToast('Texto copiado para WhatsApp!', 'success');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      mostrarToast('Texto copiado!', 'success');
+    }
+  }
+
+  async function analisarComEdson(idx) {
+    const e = editaisResultados[idx];
+    if (!e) return;
+    const referencia = e.objeto ? e.objeto.slice(0, 120) : (e.numeroEdital || 'Análise via Busca');
+    const numero_controle_pncp = e.numeroControlePNCP || e.numero_controle_pncp || null;
+    mostrarToast('Iniciando análise Edson…', 'info');
+    try {
+      const body = { referencia };
+      if (numero_controle_pncp) body.numero_controle_pncp = numero_controle_pncp;
+      const r = await fetch(`${API}/edson/avulso`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao iniciar análise');
+      navTo('edson');
+      abrirEdsonDetalhePorId(d.analise_id);
+    } catch (err) {
+      mostrarToast(err.message, 'error');
+    }
+  }
+
+  function abrirModalEnviarCliente(pregaoId, analiseId) {
+    const modal = document.getElementById('modal-enviar-cliente');
+    if (!modal) return;
+    document.getElementById('enviar-cliente-pregao-id').value = pregaoId || '';
+    document.getElementById('enviar-cliente-analise-id').value = analiseId || '';
+    const sel = document.getElementById('enviar-cliente-select');
+    sel.innerHTML = '<option value="">Carregando clientes…</option>';
+    fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        const ativos = (d.dados || []).filter(c => c.ativo);
+        sel.innerHTML = '<option value="">Selecione o cliente</option>' +
+          ativos.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      }).catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+    modal.classList.add('visible');
+  }
+
+  async function confirmarEnviarCliente() {
+    const pregaoId = document.getElementById('enviar-cliente-pregao-id').value;
+    const analiseId = document.getElementById('enviar-cliente-analise-id').value;
+    const clienteId = document.getElementById('enviar-cliente-select').value;
+    const incluirPDF = document.getElementById('enviar-cliente-pdf').checked;
+    if (!clienteId) { mostrarToast('Selecione um cliente', 'error'); return; }
+
+    try {
+      if (pregaoId && pregaoId !== 'null') {
+        // Marcar pregão como sugerido
+        const r = await fetch(`${API}/clientes/${pregaoId}/pregoes/${pregaoId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: 'sugerido' }),
+        });
+        if (!r.ok) console.warn('[EnviarCliente] Não foi possível marcar como sugerido');
+      } else if (analiseId) {
+        // Vincular análise avulsa ao cliente
+        const r = await fetch(`${API}/edson/analise/${analiseId}/vincular`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ cliente_id: parseInt(clienteId, 10) }),
+        });
+        if (!r.ok) console.warn('[EnviarCliente] Não foi possível vincular');
+      }
+      if (incluirPDF && analiseId) {
+        await baixarRelatorioSimples(pregaoId !== 'null' ? parseInt(pregaoId) : null, parseInt(analiseId));
+      }
+      mostrarToast('Enviado para o cliente!', 'success');
+      document.getElementById('modal-enviar-cliente').classList.remove('visible');
+    } catch (e) {
+      mostrarToast(e.message, 'error');
+    }
   }
 
   function renderEdsonResumo(a, pid) {
@@ -4071,7 +4231,9 @@
     if (lbl) { lbl.style.opacity = el.checked ? '.45' : ''; lbl.style.textDecoration = el.checked ? 'line-through' : ''; }
   }
 
-  async function iniciarEdsonChat(pregaoId) {
+  async function iniciarEdsonChat(pregaoId, analiseId) {
+    const avulso = !pregaoId || pregaoId === 'null';
+    const chatUrl = avulso ? `${API}/edson/analise/${analiseId}/chat` : `${API}/edson/${pregaoId}/chat`;
     const container = document.getElementById('etab-chat');
     container.innerHTML = `
       <div id="edson-chat-msgs" class="edson-chat-area">
@@ -4081,12 +4243,12 @@
         <textarea id="edson-chat-input" rows="2"
           placeholder="Pergunte ao Edson sobre este pregão…"
           style="flex:1;resize:none"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMsgEdson(${pregaoId});}"></textarea>
-        <button class="btn btn-primary" id="edson-chat-btn" onclick="enviarMsgEdson(${pregaoId})">Enviar</button>
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMsgEdson(${pregaoId||'null'},${analiseId||'null'});}"></textarea>
+        <button class="btn btn-primary" id="edson-chat-btn" onclick="enviarMsgEdson(${pregaoId||'null'},${analiseId||'null'})">Enviar</button>
       </div>
       <p style="font-size:.7rem;color:var(--text-muted);margin-top:.4rem">Enter para enviar · Shift+Enter para quebrar linha</p>`;
     try {
-      const r = await fetch(`${API}/edson/${pregaoId}/chat`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(chatUrl, { headers: { Authorization: `Bearer ${token}` } });
       const { dados = [] } = await r.json();
       renderMsgsEdson(dados);
     } catch {
@@ -4113,7 +4275,9 @@
     area.scrollTop = area.scrollHeight;
   }
 
-  async function enviarMsgEdson(pregaoId) {
+  async function enviarMsgEdson(pregaoId, analiseId) {
+    const avulso = !pregaoId || String(pregaoId) === 'null';
+    const chatUrl = avulso ? `${API}/edson/analise/${analiseId}/chat` : `${API}/edson/${pregaoId}/chat`;
     const input = document.getElementById('edson-chat-input');
     const btn   = document.getElementById('edson-chat-btn');
     const msg   = input?.value?.trim();
@@ -4138,7 +4302,7 @@
     const loadDiv = addMsg('assistant', '<div class="spinner" style="width:14px;height:14px;margin:2px 0"></div>');
 
     try {
-      const r = await fetch(`${API}/edson/${pregaoId}/chat`, {
+      const r = await fetch(chatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ mensagem: msg }),
@@ -4792,7 +4956,7 @@
         }
       }
 
-      switchEdsonTab('resumo');
+      switchEdsonTab('rapido');
     } catch (e) {
       pararEdsonPolling();
       document.getElementById('edson-processando').style.display = 'none';
@@ -5359,7 +5523,7 @@
         banner.style.display = semCliente ? 'flex' : 'none';
         if (semCliente) document.getElementById('edson-avulso-analise-id').value = analiseId;
       }
-      switchEdsonTab('resumo');
+      switchEdsonTab('rapido');
     } catch (e) {
       pararEdsonPolling();
       document.getElementById('edson-processando').style.display = 'none';
@@ -5404,6 +5568,34 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-vincular-avulso').classList.remove('visible')">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarVincularCliente()">Vincular</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Enviar análise para cliente -->
+<div class="modal-overlay" id="modal-enviar-cliente" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <div class="modal-header">
+      <h3>📤 Enviar para cliente</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-enviar-cliente').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
+      <input type="hidden" id="enviar-cliente-pregao-id">
+      <input type="hidden" id="enviar-cliente-analise-id">
+      <div class="form-group" style="margin:0">
+        <label>Cliente</label>
+        <select id="enviar-cliente-select">
+          <option value="">Selecione o cliente</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.88rem">
+        <input type="checkbox" id="enviar-cliente-pdf" style="width:15px;height:15px;accent-color:var(--primary)">
+        Incluir relatório PDF para reunião
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-enviar-cliente').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarEnviarCliente()">Confirmar</button>
     </div>
   </div>
 </div>
