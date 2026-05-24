@@ -125,4 +125,55 @@ async function listarUsuarios(req, res) {
   }
 }
 
-module.exports = { registrar, login, me, criarUsuario, listarUsuarios };
+async function editarUsuario(req, res) {
+  if (req.usuario.role !== 'admin')
+    return res.status(403).json({ erro: 'Acesso negado' });
+
+  const { id } = req.params;
+  const { nome, email, role, cliente_id } = req.body ?? {};
+
+  if (role && !['admin', 'assistente', 'cliente'].includes(role))
+    return res.status(400).json({ erro: 'Role inválido' });
+
+  try {
+    const campos = [];
+    const valores = [];
+    let idx = 1;
+    if (nome !== undefined)  { campos.push(`nome = $${idx++}`);      valores.push(nome?.trim() || null); }
+    if (email !== undefined) { campos.push(`email = $${idx++}`);     valores.push(email.trim().toLowerCase()); }
+    if (role !== undefined)  { campos.push(`role = $${idx++}`);      valores.push(role); }
+    if (cliente_id !== undefined) { campos.push(`cliente_id = $${idx++}`); valores.push(cliente_id ? parseInt(cliente_id, 10) : null); }
+    if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
+    valores.push(id);
+    const { rows } = await db.query(
+      `UPDATE usuarios SET ${campos.join(', ')} WHERE id = $${idx} RETURNING id, nome, email, role, cliente_id`,
+      valores,
+    );
+    if (rows.length === 0) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    return res.json(rows[0]);
+  } catch (erro) {
+    if (erro.code === '23505') return res.status(409).json({ erro: 'Email já em uso' });
+    console.error('Erro ao editar usuário:', erro);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function excluirUsuario(req, res) {
+  if (req.usuario.role !== 'admin')
+    return res.status(403).json({ erro: 'Acesso negado' });
+
+  const { id } = req.params;
+  if (parseInt(id, 10) === req.usuario.id)
+    return res.status(400).json({ erro: 'Não é possível excluir sua própria conta' });
+
+  try {
+    const { rowCount } = await db.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    if (rowCount === 0) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    return res.json({ mensagem: 'Usuário excluído' });
+  } catch (erro) {
+    console.error('Erro ao excluir usuário:', erro);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { registrar, login, me, criarUsuario, listarUsuarios, editarUsuario, excluirUsuario };

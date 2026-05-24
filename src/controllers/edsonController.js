@@ -187,12 +187,11 @@ Licitação em análise:
 
 REGRAS ABSOLUTAS:
 1. Máximo 2 frases por resposta
-2. NUNCA copie texto do edital — use suas próprias palavras
-3. Responda o que fazer, não o que o edital diz
-4. Sem markdown, sem bullets, sem títulos
-5. Se não tiver certeza: diga o valor ou prazo exato que encontrou, sem qualificações
-Exemplo ERRADO: "Conforme o edital, o prazo de entrega é de até 5 dias úteis por pedido de fornecimento"
-Exemplo CERTO: "5 dias úteis por pedido. Contagem começa na emissão da Ordem de Fornecimento."`;
+2. NUNCA invente, assuma ou deduza informações não explicitamente presentes no documento
+3. Se uma informação não estiver no edital, diga exatamente isso — não suponha
+4. Responda o que fazer, não o que o edital diz
+5. Sem markdown, sem bullets, sem títulos
+6. Se não tiver certeza: diga o valor ou prazo exato que encontrou, sem qualificações`;
 
     const messages = [
       ...historico.map((h) => ({ role: h.role, content: h.content })),
@@ -206,7 +205,7 @@ Exemplo CERTO: "5 dias úteis por pedido. Contagem começa na emissão da Ordem 
       [analise.id, resposta],
     );
 
-    return res.json({ resposta });
+    return res.json({ resposta, analise_id: analise.id, pregao_numero: analise.numero, orgao: analise.orgao, pergunta: mensagem.trim() });
   } catch (e) {
     console.error('[Edson] chat:', e.message);
     return res.status(500).json({ erro: 'Erro ao processar pergunta' });
@@ -405,6 +404,87 @@ async function relatorioSimples(req, res) {
   }
 }
 
+// ── Relatório Simples por analise_id (avulso sem pregao_id) ─────────────────
+
+async function relatorioSimplesAvulso(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
+              p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome
+       FROM analises_edson a
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
+       WHERE a.id = $1`,
+      [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
+
+    const buffer = await gerarRelatorioSimplesPDF({ analise, pregao: analise });
+    const safeName = (analise.numero || analise.referencia || analise_id).replace(/[^a-z0-9]/gi, '-');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="reuniao-${safeName}.pdf"`);
+    return res.send(buffer);
+  } catch (e) {
+    console.error('[Edson] relatorioSimplesAvulso:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Planilha por analise_id (avulso sem pregao_id) ───────────────────────────
+
+async function planilhaAvulso(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.itens, a.modalidade, a.tipo_julgamento, a.referencia,
+              p.numero, p.orgao, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome
+       FROM analises_edson a
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
+       WHERE a.id = $1 AND a.status = 'pronto'`,
+      [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
+    const buffer = await gerarPlanilhaXLSX({ analise, pregao: analise });
+    const filename = `planilha-${(analise.numero || analise.referencia || analise_id).replace(/[^a-z0-9]/gi, '-')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(buffer);
+  } catch (e) {
+    console.error('[Edson] planilhaAvulso:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Relatório PDF por analise_id (avulso sem pregao_id) ─────────────────────
+
+async function relatorioAvulso(req, res) {
+  const { analise_id } = req.params;
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
+              c.nome AS cliente_nome, c.uf
+       FROM analises_edson a
+       LEFT JOIN pregoes p ON p.id = a.pregao_id
+       LEFT JOIN clientes c ON c.id = p.cliente_id
+       WHERE a.id = $1 AND a.status = 'pronto'`,
+      [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
+    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.uf } });
+    const filename = `relatorio-edson-${(analise.numero || analise.referencia || analise_id).replace(/[^a-z0-9]/gi, '-')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(buffer);
+  } catch (e) {
+    console.error('[Edson] relatorioAvulso:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
 // ── Vincular análise avulsa a um cliente ─────────────────────────────────────
 
 async function vincularCliente(req, res) {
@@ -450,4 +530,5 @@ module.exports = {
   chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
   planilha, relatorio, relatorioSimples, uploadPDF, upload,
   vincularCliente, descartarAnalise,
+  relatorioSimplesAvulso, planilhaAvulso, relatorioAvulso,
 };

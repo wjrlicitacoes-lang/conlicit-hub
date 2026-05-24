@@ -10,6 +10,9 @@ router.get('/analise/:analise_id/chat',                              ctrl.getCha
 router.post('/analise/:analise_id/chat',                             ctrl.chatPorId);
 router.patch('/analise/:analise_id/vincular',                        ctrl.vincularCliente);
 router.delete('/analise/:analise_id',                                ctrl.descartarAnalise);
+router.get('/analise/:analise_id/relatorio-simples',                 ctrl.relatorioSimplesAvulso);
+router.get('/analise/:analise_id/planilha',                          ctrl.planilhaAvulso);
+router.get('/analise/:analise_id/relatorio',                         ctrl.relatorioAvulso);
 router.post('/:pregao_id',                                           ctrl.disparar);
 router.post('/:pregao_id/upload-pdf', ctrl.upload.single('edital'),  ctrl.uploadPDF);
 router.get('/:pregao_id/planilha',                                   ctrl.planilha);

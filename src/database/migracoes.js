@@ -191,8 +191,13 @@ async function executarMigracoes() {
         JOIN information_schema.check_constraints cc ON cc.constraint_name = tc.constraint_name
         WHERE tc.table_name = 'pregoes' AND tc.constraint_type = 'CHECK'
           AND cc.check_clause ILIKE '%status%'
+          AND tc.constraint_name NOT LIKE '%not_null%'
       LOOP
-        EXECUTE 'ALTER TABLE pregoes DROP CONSTRAINT ' || quote_ident(r.constraint_name);
+        BEGIN
+          EXECUTE 'ALTER TABLE pregoes DROP CONSTRAINT IF EXISTS ' || quote_ident(r.constraint_name);
+        EXCEPTION WHEN OTHERS THEN
+          NULL;
+        END;
       END LOOP;
     END $$
   `);
@@ -218,6 +223,26 @@ async function executarMigracoes() {
 
   // Vincular análise avulsa diretamente a um cliente
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
+
+  // Dashboard: pregões vencidos com status de contrato
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS contrato_assinado BOOLEAN NOT NULL DEFAULT FALSE`);
+
+  // Prospects (pipeline comercial)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS prospects (
+      id           SERIAL PRIMARY KEY,
+      nome         VARCHAR(255) NOT NULL,
+      email        VARCHAR(255),
+      whatsapp     VARCHAR(20),
+      empresa      VARCHAR(255),
+      segmento     VARCHAR(100),
+      status       VARCHAR(50) NOT NULL DEFAULT 'em_negociacao',
+      notas        TEXT,
+      responsavel  VARCHAR(100),
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT prospects_status_check CHECK (status IN ('em_negociacao','proposta_enviada','aguardando','convertido','perdido'))
+    )
+  `);
 
   console.log('Migrações executadas com sucesso');
 }

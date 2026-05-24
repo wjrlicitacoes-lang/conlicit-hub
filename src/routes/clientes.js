@@ -1,14 +1,17 @@
 const express = require('express');
-const { cadastrar, listar, atualizar, stats } = require('../controllers/clientesController');
+const { cadastrar, listar, atualizar, stats, pregoesVencidos } = require('../controllers/clientesController');
 const pregoes          = require('../controllers/pregoesController');
+
 const mensalidades     = require('../controllers/mensalidadesController');
 const documentos       = require('../controllers/documentosController');
 const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
 
-// /clientes/stats antes de /:id para não ser capturado como parâmetro de ID
-router.get('/stats', stats);
+// Rotas fixas antes de /:id para não capturar como parâmetro de ID
+router.get('/stats',    stats);
+router.get('/vencidos', pregoesVencidos);
+router.get('/pregoes',  pregoes.listarTodos);
 
 router.post('/',     cadastrar);
 router.get('/',      listar);

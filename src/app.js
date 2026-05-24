@@ -23,6 +23,7 @@ const clientesRoutes = require('./routes/clientes');
 const boletimRoutes = require('./routes/boletim');
 const calendarioRoutes = require('./routes/calendario');
 const edsonRoutes = require('./routes/edson');
+const prospectsRoutes = require('./routes/prospects');
 const autenticar = require('./middleware/autenticar');
 const { executarMigracoes } = require('./database/migracoes');
 const { iniciarAgendador } = require('./cron/agendador');
@@ -59,6 +60,7 @@ app.use('/clientes', autenticar, clientesRoutes);
 app.use('/boletim', autenticar, boletimRoutes);
 app.use('/calendario', autenticar, calendarioRoutes);
 app.use('/edson', autenticar, edsonRoutes);
+app.use('/prospects', autenticar, prospectsRoutes);
 
 // Captura erros lançados por route handlers async que não têm try/catch próprio
 app.use((err, req, res, next) => {

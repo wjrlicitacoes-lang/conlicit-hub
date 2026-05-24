@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ConlicitHub — Painel</title>
+  <title>Conlicit Hub — Painel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    @font-face { font-family:'AdineuePRO'; src:url('/assets/fonts/ADINEUE_PRO.TTF') format('truetype'); font-weight:400; font-display:swap }
+    @font-face { font-family:'AdineuePRO'; src:url('/assets/fonts/ADINEUE_PRO_BOLD.TTF') format('truetype'); font-weight:700; font-display:swap }
+    @font-face { font-family:'AdineuePRO'; src:url('/assets/fonts/ADINEUE_PRO_LIGHT_WEB_REGULAR.TTF') format('truetype'); font-weight:300; font-display:swap }
+  </style>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,46 +21,63 @@
       --primary-l: #7dd8e6;
       --secondary: #182A39;
       --sec-light: #1f3547;
-      --sec-card:  #1a2f3e;
-      --sec-border:#243d50;
-      --text:      #e8f4f7;
-      --text-muted:#7fa8bb;
+      --sec-card:  #182A39;
+      --sec-border:rgba(76,197,215,0.12);
+      --text:      #FFFFFF;
+      --text-muted:#DEE6E9;
       --danger:    #e05c5c;
       --success:   #4CC5D7;
       --warning:   #f0a840;
-      --font: 'Adineue PRO', 'Barlow', -apple-system, sans-serif;
-      --font-condensed: 'Adineue PRO Cond', 'Barlow Condensed', sans-serif;
+      --font: 'AdineuePRO', 'Barlow', -apple-system, sans-serif;
+      --font-condensed: 'AdineuePRO', 'Barlow Condensed', sans-serif;
       --radius: 12px;
       --radius-sm: 8px;
       --shadow: 0 4px 24px rgba(0,0,0,.35);
       --sidebar-w: 220px;
-      /* ── tema-aware ── */
-      --bg:        #0f1e29;
-      --card-bg:   #1a2f3e;
-      --t1:        #e8f4f7;
-      --t2:        #7a9aaa;
-      --bd:        rgba(255,255,255,0.08);
-      --th-bg:     transparent;
-      --row-hover: rgba(255,255,255,0.02);
+      /* ── tema dark (padrão) ── */
+      --bg:          #0f1e29;
+      --card-bg:     #182A39;
+      --card-border: rgba(76,197,215,0.12);
+      --sidebar-bg:  #182A39;
+      --topbar-bg:   #182A39;
+      --t1:          #FFFFFF;
+      --t2:          #DEE6E9;
+      --t3:          rgba(255,255,255,0.4);
+      --input-bg:    rgba(255,255,255,0.06);
+      --input-border:rgba(76,197,215,0.2);
+      --th-bg:       rgba(255,255,255,0.04);
+      --row-hover:   rgba(76,197,215,0.05);
+      --bd:          rgba(76,197,215,0.12);
     }
 
     body.tema-light {
-      --bg:        #F0F2F5;
-      --card-bg:   #FFFFFF;
-      --t1:        #080808;
-      --t2:        #5F7A8A;
-      --bd:        rgba(0,0,0,0.08);
-      --th-bg:     #F8FAFB;
-      --row-hover: #F8FAFB;
+      --bg:          #DEE6E9;
+      --card-bg:     #FFFFFF;
+      --card-border: rgba(0,0,0,0.08);
+      --t1:          #080808;
+      --t2:          #182A39;
+      --t3:          rgba(0,0,0,0.4);
+      --input-bg:    #FFFFFF;
+      --input-border:rgba(24,42,57,0.2);
+      --th-bg:       #F0F2F5;
+      --row-hover:   #F0F2F5;
+      --bd:          rgba(0,0,0,0.08);
+      --text:        #080808;
+      --text-muted:  #182A39;
+      --sec-border:  rgba(0,0,0,0.1);
     }
     body.tema-dark {
-      --bg:        #0f1e29;
-      --card-bg:   #1a2f3e;
-      --t1:        #e8f4f7;
-      --t2:        #7a9aaa;
-      --bd:        rgba(255,255,255,0.08);
-      --th-bg:     transparent;
-      --row-hover: rgba(255,255,255,0.02);
+      --bg:          #0f1e29;
+      --card-bg:     #182A39;
+      --card-border: rgba(76,197,215,0.12);
+      --t1:          #FFFFFF;
+      --t2:          #DEE6E9;
+      --t3:          rgba(255,255,255,0.4);
+      --input-bg:    rgba(255,255,255,0.06);
+      --input-border:rgba(76,197,215,0.2);
+      --th-bg:       rgba(255,255,255,0.04);
+      --row-hover:   rgba(76,197,215,0.05);
+      --bd:          rgba(76,197,215,0.12);
     }
 
     html { scroll-behavior: smooth; }
@@ -70,8 +92,8 @@
 
     /* ── HEADER ── */
     header {
-      background: linear-gradient(135deg, #0f1e29 0%, var(--sec-light) 100%);
-      border-bottom: 1px solid var(--sec-border);
+      background: var(--topbar-bg, #182A39);
+      border-bottom: 1px solid rgba(76,197,215,0.15);
       padding: 0 clamp(1rem, 3vw, 2rem);
       position: sticky;
       top: 0;
@@ -150,15 +172,15 @@
       display: block;
       font-size: .78rem;
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--t2);
       text-transform: uppercase;
       letter-spacing: .6px;
       margin-bottom: .4rem;
     }
     input, select, textarea {
       width: 100%;
-      background: var(--card-bg);
-      border: 1px solid var(--bd);
+      background: var(--input-bg, var(--card-bg));
+      border: 1px solid var(--input-border, var(--bd));
       border-radius: var(--radius-sm);
       color: var(--t1);
       font-family: var(--font);
@@ -169,7 +191,7 @@
       appearance: none;
     }
     input:focus, select:focus, textarea:focus { border-color: var(--primary); }
-    input::placeholder, textarea::placeholder { color: var(--t2); opacity: .7; }
+    input::placeholder, textarea::placeholder { color: var(--t3, var(--t2)); opacity: 1; }
     textarea { resize: vertical; min-height: 80px; }
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237fa8bb' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
@@ -239,8 +261,8 @@
     .sidebar {
       width: var(--sidebar-w);
       flex-shrink: 0;
-      background: linear-gradient(180deg, #0f1e29 0%, #111f2d 100%);
-      border-right: 1px solid var(--sec-border);
+      background: var(--sidebar-bg, #182A39);
+      border-right: 1px solid rgba(76,197,215,0.12);
       display: flex;
       flex-direction: column;
       position: sticky;
@@ -1055,8 +1077,7 @@
 <header>
   <div class="header-inner">
     <a class="logo" href="#">
-      <div class="logo-icon">CH</div>
-      <span class="logo-text">Conlicit<span>Hub</span></span>
+      <img src="/assets/images/logo-branco.png" alt="Conlicit Hub" style="height:26px;object-fit:contain;display:block">
     </a>
     <div class="header-right">
       <span class="user-badge" id="user-badge"></span>
@@ -1146,6 +1167,14 @@
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
+        <button class="nav-item" data-nav="pregoes-todos" onclick="navTo('pregoes-todos')" id="nav-pregoes-todos" hidden>
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Pregões</span>
+        </button>
+        <button class="nav-item" data-nav="prospects" onclick="navTo('prospects')" id="nav-prospects" hidden>
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Prospects</span>
+        </button>
         <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
           <span class="nav-icon">🔑</span>
           <span class="nav-label">Usuários</span>
@@ -1422,12 +1451,46 @@
         </div>
       </section>
 
+      <!-- ── TODOS OS PREGÕES (admin) ── -->
+      <section id="section-pregoes-todos" class="section">
+        <div class="section-header">
+          <h1>Pregões</h1>
+          <div class="section-header-actions">
+            <select id="filtro-pt-status" onchange="carregarPregoesTodos()" style="width:auto">
+              <option value="">Todos os status</option>
+              <option value="a_disputar">A disputar</option>
+              <option value="vencido">Vencido</option>
+              <option value="perdido">Perdido</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="carregarPregoesTodos()">↻ Atualizar</button>
+          </div>
+        </div>
+        <div id="pregoes-todos-area">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
+      <!-- ── PROSPECTS (admin) ── -->
+      <section id="section-prospects" class="section">
+        <div class="section-header">
+          <h1>Prospects</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Prospect</button>
+            <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻ Atualizar</button>
+          </div>
+        </div>
+        <div id="prospects-area">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
       <!-- ── MINHA ÁREA (role cliente) ── -->
       <section id="section-minha-area" class="section">
         <div class="section-header">
           <div>
             <h1>Minha Área</h1>
-            <p style="color:var(--text-muted);font-size:.83rem;margin-top:.2rem" id="ma-subtitulo">Seus pregões e análises</p>
+            <p style="color:var(--t2);font-size:.83rem;margin-top:.2rem" id="ma-subtitulo">Seus pregões e análises</p>
           </div>
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarMinhaArea()">↻ Atualizar</button>
@@ -1437,18 +1500,22 @@
         <!-- Métricas rápidas -->
         <div id="ma-metrics" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem"></div>
 
-        <!-- Tabs ofertas / pregões -->
-        <div class="tab-bar" style="margin-bottom:1rem">
-          <button class="tab-btn active" data-ma-tab="ofertas" onclick="switchMaTab('ofertas')">Ofertas pendentes</button>
-          <button class="tab-btn" data-ma-tab="pregoes" onclick="switchMaTab('pregoes')">Meus pregões</button>
+        <!-- Tabs para cliente: ofertas / próximos / hoje / vencidos / perdidos -->
+        <div class="tab-bar" style="margin-bottom:1rem" id="ma-tabs-cliente">
+          <button class="tab-btn active" data-ma-tab="ofertas"   onclick="switchMaTab('ofertas')">Ofertas</button>
+          <button class="tab-btn"        data-ma-tab="proximos"  onclick="switchMaTab('proximos')">Próximos</button>
+          <button class="tab-btn"        data-ma-tab="hoje"      onclick="switchMaTab('hoje')">Hoje</button>
+          <button class="tab-btn"        data-ma-tab="vencidos"  onclick="switchMaTab('vencidos')">Vencidos</button>
+          <button class="tab-btn"        data-ma-tab="perdidos"  onclick="switchMaTab('perdidos')">Perdidos</button>
         </div>
 
-        <div id="ma-tab-ofertas" class="tab-pane active">
-          <div class="state-box"><div class="spinner spinner-lg"></div></div>
-        </div>
-        <div id="ma-tab-pregoes" class="tab-pane">
-          <div class="state-box"><div class="spinner spinner-lg"></div></div>
-        </div>
+        <div id="ma-tab-ofertas"  class="tab-pane active"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        <div id="ma-tab-proximos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        <div id="ma-tab-hoje"     class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        <div id="ma-tab-vencidos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        <div id="ma-tab-perdidos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        <!-- tab pregoes ainda existe para compatibilidade -->
+        <div id="ma-tab-pregoes" class="tab-pane" style="display:none"></div>
       </section>
 
       <!-- ── EDSON ── -->
@@ -1951,11 +2018,13 @@
     const admin    = isAdmin();
     const cliente  = isCliente();
 
-    document.getElementById('nav-usuarios').hidden    = !admin;
-    document.getElementById('nav-label-admin').hidden = !admin;
-    document.getElementById('nav-minha-area').hidden   = !cliente;
-    document.getElementById('nav-meus-pregoes').hidden  = !cliente;
-    document.getElementById('nav-label-cliente').hidden = !cliente;
+    document.getElementById('nav-usuarios').hidden       = !admin;
+    document.getElementById('nav-pregoes-todos').hidden  = !admin;
+    document.getElementById('nav-prospects').hidden      = !admin;
+    document.getElementById('nav-label-admin').hidden    = !admin;
+    document.getElementById('nav-minha-area').hidden      = !cliente;
+    document.getElementById('nav-meus-pregoes').hidden    = !cliente;
+    document.getElementById('nav-label-cliente').hidden   = !cliente;
 
     setDefaultDates();
     navTo(cliente ? 'minha-area' : 'dashboard');
@@ -1980,6 +2049,8 @@
     else if (section === 'calendario')     carregarCalendario();
     else if (section === 'edson')          carregarEdson();
     else if (section === 'minha-area')     carregarMinhaArea();
+    else if (section === 'pregoes-todos')  carregarPregoesTodos();
+    else if (section === 'prospects')      carregarProspects();
     else if (section === 'meus-pregoes')   { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -2048,15 +2119,50 @@
           <div class="quick-card-info"><h4>Monitor de pregões</h4><p>${monitorGetAll().length} sessão(ões) ativa(s)</p></div>
         </div>`;
 
-      if (lista.length > 0) {
-        document.getElementById('dashboard-recentes').innerHTML = `
-          <h3 style="font-family:var(--font-condensed);font-size:1rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.75rem">Clientes recentes</h3>
-          <div class="client-grid">${lista.slice(0, 3).map(c => renderClienteCard(c)).join('')}</div>`;
-      }
+      // Pregões vencidos recentes sem contrato assinado
+      try {
+        const rVenc = await fetch(`${API}/clientes/vencidos`, { headers: { Authorization: `Bearer ${token}` } });
+        if (rVenc.ok) {
+          const { dados: vencidos = [] } = await rVenc.json();
+          if (vencidos.length > 0) {
+            document.getElementById('dashboard-recentes').innerHTML = `
+              <h3 style="font-family:var(--font-condensed);font-size:1rem;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.75rem">Pregões vencidos — contrato pendente</h3>
+              <div style="display:flex;flex-direction:column;gap:.6rem">
+                ${vencidos.map(p => `
+                <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.82rem;font-weight:700;color:var(--primary)">Pregão ${esc(p.numero||'—')}</div>
+                    <div style="font-size:.8rem;color:var(--t1);font-weight:600">${esc(p.cliente_nome||'—')}</div>
+                    <div style="font-size:.75rem;color:var(--t2)">${esc((p.orgao||'').slice(0,60))}</div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    ${p.valor_vencido ? `<div style="color:var(--primary);font-weight:700;font-size:.9rem">${fmtBRL(p.valor_vencido)}</div>` : ''}
+                    <span class="s-badge s-vencido" style="font-size:.65rem">Vencido</span>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="marcarContratoAssinado(${p.id},${p.cliente_id},this)">✅ Contrato assinado</button>
+                </div>`).join('')}
+              </div>`;
+          }
+        }
+      } catch { /* ignora */ }
     } catch {
       document.getElementById('dashboard-metrics').innerHTML =
-        '<p style="color:var(--text-muted);grid-column:1/-1;padding:1rem">Erro ao carregar métricas.</p>';
+        '<p style="color:var(--t2);grid-column:1/-1;padding:1rem">Erro ao carregar métricas.</p>';
     }
+  }
+
+  async function marcarContratoAssinado(pid, cid, btn) {
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contrato_assinado: true }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Contrato marcado como assinado!', 'success');
+      btn.closest('div[style]').remove();
+    } catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = '✅ Contrato assinado'; }
   }
 
   // ─────────────────────────────────────────
@@ -2943,13 +3049,17 @@
       lista.innerHTML = `
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Cliente vinculado</th><th>Criado em</th></tr></thead>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Cliente vinculado</th><th>Criado em</th><th></th></tr></thead>
             <tbody>${dados.map(u => `<tr>
               <td>${esc(u.nome || '—')}</td>
               <td class="td-muted">${esc(u.email)}</td>
               <td>${roleBadge(u.role)}</td>
               <td class="td-muted">${u.cliente_nome ? esc(u.cliente_nome) : '—'}</td>
               <td class="td-muted">${u.criado_em ? new Date(u.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
+              <td><div class="td-actions">
+                <button class="btn-icon" title="Editar" onclick='abrirEditarUsuario(${JSON.stringify(u)})'>✏️</button>
+                <button class="btn-icon btn-danger" title="Excluir" onclick="excluirUsuario(${u.id},'${esc(u.email)}')">🗑️</button>
+              </div></td>
             </tr>`).join('')}</tbody>
           </table>
         </div>`;
@@ -3686,7 +3796,7 @@
       document.getElementById('edson-detalhe-acoes').innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pregaoId})">📄 Relatório PDF</button>
-        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${pregaoId})">📋 Relatório para Reunião</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${pregaoId},null)">📋 Relatório para Reunião</button>
         <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
       `;
       switchEdsonTab('resumo');
@@ -3801,9 +3911,9 @@
         <p style="font-size:.9rem;color:var(--text);line-height:1.75;margin-top:.75rem">${esc(a.resumo_executivo||'—')}</p>
       </div>
       <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="baixarPlanilhaEdson(${pid})">📊 Baixar Planilha</button>
-        <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pid})">📄 Baixar Relatório</button>
-        ${pid ? `<button class="btn btn-ghost btn-sm" onclick="baixarRelatorioSimples(${pid})">📋 Relatório para Reunião</button>` : ''}
+        <button class="btn btn-primary btn-sm" onclick="${pid ? `baixarPlanilhaEdson(${pid})` : `baixarPlanilhaAvulso(${a.id})`}">📊 Baixar Planilha</button>
+        <button class="btn btn-ghost btn-sm" onclick="${pid ? `baixarRelatorioEdson(${pid})` : `baixarRelatorioAvulso(${a.id})`}">📄 Baixar Relatório</button>
+        <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioSimples(${pid||'null'},${a.id})">📋 Relatório para Reunião</button>
       </div>`;
   }
 
@@ -4567,12 +4677,12 @@
 
       document.getElementById('edson-resultado').style.display = 'block';
       const _pid = analise.pregao_id;
-      document.getElementById('edson-detalhe-acoes').innerHTML = _pid
-        ? `<button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${_pid})">📊 Planilha XLSX</button>
-           <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${_pid})">📄 Relatório PDF</button>
-           <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid})">📋 Relatório para Reunião</button>
-           <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>`
-        : `<button class="btn btn-ghost btn-sm" onclick="voltarListaEdson()">← Lista</button>`;
+      document.getElementById('edson-detalhe-acoes').innerHTML = `
+        <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>
+        <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarRelatorioEdson(${_pid})` : `baixarRelatorioAvulso(${analiseId})`}">📄 Relatório PDF</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid||'null'},${analiseId})">📋 Relatório para Reunião</button>
+        ${_pid ? `<button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>` : ''}
+      `;
 
       // Banner avulso: sem cliente vinculado
       const banner = document.getElementById('edson-avulso-banner');
@@ -4593,21 +4703,9 @@
     }
   }
 
-  // ── Relatório Simples (Reunião de Vendas) ────────────────────────────────
-  async function baixarRelatorioSimples(pregaoId) {
-    try {
-      const r = await fetch(`${API}/edson/${pregaoId}/relatorio-simples`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) { mostrarToast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `reuniao-${pregaoId}.pdf`; a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      mostrarToast('Erro ao baixar relatório: ' + e.message, 'error');
-    }
+  // baixarRelatorioSimples: versão original (será sobrescrita abaixo pela nova)
+  function _baixarRelatorioSimplesLegacy(pregaoId) {
+    baixarRelatorioSimples(pregaoId, null);
   }
 
   // ── Vincular análise avulsa a cliente ────────────────────────────────────
@@ -4658,6 +4756,534 @@
     } catch (e) {
       mostrarToast(e.message, 'error');
     }
+  }
+
+  // ── Relatório simples: funciona para pregão vinculado E análise avulsa ──────
+  async function baixarRelatorioSimples(pregaoId, analiseId) {
+    try {
+      const url = pregaoId
+        ? `${API}/edson/${pregaoId}/relatorio-simples`
+        : `${API}/edson/analise/${analiseId}/relatorio-simples`;
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { mostrarToast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `reuniao-${pregaoId || analiseId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { mostrarToast('Erro ao baixar relatório: ' + e.message, 'error'); }
+  }
+
+  async function baixarPlanilhaAvulso(analiseId) {
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}/planilha`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { mostrarToast('Planilha não disponível.', 'error'); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `planilha-${analiseId}.xlsx`; a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { mostrarToast('Erro: ' + e.message, 'error'); }
+  }
+
+  async function baixarRelatorioAvulso(analiseId) {
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}/relatorio`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { mostrarToast('Relatório não disponível.', 'error'); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `relatorio-${analiseId}.pdf`; a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { mostrarToast('Erro: ' + e.message, 'error'); }
+  }
+
+  // ── Deletar análise da lista ─────────────────────────────────────────────────
+  async function excluirAnalise(analiseId, el) {
+    if (!confirm('Excluir esta análise? Esta ação não pode ser desfeita.')) return;
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      el.closest('.edson-card').remove();
+      toast('Análise excluída.', 'success');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Usuários: editar e excluir ──────────────────────────────────────────────
+  function abrirEditarUsuario(u) {
+    document.getElementById('eu-id').value      = u.id;
+    document.getElementById('eu-nome').value    = u.nome || '';
+    document.getElementById('eu-email').value   = u.email;
+    document.getElementById('eu-role').value    = u.role;
+    hideAlert('alert-editar-usuario');
+    toggleEuClienteField();
+    document.getElementById('eu-cliente-id').value = u.cliente_id || '';
+    document.getElementById('modal-editar-usuario').classList.add('visible');
+  }
+
+  function toggleEuClienteField() {
+    const role = document.getElementById('eu-role').value;
+    const field = document.getElementById('eu-cliente-field');
+    field.style.display = role === 'cliente' ? 'block' : 'none';
+    if (role === 'cliente' && document.getElementById('eu-cliente-id').options.length <= 1) {
+      fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => {
+          document.getElementById('eu-cliente-id').innerHTML =
+            '<option value="">Selecione</option>' +
+            (d.dados || []).map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+        });
+    }
+  }
+
+  async function salvarEdicaoUsuario() {
+    const id  = document.getElementById('eu-id').value;
+    const role = document.getElementById('eu-role').value;
+    const body = {
+      nome:       document.getElementById('eu-nome').value.trim() || null,
+      email:      document.getElementById('eu-email').value.trim(),
+      role,
+      cliente_id: role === 'cliente' ? (parseInt(document.getElementById('eu-cliente-id').value) || null) : null,
+    };
+    try {
+      const r = await fetch(`${API}/auth/usuarios/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
+      document.getElementById('modal-editar-usuario').classList.remove('visible');
+      toast('Usuário atualizado!', 'success');
+      carregarUsuarios();
+    } catch (e) { showAlert('alert-editar-usuario', e.message, 'error'); }
+  }
+
+  async function excluirUsuario(id, email) {
+    if (!confirm(`Excluir usuário ${email}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const r = await fetch(`${API}/auth/usuarios/${id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Usuário excluído.', 'success');
+      carregarUsuarios();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Todos os pregões (admin) ────────────────────────────────────────────────
+  async function carregarPregoesTodos() {
+    const area = document.getElementById('pregoes-todos-area');
+    area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    const status = document.getElementById('filtro-pt-status')?.value || '';
+    try {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      const r = await fetch(`${API}/clientes/pregoes?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { area.innerHTML = '<p>Erro ao carregar.</p>'; return; }
+      const { dados = [] } = await r.json();
+      if (!dados.length) {
+        area.innerHTML = '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão encontrado</h3></div>';
+        return;
+      }
+      area.innerHTML = `<div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Número</th><th>Cliente</th><th>Órgão</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th></tr></thead>
+        <tbody>${dados.map(p => `<tr>
+          <td style="font-weight:600"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
+          <td class="td-muted">${esc(p.cliente_nome||'—')}</td>
+          <td class="td-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((p.orgao||'').slice(0,50))}</td>
+          <td class="td-muted" style="white-space:nowrap">${p.data_hora_abertura ? new Date(p.data_hora_abertura).toLocaleDateString('pt-BR') : (p.data_abertura || '—')}</td>
+          <td class="td-muted">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
+          <td><span class="s-badge s-${p.status}">${(p.status||'').replace('_',' ')}</span></td>
+          <td><div class="td-actions">
+            <button class="btn-icon btn-edson" title="Edson IA" onclick="verEdson(${p.id})">🤖</button>
+            <button class="btn-icon btn-danger" title="Excluir" onclick="excluirPregaoAdmin(${p.id},${p.cliente_id},'${esc(p.numero||'')}',this)">🗑️</button>
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+    } catch (e) { area.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  async function excluirPregaoAdmin(pid, cid, numero, el) {
+    if (!confirm(`Excluir pregão ${numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      el.closest('tr').remove();
+      toast('Pregão excluído.', 'success');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Prospects ───────────────────────────────────────────────────────────────
+  const STATUS_PROSPECT_LABEL = {
+    em_negociacao: 'Em negociação', proposta_enviada: 'Proposta enviada',
+    aguardando: 'Aguardando', convertido: 'Convertido', perdido: 'Perdido',
+  };
+  const STATUS_PROSPECT_CLS = {
+    em_negociacao: 's-a_disputar', proposta_enviada: 's-pendente',
+    aguardando: 's-pendente', convertido: 's-vencido', perdido: 's-atrasado',
+  };
+
+  async function carregarProspects() {
+    const area = document.getElementById('prospects-area');
+    area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/prospects`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      if (!dados.length) {
+        area.innerHTML = '<div class="state-box"><span class="icon">🎯</span><h3>Nenhum prospect</h3><p>Clique em "+ Prospect" para começar.</p></div>';
+        return;
+      }
+      area.innerHTML = `<div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Empresa</th><th>Contato</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
+        <tbody>${dados.map(p => `<tr>
+          <td style="font-weight:600">${esc(p.nome)}</td>
+          <td class="td-muted">${esc(p.empresa||'—')}</td>
+          <td class="td-muted">${esc(p.email||p.whatsapp||'—')}</td>
+          <td class="td-muted">${esc(p.responsavel||'—')}</td>
+          <td><span class="s-badge ${STATUS_PROSPECT_CLS[p.status]||'s-pendente'}">${STATUS_PROSPECT_LABEL[p.status]||p.status}</span></td>
+          <td><div class="td-actions">
+            <button class="btn-icon" title="Editar" onclick='abrirEditarProspect(${JSON.stringify(p)})'>✏️</button>
+            <button class="btn btn-primary btn-sm" onclick="converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}')">Converter em cliente</button>
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+    } catch (e) { area.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  function abrirModalProspect() {
+    document.getElementById('prospect-modal-titulo').textContent = 'Novo Prospect';
+    document.getElementById('pr-id').value = '';
+    ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('pr-status').value = 'em_negociacao';
+    hideAlert('alert-prospect');
+    document.getElementById('modal-prospect').classList.add('visible');
+  }
+
+  function abrirEditarProspect(p) {
+    document.getElementById('prospect-modal-titulo').textContent = 'Editar Prospect';
+    document.getElementById('pr-id').value        = p.id;
+    document.getElementById('pr-nome').value      = p.nome||'';
+    document.getElementById('pr-empresa').value   = p.empresa||'';
+    document.getElementById('pr-email').value     = p.email||'';
+    document.getElementById('pr-whatsapp').value  = p.whatsapp||'';
+    document.getElementById('pr-responsavel').value = p.responsavel||'';
+    document.getElementById('pr-notas').value     = p.notas||'';
+    document.getElementById('pr-status').value    = p.status||'em_negociacao';
+    hideAlert('alert-prospect');
+    document.getElementById('modal-prospect').classList.add('visible');
+  }
+
+  async function salvarProspect() {
+    const id = document.getElementById('pr-id').value;
+    const nome = document.getElementById('pr-nome').value.trim();
+    if (!nome) { showAlert('alert-prospect', 'Nome é obrigatório', 'error'); return; }
+    const body = {
+      nome, empresa: document.getElementById('pr-empresa').value.trim()||null,
+      email: document.getElementById('pr-email').value.trim()||null,
+      whatsapp: document.getElementById('pr-whatsapp').value.trim()||null,
+      status: document.getElementById('pr-status').value,
+      responsavel: document.getElementById('pr-responsavel').value.trim()||null,
+      notas: document.getElementById('pr-notas').value.trim()||null,
+    };
+    try {
+      const r = await fetch(`${API}/prospects${id ? `/${id}` : ''}`, {
+        method: id ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      document.getElementById('modal-prospect').classList.remove('visible');
+      toast(id ? 'Prospect atualizado!' : 'Prospect criado!', 'success');
+      carregarProspects();
+    } catch (e) { showAlert('alert-prospect', e.message, 'error'); }
+  }
+
+  function converterProspect(id, nome, email, empresa) {
+    // Atualizar status para convertido e navegar para cadastro de cliente pré-preenchido
+    fetch(`${API}/prospects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status: 'convertido' }),
+    }).catch(() => {});
+    navTo('clientes');
+    // Pré-preencher modal de cliente
+    setTimeout(() => {
+      const btn = document.querySelector('[onclick="abrirModalCliente()"]');
+      if (btn) btn.click();
+      setTimeout(() => {
+        const el = document.getElementById('cliente-nome');
+        if (el) el.value = nome;
+        const elEmail = document.getElementById('cliente-email');
+        if (elEmail) elEmail.value = email;
+      }, 200);
+    }, 300);
+    toast(`Prospect convertido! Cadastre ${nome} como cliente.`, 'success');
+  }
+
+  // ── Minha Área: switchMaTab expandido ────────────────────────────────────────
+  function switchMaTab(tab) {
+    const allTabs = ['ofertas','proximos','hoje','vencidos','perdidos','pregoes'];
+    allTabs.forEach(t => {
+      const pane = document.getElementById(`ma-tab-${t}`);
+      const btn  = document.querySelector(`[data-ma-tab="${t}"]`);
+      if (pane) pane.style.display = t === tab ? 'block' : 'none';
+      if (btn)  btn.classList.toggle('active', t === tab);
+    });
+    if (tab === 'proximos')  renderMaProximos();
+    if (tab === 'hoje')      renderMaHoje();
+    if (tab === 'vencidos')  renderMaVencidos();
+    if (tab === 'perdidos')  renderMaPerdidos();
+  }
+
+  let _maCache = [];
+
+  function renderMaProximos() {
+    const hoje = new Date();
+    const proximos = _maCache.filter(p => {
+      if (p.status !== 'a_disputar' || !p.data_hora_abertura) return false;
+      const d = new Date(p.data_hora_abertura);
+      return d >= hoje;
+    }).sort((a,b) => new Date(a.data_hora_abertura) - new Date(b.data_hora_abertura));
+    const tab = document.getElementById('ma-tab-proximos');
+    if (!proximos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão próximo</h3></div>'; return; }
+    tab.innerHTML = '<div class="cal-list">' + proximos.map(p => {
+      const dt = new Date(p.data_hora_abertura);
+      const diff = Math.ceil((dt - new Date()) / 86400000);
+      const dtStr = dt.toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      return `<div class="cal-card" style="border-left:3px solid var(--primary)">
+        <div class="cal-card-time">
+          <div class="cal-time-date" style="font-size:.75rem">${dtStr.split(' ')[0]||'—'}</div>
+          <div class="cal-time-hour">${dtStr.split(' ')[1]||''}</div>
+        </div>
+        <div class="cal-card-body" style="flex:1">
+          <h4>${esc(p.numero||'—')}
+            <span style="font-size:.7rem;color:var(--primary);margin-left:.4rem">⏳ ${diff}d</span>
+          </h4>
+          <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
+          ${p.objeto ? `<div style="font-size:.78rem;color:var(--t2);margin:.3rem 0">${esc(p.objeto.slice(0,120))}</div>` : ''}
+          <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+            ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📄 Ver edital</a>` : ''}
+            <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})">🤖 Edson</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  function renderMaHoje() {
+    const hj = new Date().toISOString().slice(0,10);
+    const hoje = _maCache.filter(p => {
+      if (!p.data_hora_abertura) return false;
+      return new Date(p.data_hora_abertura).toISOString().slice(0,10) === hj;
+    });
+    const tab = document.getElementById('ma-tab-hoje');
+    if (!hoje.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📅</span><h3>Nenhum pregão hoje</h3></div>'; return; }
+    tab.innerHTML = `<div style="background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;font-size:.88rem;color:var(--primary);font-weight:600">📅 ${hoje.length} pregão(ões) com sessão hoje</div>
+      <div class="cal-list">` + hoje.map(p => {
+        const dt = new Date(p.data_hora_abertura);
+        const hr = dt.toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' });
+        return `<div class="cal-card" style="border-left:3px solid var(--primary)">
+          <div class="cal-card-time"><div class="cal-time-date">Hoje</div><div class="cal-time-hour">${hr}</div></div>
+          <div class="cal-card-body" style="flex:1">
+            <h4>${esc(p.numero||'—')}</h4>
+            <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
+            ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-top:.4rem">📄 Ver edital</a>` : ''}
+            <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})" style="margin-top:.4rem">🤖 Edson</button>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+  }
+
+  function renderMaVencidos() {
+    const vencidos = _maCache.filter(p => p.status === 'vencido');
+    const tab = document.getElementById('ma-tab-vencidos');
+    if (!vencidos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">🏆</span><h3>Nenhum pregão vencido</h3></div>'; return; }
+    tab.innerHTML = `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Número</th><th>Órgão</th><th>Valor vencido</th><th>Contrato</th></tr></thead>
+      <tbody>${vencidos.map(p => `<tr>
+        <td style="font-weight:600">${esc(p.numero||'—')}</td>
+        <td class="td-muted">${esc((p.orgao||'').slice(0,50))}</td>
+        <td style="color:var(--primary);font-weight:700">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
+        <td>${p.contrato_assinado
+          ? '<span class="s-badge s-vencido">✓ Assinado</span>'
+          : '<span class="s-badge s-pendente">Pendente</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderMaPerdidos() {
+    const perdidos = _maCache.filter(p => p.status === 'perdido');
+    const tab = document.getElementById('ma-tab-perdidos');
+    if (!perdidos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📉</span><h3>Nenhum pregão perdido</h3></div>'; return; }
+    tab.innerHTML = '<div class="cal-list">' + perdidos.map(p => `
+      <div class="cal-card">
+        <div class="cal-card-body" style="flex:1">
+          <h4>${esc(p.numero||'—')} <span class="s-badge s-atrasado" style="font-size:.65rem">Perdido</span></h4>
+          <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
+          ${p.objeto ? `<div style="font-size:.78rem;color:var(--t2);margin:.3rem 0">${esc(p.objeto.slice(0,100))}</div>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-top:.5rem" onclick="abrirModalRecurso(${p.id},'${esc(p.numero||'')}')">⚖️ Abrir recurso</button>
+        </div>
+      </div>`).join('') + '</div>';
+  }
+
+  function abrirModalRecurso(pid, numero) {
+    toast(`Funcionalidade de recurso para ${numero} em breve.`, 'success');
+  }
+
+  // ── Override carregarMinhaArea para usar _maCache e renderizar 5 abas ───────
+  const _carregarMinhaAreaOriginal = carregarMinhaArea;
+  carregarMinhaArea = async function() {
+    if (!userClienteId) {
+      document.getElementById('ma-metrics').innerHTML =
+        '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
+      return;
+    }
+    document.getElementById('ma-tab-ofertas').innerHTML =
+      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return; }
+      const { dados = [] } = await r.json();
+      _maCache = dados;
+
+      const ofertas    = dados.filter(p => p.status === 'oferta');
+      const ativos     = dados.filter(p => p.status === 'a_disputar');
+      const hoje = new Date().toISOString().slice(0,10);
+      const proximos = ativos.filter(p => {
+        if (!p.data_hora_abertura) return false;
+        const d = new Date(p.data_hora_abertura);
+        const diff = (d - new Date()) / 86400000;
+        return diff >= 0 && diff <= 7;
+      }).length;
+      const vencidos = dados.filter(p => p.status === 'vencido').length;
+      document.getElementById('ma-metrics').innerHTML = `
+        <div class="metric-card"><div class="metric-value" style="color:var(--primary)">${ofertas.length}</div><div class="metric-label">Ofertas pendentes</div></div>
+        <div class="metric-card"><div class="metric-value">${ativos.length}</div><div class="metric-label">A disputar</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--warning)">${proximos}</div><div class="metric-label">Próximos 7 dias</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--success)">${vencidos}</div><div class="metric-label">Vencidos</div></div>`;
+      document.getElementById('ma-subtitulo').textContent = `${dados.length} pregão(ões) registrado(s)`;
+
+      if (ofertas.length === 0) {
+        document.getElementById('ma-tab-ofertas').innerHTML =
+          '<div class="state-box"><span class="icon">📭</span><h3>Nenhuma oferta pendente</h3><p>Quando sua equipe identificar um pregão para você, ele aparecerá aqui.</p></div>';
+      } else {
+        document.getElementById('ma-tab-ofertas').innerHTML =
+          '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
+      }
+      // Renderizar aba ativa atual
+      const activeTab = document.querySelector('[data-ma-tab].active')?.dataset.maTab || 'ofertas';
+      if (activeTab !== 'ofertas') switchMaTab(activeTab);
+    } catch (e) {
+      document.getElementById('ma-tab-ofertas').innerHTML =
+        `<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`;
+    }
+  };
+
+  // ── Edson list card: adicionar botão deletar ─────────────────────────────────
+  const _renderEdsonCardOriginal = renderEdsonCard;
+  renderEdsonCard = function(a) {
+    const base = _renderEdsonCardOriginal(a);
+    return base.replace(
+      '<div style="display:flex;gap:.4rem;flex-wrap:wrap">',
+      `<div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <button class="btn btn-danger btn-sm" onclick="excluirAnalise(${a.id},this)" title="Excluir análise">🗑️</button>`
+    );
+  };
+
+  // ── Edson detalhe avulso: acoes com planilha/relatorio/reuniao ──────────────
+  // Override _carregarEdsonDetalhePorId actions já está correto no HTML acima,
+  // mas precisamos ajustar a função para incluir os botões avulso
+  const _origAbrirEdsonDetalhePorId = abrirEdsonDetalhePorId;
+  abrirEdsonDetalhePorId = async function(analiseId) {
+    pararEdsonPolling();
+    edsonAtualAnaliseId = analiseId;
+    edsonAtualPregaoId  = null;
+    edsonAnaliseAtual   = null;
+
+    document.getElementById('edson-main').style.display = 'none';
+    document.getElementById('edson-detalhe').style.display = 'block';
+    document.getElementById('edson-processando').style.display = 'block';
+    document.getElementById('edson-erro').style.display = 'none';
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-detalhe-titulo').textContent = 'Carregando…';
+    document.getElementById('edson-detalhe-sub').textContent = '';
+    document.getElementById('edson-detalhe-acoes').innerHTML = '';
+
+    await _carregarEdsonDetalhePorIdInterno(analiseId);
+  };
+
+  async function _carregarEdsonDetalhePorIdInterno(analiseId) {
+    try {
+      const r = await fetch(`${API}/edson/analise/${analiseId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error('Análise não encontrada');
+      const analise = await r.json();
+      edsonAnaliseAtual = analise;
+
+      document.getElementById('edson-detalhe-titulo').textContent = `Análise — ${numeroAmigavel(analise)}`;
+      document.getElementById('edson-detalhe-sub').textContent =
+        `${analise.cliente_nome || 'Avulsa'} · ${(analise.orgao||'').slice(0,60)}`;
+
+      if (analise.status === 'processando') {
+        document.getElementById('edson-processando').style.display = 'block';
+        document.getElementById('edson-erro').style.display = 'none';
+        document.getElementById('edson-resultado').style.display = 'none';
+        if (!edsonPollingTimer)
+          edsonPollingTimer = setInterval(() => _carregarEdsonDetalhePorIdInterno(analiseId), 3000);
+        return;
+      }
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+
+      if (analise.status === 'erro') {
+        document.getElementById('edson-erro').style.display = 'block';
+        document.getElementById('edson-erro-msg').textContent = analise.erro_mensagem || 'Erro desconhecido';
+        return;
+      }
+
+      document.getElementById('edson-resultado').style.display = 'block';
+      const _pid = analise.pregao_id;
+      document.getElementById('edson-detalhe-acoes').innerHTML = `
+        <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>
+        <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarRelatorioEdson(${_pid})` : `baixarRelatorioAvulso(${analiseId})`}">📄 Relatório PDF</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid||'null'},${analiseId})">📋 Relatório para Reunião</button>
+        ${_pid ? `<button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>` : ''}
+      `;
+
+      const banner = document.getElementById('edson-avulso-banner');
+      if (banner) {
+        const semCliente = !analise.pregao_id && !analise.cliente_id && !analise.cliente_nome;
+        banner.style.display = semCliente ? 'flex' : 'none';
+        if (semCliente) document.getElementById('edson-avulso-analise-id').value = analiseId;
+      }
+      switchEdsonTab('resumo');
+    } catch (e) {
+      pararEdsonPolling();
+      document.getElementById('edson-processando').style.display = 'none';
+      document.getElementById('edson-erro').style.display = 'block';
+      document.getElementById('edson-erro-msg').textContent = e.message;
+    }
+  }
+
+  // variável global para analise avulsa atual
+  let edsonAtualAnaliseId = null;
+
+  // ── Calendário: deletar pregão ────────────────────────────────────────────────
+  async function excluirPregaoCalendario(pid, cid, numero) {
+    if (!confirm(`Excluir pregão ${numero} do calendário? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Pregão excluído.', 'success');
+      carregarCalendario();
+    } catch (e) { toast(e.message, 'error'); }
   }
 
 </script>
@@ -4720,6 +5346,82 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharModalAvulsoBtn()">Cancelar</button>
       <button class="btn btn-primary" id="avulso-btn" onclick="confirmarAvulso()">Iniciar análise</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar usuário -->
+<div class="modal-overlay" id="modal-editar-usuario" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="modal-header">
+      <h3>Editar usuário</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-editar-usuario').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="eu-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nome</label><input type="text" id="eu-nome" placeholder="Nome completo" /></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="eu-email" placeholder="email@exemplo.com" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nível</label>
+          <select id="eu-role" onchange="toggleEuClienteField()">
+            <option value="assistente">Assistente</option>
+            <option value="admin">Admin</option>
+            <option value="cliente">Cliente</option>
+          </select>
+        </div>
+        <div class="form-group" id="eu-cliente-field" style="display:none">
+          <label>Cliente vinculado</label>
+          <select id="eu-cliente-id"><option value="">Selecione</option></select>
+        </div>
+      </div>
+      <div id="alert-editar-usuario" class="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-editar-usuario').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoUsuario()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Prospect -->
+<div class="modal-overlay" id="modal-prospect" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
+    <div class="modal-header">
+      <h3 id="prospect-modal-titulo">Novo Prospect</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-prospect').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pr-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nome *</label><input type="text" id="pr-nome" placeholder="Nome do contato" /></div>
+        <div class="form-group"><label>Empresa</label><input type="text" id="pr-empresa" placeholder="Razão social" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>E-mail</label><input type="email" id="pr-email" /></div>
+        <div class="form-group"><label>WhatsApp</label><input type="text" id="pr-whatsapp" placeholder="(11) 99999-0000" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="pr-status">
+            <option value="em_negociacao">Em negociação</option>
+            <option value="proposta_enviada">Proposta enviada</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="convertido">Convertido</option>
+            <option value="perdido">Perdido</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Responsável</label><input type="text" id="pr-responsavel" placeholder="Nome do responsável" /></div>
+      </div>
+      <div class="form-group"><label>Notas</label><textarea id="pr-notas" rows="3" placeholder="Observações sobre o prospect…"></textarea></div>
+      <div id="alert-prospect" class="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-prospect').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProspect()">Salvar</button>
     </div>
   </div>
 </div>

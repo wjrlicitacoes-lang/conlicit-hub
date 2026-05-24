@@ -47,7 +47,8 @@ async function criar(req, res) {
 async function atualizar(req, res) {
   const { id, pid } = req.params;
   const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa } = req.body ?? {};
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa,
+          contrato_assinado } = req.body ?? {};
 
   const campos = [];
   const valores = [];
@@ -73,6 +74,7 @@ async function atualizar(req, res) {
   if (numero_controle_pncp !== undefined) { campos.push(`numero_controle_pncp = $${idx++}`); valores.push(numero_controle_pncp?.trim() || null); }
   if (link_pncp            !== undefined) { campos.push(`link_pncp = $${idx++}`);            valores.push(link_pncp?.trim() || null); }
   if (portal_disputa       !== undefined) { campos.push(`portal_disputa = $${idx++}`);       valores.push(portal_disputa?.trim() || null); }
+  if (contrato_assinado    !== undefined) { campos.push(`contrato_assinado = $${idx++}`);    valores.push(Boolean(contrato_assinado)); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 
@@ -107,4 +109,30 @@ async function remover(req, res) {
   }
 }
 
-module.exports = { listar, criar, atualizar, remover };
+async function listarTodos(req, res) {
+  if (req.usuario?.role === 'cliente') return res.status(403).json({ erro: 'Acesso negado' });
+  const { status, cliente_id } = req.query;
+  try {
+    const conds = [];
+    const vals = [];
+    let idx = 1;
+    if (status)     { conds.push(`p.status = $${idx++}`);     vals.push(status); }
+    if (cliente_id) { conds.push(`p.cliente_id = $${idx++}`); vals.push(parseInt(cliente_id, 10)); }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const { rows } = await db.query(
+      `SELECT p.*, c.nome AS cliente_nome
+       FROM pregoes p
+       JOIN clientes c ON c.id = p.cliente_id
+       ${where}
+       ORDER BY p.data_hora_abertura DESC NULLS LAST, p.created_at DESC
+       LIMIT 200`,
+      vals,
+    );
+    return res.json({ total: rows.length, dados: rows });
+  } catch (e) {
+    console.error('Erro ao listar todos os pregões:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { listar, criar, atualizar, remover, listarTodos };
