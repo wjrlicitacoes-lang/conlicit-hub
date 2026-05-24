@@ -1,5 +1,4 @@
 const db = require('../database/db');
-const { analisarPDF, analisarPregao } = require('../services/edsonService');
 
 async function listar(req, res) {
   const { id } = req.params;
@@ -39,36 +38,6 @@ async function criar(req, res) {
        link_pncp?.trim() || null,
        portal_disputa?.trim() || null],
     );
-    // Disparar análise Edson em background
-    const acionarEdson = acionar_edson === true || acionar_edson === 'true';
-    if (req.file) {
-      // PDF enviado: analisar via conteúdo do arquivo
-      try {
-        const { rows: [analise] } = await db.query(
-          `INSERT INTO analises_edson (pregao_id, status) VALUES ($1, 'processando')
-           ON CONFLICT (pregao_id) DO UPDATE SET status = 'processando', atualizado_em = NOW()
-           RETURNING id`,
-          [rows[0].id],
-        );
-        analisarPDF(analise.id, rows[0].id, req.file.buffer).catch(e => console.error('[Edson] PDF:', e.message));
-      } catch (e2) {
-        console.error('[Pregão] Edson auto-análise PDF:', e2.message);
-      }
-    } else if (acionarEdson || numero_controle_pncp?.trim()) {
-      // Sem PDF: analisar via dados do PNCP/pregão
-      try {
-        const { rows: [analise] } = await db.query(
-          `INSERT INTO analises_edson (pregao_id, status) VALUES ($1, 'processando')
-           ON CONFLICT (pregao_id) DO UPDATE SET status = 'processando', atualizado_em = NOW()
-           RETURNING id`,
-          [rows[0].id],
-        );
-        analisarPregao(analise.id, rows[0].id).catch(e => console.error('[Edson] PNCP:', e.message));
-      } catch (e2) {
-        console.error('[Pregão] Edson auto-análise PNCP:', e2.message);
-      }
-    }
-
     return res.status(201).json(rows[0]);
   } catch (erro) {
     console.error('Erro ao criar pregão:', erro);

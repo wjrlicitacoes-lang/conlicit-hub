@@ -1593,15 +1593,6 @@
             <div class="section-header-actions" id="edson-detalhe-acoes"></div>
           </div>
 
-          <!-- Upload PDF -->
-          <div id="edson-pdf-area" style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-            <input type="file" id="edson-pdf-input" accept=".pdf" style="display:none" onchange="uploadEdsonPDF(this)">
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('edson-pdf-input').click()">
-              📎 Enviar PDF do edital
-            </button>
-            <span id="edson-pdf-status" style="font-size:.85rem;color:var(--text-muted)"></span>
-          </div>
-
           <!-- Banner análise avulsa sem cliente -->
           <input type="hidden" id="edson-avulso-analise-id">
           <div id="edson-avulso-banner" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:var(--radius-sm);padding:.85rem 1.1rem;margin-bottom:1rem">
@@ -1609,6 +1600,27 @@
             <div style="display:flex;gap:.5rem">
               <button class="btn btn-primary btn-sm" onclick="abrirModalVincularAvulso()">👤 Vincular a cliente</button>
               <button class="btn btn-danger btn-sm" onclick="descartarAnaliseAvulsa()">🗑️ Descartar</button>
+            </div>
+          </div>
+
+          <!-- Aguardando PDF -->
+          <div id="edson-aguardando-pdf" style="display:none">
+            <div class="state-box" style="padding:2rem;text-align:left">
+              <span style="font-size:2rem">📄</span>
+              <h3 style="margin-top:.75rem">Envie o PDF do edital</h3>
+              <p style="color:var(--text-muted);margin-bottom:1.25rem">Faça o download do edital no portal e envie aqui para o Edson analisar.</p>
+              <div id="edson-upload-pncp-link"></div>
+              <div style="margin-top:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <input type="file" id="edson-upload-input" accept=".pdf" style="display:none" onchange="selecionarPDFEdson(this)">
+                <button class="btn btn-primary" onclick="document.getElementById('edson-upload-input').click()">📎 Selecionar PDF</button>
+                <span id="edson-upload-filename" style="font-size:.85rem;color:var(--text-muted)"></span>
+              </div>
+              <div id="edson-upload-preview" style="display:none;margin-top:1rem;align-items:center;gap:.75rem">
+                <span id="edson-upload-preview-name" style="font-size:.88rem;font-weight:600"></span>
+                <button class="btn btn-ghost btn-sm" onclick="cancelarSelecaoEdson()">✕ Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="confirmarUploadEdson()">✓ Analisar</button>
+              </div>
+              <div id="edson-upload-erro" style="display:none;margin-top:.75rem;color:#E24B4A;font-size:.85rem"></div>
             </div>
           </div>
 
@@ -3768,13 +3780,16 @@
 
   function renderEdsonCard(a) {
     const statusBadge = {
-      processando: '<span class="s-badge s-pendente">⟳ Processando…</span>',
-      pronto:      '<span class="s-badge s-recebido">✓ Pronto</span>',
-      erro:        '<span class="s-badge s-atrasado">✗ Erro</span>',
+      aguardando_pdf: '<span class="s-badge s-oferta">📄 Aguardando PDF</span>',
+      processando:    '<span class="s-badge s-pendente">⟳ Processando…</span>',
+      pronto:         '<span class="s-badge s-recebido">✓ Pronto</span>',
+      erro:           '<span class="s-badge s-atrasado">✗ Erro</span>',
     }[a.status] || '';
 
     const circleHtml = a.status === 'processando'
       ? '<div class="spinner" style="width:40px;height:40px;flex-shrink:0"></div>'
+      : a.status === 'aguardando_pdf'
+      ? '<div style="width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.75rem">📄</div>'
       : (a.score != null
           ? `<div class="edson-score-circle ${scoreClass(a.score)}">${a.score}</div>`
           : `<div class="edson-score-circle score-vermelho">—</div>`);
@@ -3815,6 +3830,7 @@
     document.getElementById('edson-main').style.display = 'none';
     document.getElementById('edson-detalhe').style.display = 'block';
     document.getElementById('edson-processando').style.display = 'block';
+    document.getElementById('edson-aguardando-pdf').style.display = 'none';
     document.getElementById('edson-erro').style.display = 'none';
     document.getElementById('edson-resultado').style.display = 'none';
     document.getElementById('edson-detalhe-titulo').textContent = 'Carregando…';
@@ -3842,7 +3858,13 @@
       document.getElementById('edson-detalhe-sub').textContent =
         `${analise.cliente_nome || (analise.referencia ? 'Avulsa' : '')} · ${(analise.orgao || '').slice(0, 60)}`;
 
+      if (analise.status === 'aguardando_pdf') {
+        mostrarUploadUI(analise);
+        return;
+      }
+
       if (analise.status === 'processando') {
+        document.getElementById('edson-aguardando-pdf').style.display = 'none';
         document.getElementById('edson-processando').style.display = 'block';
         document.getElementById('edson-erro').style.display = 'none';
         document.getElementById('edson-resultado').style.display = 'none';
@@ -3852,6 +3874,7 @@
       }
 
       pararEdsonPolling();
+      document.getElementById('edson-aguardando-pdf').style.display = 'none';
       document.getElementById('edson-processando').style.display = 'none';
 
       if (analise.status === 'erro') {
@@ -3880,6 +3903,81 @@
 
   function pararEdsonPolling() {
     if (edsonPollingTimer) { clearInterval(edsonPollingTimer); edsonPollingTimer = null; }
+  }
+
+  let edsonArquivoPDF = null;
+
+  function mostrarUploadUI(analise) {
+    pararEdsonPolling();
+    document.getElementById('edson-processando').style.display = 'none';
+    document.getElementById('edson-erro').style.display = 'none';
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-aguardando-pdf').style.display = 'block';
+    edsonArquivoPDF = null;
+    const inp = document.getElementById('edson-upload-input');
+    if (inp) inp.value = '';
+    document.getElementById('edson-upload-filename').textContent = '';
+    document.getElementById('edson-upload-preview').style.display = 'none';
+    document.getElementById('edson-upload-erro').style.display = 'none';
+    const linkEl = document.getElementById('edson-upload-pncp-link');
+    if (analise.link_pncp) {
+      linkEl.innerHTML = `<a href="${esc(analise.link_pncp)}" target="_blank" class="btn btn-ghost btn-sm">🔗 Abrir no portal PNCP</a>`;
+    } else {
+      linkEl.innerHTML = '';
+    }
+  }
+
+  function selecionarPDFEdson(input) {
+    const file = input.files[0];
+    if (!file) return;
+    edsonArquivoPDF = file;
+    document.getElementById('edson-upload-filename').textContent = '';
+    document.getElementById('edson-upload-preview-name').textContent = file.name;
+    document.getElementById('edson-upload-preview').style.display = 'flex';
+  }
+
+  function cancelarSelecaoEdson() {
+    edsonArquivoPDF = null;
+    const inp = document.getElementById('edson-upload-input');
+    if (inp) inp.value = '';
+    document.getElementById('edson-upload-preview').style.display = 'none';
+    document.getElementById('edson-upload-filename').textContent = '';
+  }
+
+  async function confirmarUploadEdson() {
+    if (!edsonArquivoPDF) return;
+    const erroEl = document.getElementById('edson-upload-erro');
+    erroEl.style.display = 'none';
+    const fd = new FormData();
+    fd.append('edital', edsonArquivoPDF);
+    try {
+      let url;
+      if (edsonAtualPregaoId) {
+        url = `${API}/edson/${edsonAtualPregaoId}/upload-pdf`;
+      } else {
+        const aid = edsonAtualAnaliseId || edsonAnaliseIdAtual;
+        url = `${API}/edson/analise/${aid}/upload-pdf`;
+      }
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!resp.ok) throw new Error(((await resp.json()).erro) || 'Erro ao enviar PDF');
+
+      document.getElementById('edson-aguardando-pdf').style.display = 'none';
+      document.getElementById('edson-processando').style.display = 'block';
+
+      if (edsonAtualPregaoId) {
+        edsonPollingTimer = setInterval(() => _carregarEdsonDetalhe(edsonAtualPregaoId), 3000);
+      } else {
+        const aid = edsonAtualAnaliseId || edsonAnaliseIdAtual;
+        edsonPollingTimer = setInterval(() => _carregarEdsonDetalhePorIdInterno(aid), 3000);
+      }
+    } catch (e) {
+      erroEl.textContent = e.message;
+      erroEl.style.display = 'block';
+    }
   }
 
   function voltarListaEdson() {
@@ -5480,6 +5578,7 @@
     document.getElementById('edson-main').style.display = 'none';
     document.getElementById('edson-detalhe').style.display = 'block';
     document.getElementById('edson-processando').style.display = 'block';
+    document.getElementById('edson-aguardando-pdf').style.display = 'none';
     document.getElementById('edson-erro').style.display = 'none';
     document.getElementById('edson-resultado').style.display = 'none';
     document.getElementById('edson-detalhe-titulo').textContent = 'Carregando…';
@@ -5500,7 +5599,13 @@
       document.getElementById('edson-detalhe-sub').textContent =
         `${analise.cliente_nome || 'Avulsa'} · ${(analise.orgao||'').slice(0,60)}`;
 
+      if (analise.status === 'aguardando_pdf') {
+        mostrarUploadUI(analise);
+        return;
+      }
+
       if (analise.status === 'processando') {
+        document.getElementById('edson-aguardando-pdf').style.display = 'none';
         document.getElementById('edson-processando').style.display = 'block';
         document.getElementById('edson-erro').style.display = 'none';
         document.getElementById('edson-resultado').style.display = 'none';
@@ -5509,6 +5614,7 @@
         return;
       }
       pararEdsonPolling();
+      document.getElementById('edson-aguardando-pdf').style.display = 'none';
       document.getElementById('edson-processando').style.display = 'none';
 
       if (analise.status === 'erro') {
@@ -5535,6 +5641,7 @@
       switchEdsonTab('rapido');
     } catch (e) {
       pararEdsonPolling();
+      document.getElementById('edson-aguardando-pdf').style.display = 'none';
       document.getElementById('edson-processando').style.display = 'none';
       document.getElementById('edson-erro').style.display = 'block';
       document.getElementById('edson-erro-msg').textContent = e.message;

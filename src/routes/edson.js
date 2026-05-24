@@ -8,6 +8,7 @@ router.post('/avulso', ctrl.upload.single('edital'),                 ctrl.avulso
 router.get('/analise/:analise_id',                                   ctrl.obterPorId);
 router.get('/analise/:analise_id/chat',                              ctrl.getChatHistoricoPorId);
 router.post('/analise/:analise_id/chat',                             ctrl.chatPorId);
+router.post('/analise/:analise_id/upload-pdf', ctrl.upload.single('edital'), ctrl.uploadPDFAvulso);
 router.patch('/analise/:analise_id/vincular',                        ctrl.vincularCliente);
 router.delete('/analise/:analise_id',                                ctrl.descartarAnalise);
 router.get('/analise/:analise_id/relatorio-simples',                 ctrl.relatorioSimplesAvulso);

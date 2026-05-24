@@ -54,9 +54,9 @@ async function disparar(req, res) {
 
     const { rows: [analise] } = await db.query(
       `INSERT INTO analises_edson (pregao_id, status)
-       VALUES ($1, 'processando')
+       VALUES ($1, 'aguardando_pdf')
        ON CONFLICT (pregao_id) DO UPDATE SET
-         status = 'processando', score = NULL, score_justificativa = NULL,
+         status = 'aguardando_pdf', score = NULL, score_justificativa = NULL,
          resumo_executivo = NULL, modalidade = NULL, modo_disputa = NULL,
          tipo_julgamento = NULL, itens = '[]', habilitacao = '[]',
          riscos = '[]', checklist = '{"antes":[],"durante":[]}',
@@ -65,8 +65,7 @@ async function disparar(req, res) {
       [pregao_id],
     );
 
-    analisarPregao(analise.id, parseInt(pregao_id, 10)).catch(console.error);
-    return res.json({ id: analise.id, status: 'processando' });
+    return res.json({ id: analise.id, status: 'aguardando_pdf' });
   } catch (e) {
     console.error('[Edson] disparar:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -90,22 +89,34 @@ async function avulso(req, res) {
       if (c) { clienteNome = c.nome; clienteUF = c.uf; palavrasChave = c.palavras_chave; }
     }
 
+    const ref = referencia?.trim() || numero_controle_pncp || 'Análise avulsa';
+
+    if (req.file) {
+      // PDF enviado: análise começa imediatamente
+      const { rows: [analise] } = await db.query(
+        `INSERT INTO analises_edson (pregao_id, referencia, cliente_id, status)
+         VALUES (NULL, $1, $2, 'processando')
+         RETURNING id`,
+        [ref, cliente_id || null],
+      );
+      analisarAvulso(analise.id, {
+        numero_controle_pncp: numero_controle_pncp?.trim() || null,
+        referencia: ref,
+        clienteNome, clienteUF,
+        palavrasChave: Array.isArray(palavrasChave) ? palavrasChave.join(', ') : palavrasChave,
+        pdfBuffer: req.file.buffer,
+      }).catch(console.error);
+      return res.json({ mensagem: 'Análise avulsa iniciada', analise_id: analise.id });
+    }
+
+    // Sem PDF: aguarda upload
     const { rows: [analise] } = await db.query(
-      `INSERT INTO analises_edson (pregao_id, referencia, status)
-       VALUES (NULL, $1, 'processando')
+      `INSERT INTO analises_edson (pregao_id, referencia, cliente_id, status)
+       VALUES (NULL, $1, $2, 'aguardando_pdf')
        RETURNING id`,
-      [referencia?.trim() || numero_controle_pncp || 'Análise avulsa'],
+      [ref, cliente_id || null],
     );
-
-    analisarAvulso(analise.id, {
-      numero_controle_pncp: numero_controle_pncp?.trim() || null,
-      referencia: referencia?.trim() || numero_controle_pncp || 'Análise avulsa',
-      clienteNome, clienteUF,
-      palavrasChave: Array.isArray(palavrasChave) ? palavrasChave.join(', ') : palavrasChave,
-      pdfBuffer: req.file?.buffer || null,
-    }).catch(console.error);
-
-    return res.json({ mensagem: 'Análise avulsa iniciada', analise_id: analise.id });
+    return res.json({ mensagem: 'Aguardando PDF do edital', analise_id: analise.id });
   } catch (e) {
     console.error('[Edson] avulso:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -376,6 +387,45 @@ async function uploadPDF(req, res) {
   }
 }
 
+// ── Upload PDF para análise avulsa ────────────────────────────────────────────
+
+async function uploadPDFAvulso(req, res) {
+  const { analise_id } = req.params;
+  try {
+    if (!req.file) return res.status(400).json({ erro: 'Arquivo PDF obrigatório (campo: edital)' });
+
+    const { rows: [analise] } = await db.query(
+      `SELECT ae.id, ae.referencia, ae.cliente_id,
+              c.nome AS cliente_nome, c.uf, c.palavras_chave
+       FROM analises_edson ae
+       LEFT JOIN clientes c ON c.id = ae.cliente_id
+       WHERE ae.id = $1`,
+      [analise_id],
+    );
+    if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
+
+    await db.query(
+      `UPDATE analises_edson SET status = 'processando', atualizado_em = NOW() WHERE id = $1`,
+      [analise_id],
+    );
+
+    analisarAvulso(parseInt(analise_id, 10), {
+      referencia: analise.referencia || 'Análise avulsa',
+      clienteNome: analise.cliente_nome || null,
+      clienteUF: analise.uf || null,
+      palavrasChave: Array.isArray(analise.palavras_chave)
+        ? analise.palavras_chave.join(', ')
+        : analise.palavras_chave,
+      pdfBuffer: req.file.buffer,
+    }).catch(console.error);
+
+    return res.json({ mensagem: 'Análise iniciada', analise_id: parseInt(analise_id, 10) });
+  } catch (e) {
+    console.error('[Edson] uploadPDFAvulso:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
 // ── Relatório Simples (1 pág para reunião de vendas) ─────────────────────────
 
 async function relatorioSimples(req, res) {
@@ -528,7 +578,7 @@ async function descartarAnalise(req, res) {
 module.exports = {
   listar, disparar, avulso, obter, obterPorId,
   chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
-  planilha, relatorio, relatorioSimples, uploadPDF, upload,
+  planilha, relatorio, relatorioSimples, uploadPDF, uploadPDFAvulso, upload,
   vincularCliente, descartarAnalise,
   relatorioSimplesAvulso, planilhaAvulso, relatorioAvulso,
 };
