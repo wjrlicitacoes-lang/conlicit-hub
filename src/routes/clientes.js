@@ -1,4 +1,5 @@
 const express = require('express');
+const multer  = require('multer');
 const { cadastrar, listar, atualizar, stats, pregoesVencidos } = require('../controllers/clientesController');
 const pregoes          = require('../controllers/pregoesController');
 
@@ -7,6 +8,12 @@ const documentos       = require('../controllers/documentosController');
 const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
+
+const _uploadPregao = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, f, cb) => cb(null, f.mimetype === 'application/pdf'),
+});
 
 // Rotas fixas antes de /:id para não capturar como parâmetro de ID
 router.get('/stats',    stats);
@@ -19,7 +26,7 @@ router.patch('/:id', atualizar);
 
 // Sub-recursos de cliente (protegerCliente garante que role=cliente só acessa o próprio id)
 router.get('/:id/pregoes',             protegerCliente, pregoes.listar);
-router.post('/:id/pregoes',            pregoes.criar);       // bloqueado no controller para cliente
+router.post('/:id/pregoes', _uploadPregao.single('edital_pdf'), pregoes.criar);
 router.patch('/:id/pregoes/:pid',      protegerCliente, pregoes.atualizar);
 router.delete('/:id/pregoes/:pid',     pregoes.remover);     // bloqueado no controller para cliente
 

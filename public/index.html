@@ -980,6 +980,11 @@
     body.role-cliente .nav-item:not([data-cliente-visible]) { display: none !important; }
     body.role-cliente .sidebar-section-label:not([data-cliente-visible]) { display: none !important; }
     .s-oferta { background: rgba(76,197,215,.12); color: var(--primary); border: 1px solid rgba(76,197,215,.3); }
+    .s-sugerido { background: rgba(76,197,215,.12); color: var(--primary); border: 1px solid rgba(76,197,215,.3); }
+    .oferta-card { border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(76,197,215,.35); margin-bottom: .75rem; }
+    .mini-metric { background: rgba(76,197,215,.06); border-radius: 4px; padding: .3rem .5rem; }
+    .mm-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+    .mm-value { font-size: .8rem; font-weight: 600; color: var(--text); margin-top: .1rem; }
 
     /* ── EDSON ── */
     .edson-card {
@@ -1729,13 +1734,18 @@
         <label>Objeto</label>
         <input id="of-objeto" />
       </div>
+      <div class="form-group" style="margin:.5rem 0">
+        <label style="font-size:.88rem">📎 Anexar PDF do edital (recomendado)</label>
+        <input type="file" id="of-pdf" accept=".pdf" style="margin-top:.3rem;cursor:pointer" />
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">O Edson analisa automaticamente quando o cliente aceitar</div>
+      </div>
       <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
         <input type="checkbox" id="of-edson" checked style="width:auto;margin:0" />
-        <label for="of-edson" style="margin:0;cursor:pointer;font-size:.88rem">Acionar Edson automaticamente</label>
+        <label for="of-edson" style="margin:0;cursor:pointer;font-size:.88rem">Acionar Edson automaticamente (sem PDF)</label>
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end">
         <button class="btn btn-ghost" onclick="fecharModalOferecer()">Cancelar</button>
-        <button class="btn btn-primary" onclick="confirmarOferecer()">Adicionar ao calendário do cliente</button>
+        <button class="btn btn-primary" onclick="confirmarOferecer()">Oferecer para cliente</button>
       </div>
     </div>
   </div>
@@ -3432,36 +3442,58 @@
     const numero = document.getElementById('of-numero').value.trim();
     if (!numero) { toast('Número do pregão é obrigatório', 'error'); return; }
 
-    const ofLink   = document.getElementById('of-link').value.trim() || null;
-    const ofPortal = document.getElementById('of-portal').value || detectarPortal(ofLink) || null;
-    const body = {
-      numero,
-      objeto:               document.getElementById('of-objeto').value.trim() || null,
-      data_hora_abertura:   document.getElementById('of-dha').value || null,
-      numero_controle_pncp: document.getElementById('of-controle').value.trim() || null,
-      link_pncp:            ofLink,
-      portal_disputa:       ofPortal,
-      status:               'oferta', // cliente aceita/rejeita na Minha Área (duas etapas)
-    };
+    const ofLink    = document.getElementById('of-link').value.trim() || null;
+    const ofPortal  = document.getElementById('of-portal').value || detectarPortal(ofLink) || null;
+    const pdfFile   = document.getElementById('of-pdf').files[0];
+    const acionar   = document.getElementById('of-edson').checked;
+    const clienteNome = document.getElementById('of-cliente').selectedOptions[0]?.text || '';
 
+    let r;
     try {
-      const r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
-        method: 'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      if (pdfFile) {
+        const fd = new FormData();
+        fd.append('numero',               numero);
+        fd.append('objeto',               document.getElementById('of-objeto').value.trim()   || '');
+        fd.append('data_hora_abertura',   document.getElementById('of-dha').value             || '');
+        fd.append('numero_controle_pncp', document.getElementById('of-controle').value.trim() || '');
+        fd.append('link_pncp',            ofLink   || '');
+        fd.append('portal_disputa',       ofPortal || '');
+        fd.append('status',               'sugerido');
+        fd.append('edital_pdf',           pdfFile);
+        r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+      } else {
+        r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            numero,
+            objeto:               document.getElementById('of-objeto').value.trim() || null,
+            data_hora_abertura:   document.getElementById('of-dha').value || null,
+            numero_controle_pncp: document.getElementById('of-controle').value.trim() || null,
+            link_pncp:            ofLink,
+            portal_disputa:       ofPortal,
+            status:               'sugerido',
+          }),
+        });
+      }
+
+      if (!r.ok) { toast((await r.json()).erro || 'Erro ao oferecer', 'error'); return; }
       const pregao = await r.json();
 
-      const acionar = document.getElementById('of-edson').checked;
-      if (acionar && pregao.id) {
+      // Se sem PDF e Edson marcado, disparar via PNCP/dados
+      if (!pdfFile && acionar && pregao.id) {
         fetch(`${API}/edson/${pregao.id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
           .catch(() => {});
       }
 
-      const clienteNome = document.getElementById('of-cliente').selectedOptions[0]?.text || '';
-      toast(`Pregão adicionado para ${clienteNome}${acionar ? ' — Edson analisando…' : ''}`, 'success');
+      toast(`Oferta enviada para ${clienteNome}. Aparecerá na área dele para aprovação.`, 'success');
       document.getElementById('modal-oferecer').classList.remove('visible');
-    } catch (err) { toast(err.message || 'Erro ao adicionar', 'error'); }
+      document.getElementById('of-pdf').value = '';
+    } catch (err) { toast(err.message || 'Erro ao oferecer', 'error'); }
   }
 
   async function buscar(pagina = 1) {
@@ -4458,7 +4490,7 @@
       if (r.status === 401) { logout(); return; }
       const { dados = [] } = await r.json();
 
-      const ofertas    = dados.filter(p => p.status === 'oferta');
+      const ofertas    = dados.filter(p => p.status === 'sugerido');
       const ativos     = dados.filter(p => p.status === 'a_disputar');
       const encerrados = dados.filter(p => ['vencido','perdido','cancelado'].includes(p.status));
 
@@ -4483,6 +4515,7 @@
       } else {
         document.getElementById('ma-tab-ofertas').innerHTML =
           '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
+        carregarScoresOfertas(ofertas);
       }
 
       // Tab pregões (ativos + encerrados)
@@ -4503,30 +4536,61 @@
   function renderMaOferta(p) {
     const dt = p.data_hora_abertura ? new Date(p.data_hora_abertura) : null;
     const dataStr = dt && !isNaN(dt)
-      ? dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
-      : (p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem data');
+      ? dt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric' })
+      : (p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—');
+    const horaStr = dt && !isNaN(dt)
+      ? dt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' })
+      : '';
+    const dataHora = horaStr ? `${dataStr} ${horaStr}` : dataStr;
 
     return `
-    <div class="cal-card" style="border-left:3px solid var(--primary)">
-      <div class="cal-card-time">
-        <div class="cal-time-date" style="font-size:.75rem">${dataStr.split(' ')[0] || '—'}</div>
-        <div class="cal-time-hour">${dataStr.split(' ')[1] || ''}</div>
+    <div class="oferta-card" id="oferta-${p.id}">
+      <div style="background:var(--primary);color:#182A39;font-size:.7rem;font-weight:700;padding:4px 12px;letter-spacing:.5px">
+        NOVA OFERTA DA CONLICIT
       </div>
-      <div class="cal-card-body" style="flex:1">
-        <h4 style="margin-bottom:.2rem">${esc(p.numero || '—')}
-          <span class="s-badge s-oferta" style="font-size:.68rem;margin-left:.4rem">Oferta</span>
-        </h4>
-        <div class="cal-card-meta">${esc(p.orgao || '—')}</div>
-        ${p.objeto ? `<div style="font-size:.78rem;color:var(--text-muted);margin:.3rem 0">${esc(p.objeto.slice(0,120))}</div>` : ''}
-        ${p.valor_estimado ? `<div style="font-size:.82rem;color:var(--primary);font-weight:600;margin-bottom:.5rem">Valor estimado: ${fmtBRL(p.valor_estimado)}</div>` : ''}
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
-          ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📄 Ver edital</a>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})">🤖 Ver análise</button>
-          <button class="btn btn-primary btn-sm" onclick="aceitarOferta(${p.id})">✓ Aceitar</button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="rejeitarOferta(${p.id}, '${esc(p.numero||'')}')">✕ Rejeitar</button>
+      <div style="background:#182A39;color:#fff;padding:.65rem 1rem">
+        <div style="font-weight:700;font-size:.95rem">${esc(p.numero || '—')}</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:2px">${esc((p.orgao || '—').slice(0,80))}</div>
+      </div>
+      <div style="padding:.75rem 1rem;background:var(--card-bg)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.65rem">
+          <div class="mini-metric"><div class="mm-label">Valor</div><div class="mm-value">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</div></div>
+          <div class="mini-metric"><div class="mm-label">Data</div><div class="mm-value">${dataHora}</div></div>
+          <div class="mini-metric"><div class="mm-label">Modalidade</div><div class="mm-value">${esc(p.modalidade || '—')}</div></div>
+          <div class="mini-metric"><div class="mm-label">Portal</div><div class="mm-value">${esc(p.portal_disputa || '—')}</div></div>
+        </div>
+        ${p.objeto ? `<div style="font-size:.8rem;color:var(--text-2);margin-bottom:.6rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.objeto)}</div>` : ''}
+        <div id="score-oferta-${p.id}" style="margin-bottom:.6rem;font-size:.8rem;color:var(--text-muted)">
+          <div class="spinner" style="width:10px;height:10px;display:inline-block;vertical-align:middle;margin-right:5px"></div> Carregando análise Edson...
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📄 Edital</a>` : ''}
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="aceitarOferta(${p.id})">✅ Aceitar e participar</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="rejeitarOferta(${p.id},'${esc(p.numero||'')}')">❌ Não tenho interesse</button>
         </div>
       </div>
     </div>`;
+  }
+
+  async function carregarScoresOfertas(ofertas) {
+    for (const p of ofertas) {
+      const el = document.getElementById(`score-oferta-${p.id}`);
+      if (!el) continue;
+      try {
+        const r = await fetch(`${API}/edson/${p.id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!r.ok) { el.innerHTML = '<span style="color:var(--text-muted)">Sem análise Edson</span>'; continue; }
+        const a = await r.json();
+        if (a.status === 'processando') {
+          el.innerHTML = '<span style="color:var(--text-muted)">⏳ Edson analisando...</span>';
+        } else if (a.status === 'pronto' && a.score != null) {
+          const cor = a.score >= 70 ? 'var(--success)' : a.score >= 40 ? 'var(--warning)' : 'var(--danger)';
+          el.innerHTML = `<span style="font-weight:700;color:${cor};font-size:1.05rem">${a.score}</span><span style="color:var(--text-muted);font-size:.75rem"> /100 — Score Edson</span>
+            <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})" style="margin-left:.4rem;font-size:.72rem;padding:2px 6px">Ver análise</button>`;
+        } else {
+          el.innerHTML = '<span style="color:var(--text-muted)">—</span>';
+        }
+      } catch { el.innerHTML = '<span style="color:var(--text-muted)">—</span>'; }
+    }
   }
 
   function renderMaTabelaPregoes(lista) {
@@ -5189,9 +5253,8 @@
       const { dados = [] } = await r.json();
       _maCache = dados;
 
-      const ofertas    = dados.filter(p => p.status === 'oferta');
+      const ofertas    = dados.filter(p => p.status === 'sugerido');
       const ativos     = dados.filter(p => p.status === 'a_disputar');
-      const hoje = new Date().toISOString().slice(0,10);
       const proximos = ativos.filter(p => {
         if (!p.data_hora_abertura) return false;
         const d = new Date(p.data_hora_abertura);
@@ -5212,6 +5275,7 @@
       } else {
         document.getElementById('ma-tab-ofertas').innerHTML =
           '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
+        carregarScoresOfertas(ofertas);
       }
       // Renderizar aba ativa atual
       const activeTab = document.querySelector('[data-ma-tab].active')?.dataset.maTab || 'ofertas';

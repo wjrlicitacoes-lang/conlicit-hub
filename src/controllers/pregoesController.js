@@ -1,4 +1,5 @@
 const db = require('../database/db');
+const { analisarPDF } = require('../services/edsonService');
 
 async function listar(req, res) {
   const { id } = req.params;
@@ -37,6 +38,21 @@ async function criar(req, res) {
        link_pncp?.trim() || null,
        portal_disputa?.trim() || null],
     );
+    // Se PDF enviado junto com a oferta, disparar análise Edson em background
+    if (req.file) {
+      try {
+        const { rows: [analise] } = await db.query(
+          `INSERT INTO analises_edson (pregao_id, status) VALUES ($1, 'processando')
+           ON CONFLICT (pregao_id) DO UPDATE SET status = 'processando', atualizado_em = NOW()
+           RETURNING id`,
+          [rows[0].id],
+        );
+        analisarPDF(analise.id, rows[0].id, req.file.buffer).catch(console.error);
+      } catch (e2) {
+        console.error('[Pregão] Edson auto-análise:', e2.message);
+      }
+    }
+
     return res.status(201).json(rows[0]);
   } catch (erro) {
     console.error('Erro ao criar pregão:', erro);
