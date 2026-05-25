@@ -1660,6 +1660,39 @@
             <div id="etab-riscos"      style="display:none"></div>
             <div id="etab-checklist"   style="display:none"></div>
             <div id="etab-chat"        style="display:none"></div>
+
+            <!-- Uploads complementares -->
+            <div style="margin-top:1rem;padding:.75rem 1rem;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary)">
+              <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">Enriquecer análise com dados adicionais</div>
+
+              <!-- Upload de print/imagem -->
+              <div style="margin-bottom:.5rem">
+                <button onclick="toggleUploadImagem()" class="btn btn-ghost btn-sm">🖼️ Adicionar print do PNCP (valor/itens)</button>
+                <div id="upload-imagem-area" style="display:none;margin-top:.6rem;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                  <p style="font-size:11px;color:var(--text-muted);margin-bottom:.6rem">Útil quando o valor estimado ou itens não constam no edital PDF. Faça um print da tela do PNCP mostrando essas informações.</p>
+                  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                    <input type="file" id="imagem-pncp-input" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="onImagemSelecionada(this)">
+                    <button onclick="document.getElementById('imagem-pncp-input').click()" class="btn btn-ghost btn-sm">📸 Selecionar imagem</button>
+                    <span id="imagem-nome" style="font-size:11px;color:var(--text-muted)"></span>
+                    <button id="btn-enviar-imagem" onclick="uploadImagemPNCP()" class="btn btn-primary btn-sm" style="display:none">Enviar para o Edson reanalisar</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Upload de PDF complementar -->
+              <div>
+                <button onclick="toggleUploadComplementar()" class="btn btn-ghost btn-sm">📎 Adicionar arquivo complementar (Termo de Referência, Anexo de itens)</button>
+                <div id="upload-complementar-area" style="display:none;margin-top:.6rem;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                  <p style="font-size:11px;color:var(--text-muted);margin-bottom:.6rem">Use quando o edital principal não lista os itens. Envie o Termo de Referência ou Anexo com a lista de itens para o Edson incluir na análise.</p>
+                  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                    <input type="file" id="complementar-input" accept=".pdf" style="display:none" onchange="onComplementarSelecionado(this)">
+                    <button onclick="document.getElementById('complementar-input').click()" class="btn btn-ghost btn-sm">📄 Selecionar PDF complementar</button>
+                    <span id="complementar-nome" style="font-size:11px;color:var(--text-muted)"></span>
+                    <button id="btn-enviar-complementar" onclick="uploadComplementar()" class="btn btn-primary btn-sm" style="display:none">Enviar e reanalisar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -3987,6 +4020,91 @@
     document.getElementById('edson-main').style.display = 'block';
     document.getElementById('edson-detalhe').style.display = 'none';
     carregarEdson();
+  }
+
+  // ── Uploads complementares ────────────────────────────────────────────────────
+
+  function toggleUploadImagem() {
+    const el = document.getElementById('upload-imagem-area');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function toggleUploadComplementar() {
+    const el = document.getElementById('upload-complementar-area');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function onImagemSelecionada(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('imagem-nome').textContent = file.name;
+    document.getElementById('btn-enviar-imagem').style.display = 'inline-flex';
+  }
+
+  function onComplementarSelecionado(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('complementar-nome').textContent = file.name;
+    document.getElementById('btn-enviar-complementar').style.display = 'inline-flex';
+  }
+
+  function _iniciarPollingReanálise(analiseId) {
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-aguardando-pdf').style.display = 'none';
+    document.getElementById('edson-processando').style.display = 'block';
+    pararEdsonPolling();
+    edsonPollingTimer = setInterval(() => {
+      if (edsonAtualPregaoId) _carregarEdsonDetalhe(edsonAtualPregaoId);
+      else _carregarEdsonDetalhePorIdInterno(analiseId);
+    }, 3000);
+  }
+
+  async function uploadImagemPNCP() {
+    const input = document.getElementById('imagem-pncp-input');
+    const file = input.files[0];
+    if (!file) return;
+    const aid = edsonAnaliseAtual && edsonAnaliseAtual.id;
+    if (!aid) { mostrarToast('Análise não identificada', 'error'); return; }
+    const btn = document.getElementById('btn-enviar-imagem');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      const fd = new FormData(); fd.append('imagem', file);
+      const r = await fetch(`${API}/edson/analise/${aid}/upload-imagem`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      if (!r.ok) throw new Error(((await r.json()).erro) || 'Erro ao enviar');
+      mostrarToast('Edson vai incluir as informações da imagem na análise', 'success');
+      document.getElementById('upload-imagem-area').style.display = 'none';
+      _iniciarPollingReanálise(aid);
+    } catch (e) {
+      mostrarToast('Erro: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enviar para o Edson reanalisar';
+    }
+  }
+
+  async function uploadComplementar() {
+    const input = document.getElementById('complementar-input');
+    const file = input.files[0];
+    if (!file) return;
+    const aid = edsonAnaliseAtual && edsonAnaliseAtual.id;
+    if (!aid) { mostrarToast('Análise não identificada', 'error'); return; }
+    const btn = document.getElementById('btn-enviar-complementar');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      const fd = new FormData(); fd.append('arquivo', file);
+      const r = await fetch(`${API}/edson/analise/${aid}/upload-complementar`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      if (!r.ok) throw new Error(((await r.json()).erro) || 'Erro ao enviar');
+      mostrarToast('Documento recebido. Edson vai reanalisar.', 'success');
+      document.getElementById('upload-complementar-area').style.display = 'none';
+      _iniciarPollingReanálise(aid);
+    } catch (e) {
+      mostrarToast('Erro: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enviar e reanalisar';
+    }
   }
 
   async function reanalisarEdson(pregaoId) {

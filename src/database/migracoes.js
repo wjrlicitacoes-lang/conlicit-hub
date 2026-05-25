@@ -269,6 +269,10 @@ async function executarMigracoes() {
     END $$
   `);
 
+  // Suplementos de análise — imagem PNCP e documento complementar
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS imagem_pncp_base64        TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS arquivo_complementar_texto TEXT`);
+
   // Resumo de oportunidade — campos extraídos do edital pelo Edson
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS tipo_fornecimento      VARCHAR(20)`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS entrega_tipo           VARCHAR(20)`);

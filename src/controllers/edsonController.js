@@ -1,6 +1,7 @@
 const multer = require('multer');
 const db = require('../database/db');
-const { analisarPregao, analisarPDF, analisarAvulso, chamarClaude } = require('../services/edsonService');
+const { analisarPregao, analisarPDF, analisarAvulso, reanalisarComSuplementos, chamarClaude } = require('../services/edsonService');
+const pdfParse = require('pdf-parse');
 const { gerarPlanilhaXLSX }       = require('../services/planilhaService');
 const { gerarRelatorioPDF }        = require('../services/relatorioService');
 const { gerarHTMLResumo } = require('../services/relatorioSimplesService');
@@ -9,6 +10,14 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype === 'application/pdf'),
+});
+
+const uploadImagemMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
+  },
 });
 
 // ── SELECT helpers ─────────────────────────────────────────────────────────────
@@ -571,10 +580,51 @@ async function descartarAnalise(req, res) {
   }
 }
 
+// ── Upload de imagem PNCP (print de tela) ─────────────────────────────────────
+
+async function uploadImagemPNCP(req, res) {
+  const { analise_id } = req.params;
+  try {
+    if (!req.file) return res.status(400).json({ erro: 'Imagem obrigatória (JPG, PNG ou WEBP)' });
+    const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    await db.query(
+      `UPDATE analises_edson SET imagem_pncp_base64 = $2, atualizado_em = NOW() WHERE id = $1`,
+      [analise_id, base64],
+    );
+    reanalisarComSuplementos(parseInt(analise_id, 10)).catch(console.error);
+    return res.json({ mensagem: 'Imagem salva. Edson vai incluir na reanálise.' });
+  } catch (e) {
+    console.error('[Edson] uploadImagemPNCP:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Upload de PDF complementar (TR / Anexo de itens) ─────────────────────────
+
+async function uploadComplementar(req, res) {
+  const { analise_id } = req.params;
+  try {
+    if (!req.file) return res.status(400).json({ erro: 'Arquivo PDF obrigatório' });
+    const pdfData = await pdfParse(req.file.buffer);
+    const texto = pdfData.text.trim().slice(0, 15000);
+    if (!texto) return res.status(400).json({ erro: 'Não foi possível extrair texto do PDF' });
+    await db.query(
+      `UPDATE analises_edson SET arquivo_complementar_texto = $2, atualizado_em = NOW() WHERE id = $1`,
+      [analise_id, texto],
+    );
+    reanalisarComSuplementos(parseInt(analise_id, 10)).catch(console.error);
+    return res.json({ mensagem: 'Documento recebido. Edson vai reanalisar.' });
+  } catch (e) {
+    console.error('[Edson] uploadComplementar:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
 module.exports = {
   listar, disparar, avulso, obter, obterPorId,
   chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
   planilha, relatorio, relatorioSimples, uploadPDF, uploadPDFAvulso, upload,
+  uploadImagemMulter, uploadImagemPNCP, uploadComplementar,
   vincularCliente, descartarAnalise,
   relatorioSimplesAvulso, planilhaAvulso, relatorioAvulso,
 };

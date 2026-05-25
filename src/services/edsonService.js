@@ -284,11 +284,14 @@ Responda APENAS com o JSON, nenhum texto adicional.`;
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
-async function callClaude(prompt, maxTokens = 4096) {
+async function callClaude(prompt, maxTokens = 4096, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
+  const content = extraContent.length > 0
+    ? [{ type: 'text', text: prompt }, ...extraContent]
+    : prompt;
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] },
+    { model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
     {
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
@@ -487,6 +490,103 @@ async function gerarPerguntasProativas(analiseId) {
   );
 }
 
+// ── Reanálise com suplementos (imagem PNCP + arquivo complementar) ────────────
+
+function buildPromptReanalise(analise, complementarNote) {
+  const palavrasChave = Array.isArray(analise.palavras_chave)
+    ? analise.palavras_chave.join(', ')
+    : analise.palavras_chave || '—';
+
+  return `Você é o Edson, assistente especialista em licitações públicas brasileiras do ConlicitHub.
+
+REGRA ABSOLUTA: Nunca invente, assuma ou deduza informações não explicitamente presentes nos documentos fornecidos.
+
+Você recebeu informações complementares para uma licitação. Refaça a análise completa incorporando todos os dados disponíveis. Responda APENAS com um JSON válido com exatamente esta estrutura:
+
+{
+  "criterios_score": {
+    "alinhamento_objeto": <0-25>,
+    "complexidade_habilitacao": <0-20>,
+    "valor_viabilidade": <0-20>,
+    "modo_disputa": <0-15>,
+    "risco_juridico": <0-10>,
+    "prazo_adequado": <0-10>
+  },
+  "score_justificativa": "<2-3 frases>",
+  "resumo_executivo": "<3-4 frases>",
+  "modalidade": "<str>", "modo_disputa": "<str>", "tipo_julgamento": "<str>",
+  "itens": [ { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> } ],
+  "habilitacao": [ { "categoria": "<str>", "documentos": [ { "nome": "<str>", "obrigatorio": <bool> } ] } ],
+  "riscos": [ { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" } ],
+  "checklist": { "antes": ["<str>"], "durante": ["<str>"] },
+  "tipo_fornecimento": "<produto|servico>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<string ou null>",
+  "prazo_entrega": "<string ou null>",
+  "habilitacao_juridica": ["<doc 1>"],
+  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
+  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
+}
+
+${RUBRICA_INSTRUCAO}
+
+DADOS DO PREGÃO:
+- Número/Ref: ${analise.numero || analise.referencia || '—'}
+- Órgão: ${analise.orgao || '—'}
+- Objeto: ${analise.objeto || '—'}
+- Valor estimado: ${analise.valor_estimado ? `R$ ${analise.valor_estimado}` : '—'}
+- Cliente: ${analise.cliente_nome || '—'} (${analise.uf || '—'})
+- Palavras-chave: ${palavrasChave}
+${complementarNote}
+
+Responda APENAS com o JSON, nenhum texto adicional.`;
+}
+
+async function reanalisarComSuplementos(analiseId) {
+  try {
+    const { rows: [analise] } = await db.query(
+      `SELECT ae.*,
+              p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_hora_abertura,
+              c.nome AS cliente_nome, c.uf, c.palavras_chave
+       FROM analises_edson ae
+       LEFT JOIN pregoes p ON p.id = ae.pregao_id
+       LEFT JOIN clientes c ON c.id = CASE WHEN ae.pregao_id IS NOT NULL THEN p.cliente_id ELSE ae.cliente_id END
+       WHERE ae.id = $1`,
+      [analiseId],
+    );
+    if (!analise) throw new Error('Análise não encontrada');
+
+    await db.query(
+      `UPDATE analises_edson SET status = 'processando', atualizado_em = NOW() WHERE id = $1`,
+      [analiseId],
+    );
+
+    const complementarNote = analise.arquivo_complementar_texto
+      ? `\nDOCUMENTO COMPLEMENTAR (Termo de Referência / Anexo de Itens):\n${analise.arquivo_complementar_texto.slice(0, 8000)}\nUse as informações acima para complementar a análise, especialmente a lista de itens.`
+      : '';
+
+    const extraContent = [];
+    if (analise.imagem_pncp_base64) {
+      const mediaType = analise.imagem_pncp_base64.startsWith('data:image/png') ? 'image/png'
+                      : analise.imagem_pncp_base64.startsWith('data:image/webp') ? 'image/webp'
+                      : 'image/jpeg';
+      const data = analise.imagem_pncp_base64.replace(/^data:[^;]+;base64,/, '');
+      extraContent.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data } });
+      extraContent.push({ type: 'text', text: 'A imagem acima contém informações do PNCP sobre este edital (valor estimado, itens, etc). Use essas informações para complementar a análise.' });
+    }
+
+    const prompt = buildPromptReanalise(analise, complementarNote);
+    const raw = await callClaude(prompt, 4096, extraContent);
+    const { parsed, criterios, score } = parsearRespostaEdson(raw);
+    await salvarAnalise(analiseId, parsed, criterios, score);
+    gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
+  } catch (e) {
+    console.error('[Edson] reanalisarComSuplementos:', e.message);
+    await salvarErro(analiseId, e.message);
+  }
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 async function chamarClaude(systemPrompt, messages) {
@@ -506,4 +606,4 @@ async function chamarClaude(systemPrompt, messages) {
   return data.content[0].text;
 }
 
-module.exports = { analisarPregao, analisarPDF, analisarAvulso, chamarClaude };
+module.exports = { analisarPregao, analisarPDF, analisarAvulso, reanalisarComSuplementos, chamarClaude };
