@@ -269,6 +269,16 @@ async function executarMigracoes() {
     END $$
   `);
 
+  // Resumo de oportunidade — campos extraídos do edital pelo Edson
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS tipo_fornecimento      VARCHAR(20)`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS entrega_tipo           VARCHAR(20)`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS julgamento_tipo        VARCHAR(20)`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS locais_entrega         TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazo_entrega          TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_juridica_json JSONB`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_economica_json JSONB`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS capacidade_tecnica_json   JSONB`);
+
   console.log('Migrações executadas com sucesso');
 }
 

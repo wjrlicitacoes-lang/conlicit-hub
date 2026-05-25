@@ -137,7 +137,15 @@ Analise o pregão abaixo e responda APENAS com um JSON válido (sem markdown, se
   "checklist": {
     "antes": ["<str>", ...],
     "durante": ["<str>", ...]
-  }
+  },
+  "tipo_fornecimento": "<produto|servico>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<string com locais ou null>",
+  "prazo_entrega": "<string com prazo ou null>",
+  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
+  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
+  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
 }
 
 ${RUBRICA_INSTRUCAO}
@@ -189,7 +197,15 @@ Analise o edital abaixo (extraído de PDF) e responda APENAS com um JSON válido
   "itens": [ { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> } ],
   "habilitacao": [ { "categoria": "<str>", "documentos": [ { "nome": "<str>", "obrigatorio": <bool> } ] } ],
   "riscos": [ { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" } ],
-  "checklist": { "antes": ["<str>"], "durante": ["<str>"] }
+  "checklist": { "antes": ["<str>"], "durante": ["<str>"] },
+  "tipo_fornecimento": "<produto|servico>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<string com locais ou null>",
+  "prazo_entrega": "<string com prazo ou null>",
+  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
+  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
+  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
 }
 
 ${RUBRICA_INSTRUCAO}
@@ -244,7 +260,15 @@ Analise a licitação abaixo e responda APENAS com um JSON válido com exatament
   "itens": [ { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> } ],
   "habilitacao": [ { "categoria": "<str>", "documentos": [ { "nome": "<str>", "obrigatorio": <bool> } ] } ],
   "riscos": [ { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" } ],
-  "checklist": { "antes": ["<str>"], "durante": ["<str>"] }
+  "checklist": { "antes": ["<str>"], "durante": ["<str>"] },
+  "tipo_fornecimento": "<produto|servico>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<string com locais ou null>",
+  "prazo_entrega": "<string com prazo ou null>",
+  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
+  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
+  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
 }
 
 ${RUBRICA_INSTRUCAO}
@@ -306,7 +330,11 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
        score = $2, score_justificativa = $3, resumo_executivo = $4,
        modalidade = $5, modo_disputa = $6, tipo_julgamento = $7,
        itens = $8, habilitacao = $9, riscos = $10, checklist = $11,
-       criterios_score = $12, atualizado_em = NOW()
+       criterios_score = $12,
+       tipo_fornecimento = $13, entrega_tipo = $14, julgamento_tipo = $15,
+       locais_entrega = $16, prazo_entrega = $17,
+       habilitacao_juridica_json = $18, habilitacao_economica_json = $19, capacidade_tecnica_json = $20,
+       atualizado_em = NOW()
      WHERE id = $1`,
     [
       analiseId, score,
@@ -320,6 +348,14 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
       JSON.stringify(parsed.riscos ?? []),
       JSON.stringify(parsed.checklist ?? { antes: [], durante: [] }),
       JSON.stringify(criterios),
+      parsed.tipo_fornecimento ?? null,
+      parsed.entrega_tipo ?? null,
+      parsed.julgamento_tipo ?? null,
+      parsed.locais_entrega ?? null,
+      parsed.prazo_entrega ?? null,
+      JSON.stringify(parsed.habilitacao_juridica ?? []),
+      JSON.stringify(parsed.habilitacao_economica ?? {}),
+      JSON.stringify(parsed.capacidade_tecnica ?? {}),
     ],
   );
 }

@@ -3,7 +3,7 @@ const db = require('../database/db');
 const { analisarPregao, analisarPDF, analisarAvulso, chamarClaude } = require('../services/edsonService');
 const { gerarPlanilhaXLSX }       = require('../services/planilhaService');
 const { gerarRelatorioPDF }        = require('../services/relatorioService');
-const { gerarRelatorioSimplesPDF } = require('../services/relatorioSimplesService');
+const { gerarHTMLResumo } = require('../services/relatorioSimplesService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -432,7 +432,7 @@ async function relatorioSimples(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.link_pncp,
               p.data_abertura, p.data_hora_abertura, p.portal_disputa,
               c.nome AS cliente_nome, c.uf
        FROM analises_edson a
@@ -443,11 +443,9 @@ async function relatorioSimples(req, res) {
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
 
-    const buffer = await gerarRelatorioSimplesPDF({ analise, pregao: analise });
-    const safeName = (analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="reuniao-${safeName}.pdf"`);
-    return res.send(buffer);
+    const html = gerarHTMLResumo(analise);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
   } catch (e) {
     console.error('[Edson] relatorioSimples:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -460,7 +458,7 @@ async function relatorioSimplesAvulso(req, res) {
   const { analise_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado,
+      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.link_pncp,
               p.data_abertura, p.data_hora_abertura, p.portal_disputa,
               c.nome AS cliente_nome, c.uf
        FROM analises_edson a
@@ -471,11 +469,9 @@ async function relatorioSimplesAvulso(req, res) {
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
 
-    const buffer = await gerarRelatorioSimplesPDF({ analise, pregao: analise });
-    const safeName = (analise.numero || analise.referencia || analise_id).replace(/[^a-z0-9]/gi, '-');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="reuniao-${safeName}.pdf"`);
-    return res.send(buffer);
+    const html = gerarHTMLResumo(analise);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
   } catch (e) {
     console.error('[Edson] relatorioSimplesAvulso:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });

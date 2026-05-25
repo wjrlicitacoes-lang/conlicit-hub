@@ -5135,13 +5135,11 @@
         : `${API}/edson/analise/${analiseId}/relatorio-simples`;
       const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) { mostrarToast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `reuniao-${pregaoId || analiseId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch (e) { mostrarToast('Erro ao baixar relatório: ' + e.message, 'error'); }
+      const html = await r.text();
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(html); w.document.close(); }
+      else { mostrarToast('Permita pop-ups para abrir o relatório.', 'error'); }
+    } catch (e) { mostrarToast('Erro ao abrir relatório: ' + e.message, 'error'); }
   }
 
   async function baixarPlanilhaAvulso(analiseId) {
