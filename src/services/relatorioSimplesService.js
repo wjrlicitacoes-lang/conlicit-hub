@@ -1,5 +1,20 @@
 // Gerador HTML — Resumo de Oportunidade (para reunião de vendas)
 
+const fs   = require('fs');
+const path = require('path');
+
+let LOGO_BASE64 = '';
+try {
+  const logoPath = path.join(__dirname, '../../public/assets/images/logo-branco.png');
+  LOGO_BASE64 = 'data:image/png;base64,' + fs.readFileSync(logoPath).toString('base64');
+} catch (e) {
+  console.error('[relatorioSimples] Logo não encontrado:', e.message);
+}
+
+const LOGO_HTML = LOGO_BASE64
+  ? `<img src="${LOGO_BASE64}" alt="Conlicit" style="height:28px;object-fit:contain;display:block">`
+  : `<span style="font-size:20px;font-weight:900;color:white;letter-spacing:-.5px">7<span style="color:#4CC5D7">C</span> conlicit</span>`;
+
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -134,8 +149,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Barlow', 'Segoe UI', san
 
 .header { background:#182A39; padding:20px 28px 16px; }
 .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
-.logo { font-size:20px; font-weight:900; color:white; letter-spacing:-.5px; }
-.logo span { color:#4CC5D7; }
+.logo { display:flex; align-items:center; }
 .header-label { font-size:8px; font-weight:700; color:#4CC5D7; letter-spacing:1.5px; text-transform:uppercase; text-align:right; }
 .header-sub { font-size:9px; color:rgba(255,255,255,.55); margin-top:3px; text-align:right; }
 .header-line { height:2px; background:#4CC5D7; margin-top:14px; border-radius:1px; }
@@ -221,7 +235,7 @@ a:hover { text-decoration:underline; }
 
   <div class="header">
     <div class="header-top">
-      <div class="logo">7<span>C</span> conlicit</div>
+      <div class="logo">${LOGO_HTML}</div>
       <div>
         <div class="header-label">Resumo de Oportunidade</div>
         <div class="header-sub">${esc(numero)} · ${esc(hoje)}</div>
