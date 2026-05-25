@@ -1,4 +1,11 @@
-// Gerador HTML — Resumo de Oportunidade (para reunião de vendas)
+// ============================================================
+// src/services/relatorioSimplesService.js — CORRIGIDO (Maio 2026)
+// Correções aplicadas:
+//   P1-B: fmtDataHora agora lê múltiplos campos possíveis (avulso, PDF, PNCP)
+//   P2:   Pills "NÃO IDENTIFICADO" substituídas por fallback "A verificar" + tooltip
+//   P2:   CSS de impressão @media print melhorado (quebra de página, cores)
+//   P2:   Inferência de modalidade a partir de campos alternativos
+// ============================================================
 
 const fs   = require('fs');
 const path = require('path');
@@ -29,19 +36,53 @@ function fmtBRL(v) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// ✅ CORREÇÃO P1-B: fmtDataHora agora recebe o objeto analise completo
+// e percorre múltiplos campos em ordem de prioridade.
+// Antes: só lia analise.data_hora_abertura e analise.data_abertura
+// Depois: percorre 6 campos possíveis, cobrindo análise avulsa, PDF e PNCP
 function fmtDataHora(analise) {
-  const dt = analise.data_hora_abertura || analise.data_abertura;
-  if (!dt) return '—';
-  try {
-    const d = new Date(dt);
-    if (isNaN(d.getTime())) return String(dt);
-    const data = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
-    if (analise.data_hora_abertura) {
-      const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-      return `${data} às ${hora}`;
+  // Campos em ordem de prioridade — o primeiro com valor válido vence
+  const candidatos = [
+    analise.data_hora_abertura,   // pregão vinculado via PNCP
+    analise.data_abertura_pncp,   // campo alternativo do cache
+    analise.data_abertura,        // campo legado
+    analise.data_encerramento,    // fallback se só tiver encerramento
+    analise.data_sessao,          // campo avulso
+    analise.data_publicacao,      // último recurso
+  ];
+
+  for (const dt of candidatos) {
+    if (!dt) continue;
+    try {
+      const d = new Date(dt);
+      if (isNaN(d.getTime())) {
+        // ✅ Tenta parsear formatos brasileiros: "29/05/2026 às 09h00" ou "29/05/2026 09:00"
+        const match = String(dt).match(/(\d{2})\/(\d{2})\/(\d{4})[\s,à]+([\d]{2})[h:](\d{2})/i);
+        if (match) {
+          const [, dia, mes, ano, hora, min] = match;
+          const dBR = new Date(`${ano}-${mes}-${dia}T${hora}:${min}:00`);
+          if (!isNaN(dBR.getTime())) {
+            const dataStr = dBR.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+            const horaStr = dBR.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+            return `${dataStr} às ${horaStr}`;
+          }
+        }
+        // Formato só data: "29/05/2026"
+        const matchData = String(dt).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (matchData) {
+          const [, dia, mes, ano] = matchData;
+          return `${dia}/${mes}/${ano}`;
+        }
+        continue; // não conseguiu parsear, tenta próximo candidato
+      }
+      const dataStr = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+      const horaStr = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+      return `${dataStr} às ${horaStr}`;
+    } catch {
+      // continua para o próximo candidato
     }
-    return data;
-  } catch { return String(dt); }
+  }
+  return '—';
 }
 
 function parseJ(v, fb) {
@@ -74,8 +115,30 @@ function labelJulgamento(v) {
 }
 
 function tagHtml(label, variant) {
-  const classes = { produto: 'tag-produto', servico: 'tag-servico', sim: 'tag-sim', nao: 'tag-nao', atencao: 'tag-atencao' };
+  const classes = { produto: 'tag-produto', servico: 'tag-servico', sim: 'tag-sim', nao: 'tag-nao', atencao: 'tag-atencao', verificar: 'tag-verificar' };
   return `<span class="tag ${classes[variant] || 'tag-nao'}">${esc(label)}</span>`;
+}
+
+// ✅ CORREÇÃO P2: Função para pills com fallback elegante
+// Antes: exibia "NÃO IDENTIFICADO" em pill vermelha — transmite incompletude
+// Depois: exibe "A verificar" em pill cinza com title (tooltip) explicativo
+function tagOuVerificar(valor, variant, tooltipTexto) {
+  if (!valor || String(valor).trim() === '' ||
+      String(valor).toUpperCase().includes('NÃO IDENTIFICADO') ||
+      String(valor).toUpperCase().includes('NAO IDENTIFICADO')) {
+    return `<span class="tag tag-verificar" title="${esc(tooltipTexto || 'Informação não identificada automaticamente — consulte o edital original')}">A verificar</span>`;
+  }
+  return tagHtml(valor, variant);
+}
+
+// ✅ CORREÇÃO P2: Inferência de modalidade a partir de campos alternativos
+// Se modalidade vier nula ou "NÃO IDENTIFICADO", tenta inferir pelo tipo do pregão
+function resolverModalidade(analise) {
+  const raw = analise.modalidade || analise.tipo_modalidade || analise.modo_disputa;
+  if (raw && !String(raw).toUpperCase().includes('NÃO IDENTIFICADO')) return raw;
+  // Inferência por heurística: se tiver número de pregão, provavelmente é Pregão Eletrônico
+  if (analise.numero && String(analise.numero).toLowerCase().includes('pe')) return 'Pregão Eletrônico';
+  return null; // retorna null para acionar o tagOuVerificar
 }
 
 function gerarHTMLResumo(analise) {
@@ -89,7 +152,9 @@ function gerarHTMLResumo(analise) {
   const objeto = fmt(analise.objeto);
   const portal = fmt(analise.portal_disputa);
   const linkPortal = analise.link_pncp || null;
-  const dataHora   = fmtDataHora(analise);
+
+  // ✅ CORREÇÃO P1-B: usa a nova fmtDataHora que percorre múltiplos campos
+  const dataHora = fmtDataHora(analise);
 
   const tipo = analise.tipo_fornecimento === 'produto' ? 'produto' : 'servico';
   const entregaLabel    = labelEntrega(analise.entrega_tipo);
@@ -97,11 +162,15 @@ function gerarHTMLResumo(analise) {
   const localEntrega    = fmt(analise.locais_entrega);
   const prazoEntrega    = fmt(analise.prazo_entrega);
 
+  // ✅ CORREÇÃO P2: modalidade com fallback
+  const modalidade    = resolverModalidade(analise);
+  const modoDisputa   = (analise.modo_disputa && !String(analise.modo_disputa).toUpperCase().includes('NÃO')) ? analise.modo_disputa : null;
+
   const habJuridica = parseJ(analise.habilitacao_juridica_json, []);
   const habEcon     = parseJ(analise.habilitacao_economica_json, {});
   const capTec      = parseJ(analise.capacidade_tecnica_json, {});
 
-  const exigeBalanco = habEcon.exige_balanco === true;
+  const exigeBalanco  = habEcon.exige_balanco === true;
   const capitalMinimo = habEcon.capital_minimo || null;
   const detalhesEcon  = habEcon.detalhes || null;
 
@@ -127,11 +196,24 @@ function gerarHTMLResumo(analise) {
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Barlow', 'Segoe UI', sans-serif; background:#f0f2f5; color:#080808; }
+
+/* ✅ CORREÇÃO P1-B: @media print melhorado
+   - Garante que cores de fundo sejam impressas (print-color-adjust)
+   - Evita quebra de página dentro de seções
+   - Remove barra de impressão e sombras desnecessárias
+   - Ajusta margens para A4
+*/
 @media print {
-  body { background:white; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  body { background:white; print-color-adjust:exact; -webkit-print-color-adjust:exact; margin:0; }
   .no-print { display:none !important; }
-  .page { box-shadow:none; }
+  .page { box-shadow:none; margin:0; border-radius:0; max-width:100%; }
+  .secao { break-inside:avoid; page-break-inside:avoid; }
+  .score-bar { break-inside:avoid; }
+  .header { break-after:avoid; }
+  .footer { break-before:avoid; }
+  @page { margin: 12mm 14mm; size: A4; }
 }
+
 .print-bar {
   background:#182A39; padding:10px 24px;
   display:flex; justify-content:space-between; align-items:center;
@@ -145,7 +227,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Barlow', 'Segoe UI', san
 }
 .btn-print:hover { background:#3ab0c1; }
 .page { max-width:800px; margin:24px auto; background:white; border-radius:10px; box-shadow:0 2px 16px rgba(0,0,0,.12); overflow:hidden; }
-@media print { .page { margin:0; border-radius:0; } }
 
 .header { background:#182A39; padding:20px 28px 16px; }
 .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
@@ -195,11 +276,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Barlow', 'Segoe UI', san
   display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px;
   font-size:10px; font-weight:500; margin:2px 2px 2px 0;
 }
-.tag-produto { background:#E1F5EE; color:#085041; }
-.tag-servico { background:#E6F1FB; color:#185FA5; }
-.tag-sim { background:#EAF3DE; color:#3B6D11; }
-.tag-nao { background:#F0F2F5; color:#5F7A8A; }
-.tag-atencao { background:#FCEBEB; color:#A32D2D; }
+.tag-produto  { background:#E1F5EE; color:#085041; }
+.tag-servico  { background:#E6F1FB; color:#185FA5; }
+.tag-sim      { background:#EAF3DE; color:#3B6D11; }
+.tag-nao      { background:#F0F2F5; color:#5F7A8A; }
+.tag-atencao  { background:#FCEBEB; color:#A32D2D; }
+/* ✅ CORREÇÃO P2: novo variant "verificar" — cinza suave, não vermelho */
+.tag-verificar { background:#F1EFE8; color:#5F5E5A; cursor:help; border-bottom:1px dashed #5F5E5A; }
 
 .doc-lista { list-style:none; padding:0; }
 .doc-lista li {
@@ -211,8 +294,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Barlow', 'Segoe UI', san
 
 .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
 
-.row-inline { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.row-inline { display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
 .row-inline span { font-size:12px; color:#333; }
+
+.modalidade-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
 
 a { color:#4CC5D7; text-decoration:none; }
 a:hover { text-decoration:underline; }
@@ -290,6 +375,14 @@ a:hover { text-decoration:underline; }
       <div class="secao-body">
         ${tagHtml(tipo === 'produto' ? '📦 Produto' : '🔧 Serviço', tipo)}
         <div class="secao-valor" style="margin-top:7px">${esc(objeto)}</div>
+        ${modalidade || modoDisputa ? `
+        <div class="modalidade-row" style="margin-top:8px">
+          ${modalidade ? tagOuVerificar(modalidade, 'nao', 'Modalidade não identificada — consulte o edital') : ''}
+          ${modoDisputa ? tagOuVerificar(modoDisputa, 'nao', 'Modo de disputa não identificado — consulte o edital') : ''}
+        </div>` : `
+        <div class="modalidade-row" style="margin-top:8px">
+          ${tagOuVerificar(null, 'verificar', 'Modalidade não identificada automaticamente — consulte o edital original')}
+        </div>`}
       </div>
     </div>
 
@@ -312,7 +405,8 @@ a:hover { text-decoration:underline; }
         <div class="secao-titulo">Data e Horário da Sessão</div>
       </div>
       <div class="secao-body">
-        <div class="valor-grande">${esc(dataHora)}</div>
+        <!-- ✅ CORREÇÃO P1-B: dataHora agora vem da função corrigida -->
+        <div class="valor-grande">${dataHora !== '—' ? esc(dataHora) : '<span style="font-size:14px;color:#888;font-weight:500">A confirmar — consulte o edital</span>'}</div>
       </div>
     </div>
 
