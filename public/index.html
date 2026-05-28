@@ -1112,6 +1112,86 @@
       .search-grid, .form-row, .form-row-3 { grid-template-columns: 1fr; }
       .metrics-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ── PROPOSTA COMERCIAL ─────────────────────────────────────── */
+    #section-proposta { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+    #section-proposta .proposta-header { padding:1.5rem clamp(1.25rem,3vw,2.5rem) 1rem; border-bottom:1px solid var(--border-l,#e8ecef); display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+    #section-proposta .proposta-header h1 { font-size:1.4rem; font-weight:700; color:var(--t1,#fff); }
+    #section-proposta .proposta-header-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    #section-proposta .proposta-layout { display:grid; grid-template-columns:380px 1fr; height:calc(100vh - 115px); }
+    #section-proposta .panel-form { background:#fff; border-right:1px solid var(--pv-border); overflow-y:auto; padding:24px; }
+    #section-proposta .panel-preview { background:#eaecef; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:32px 24px; gap:16px; }
+    #section-proposta .p-section-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:12px; margin-top:24px; display:flex; align-items:center; gap:6px; }
+    #section-proposta .p-section-label:first-child { margin-top:0; }
+    #section-proposta .p-section-label::after { content:''; flex:1; height:1px; background:var(--pv-border); }
+    #section-proposta .p-field { margin-bottom:12px; }
+    #section-proposta .p-field label { display:block; font-size:11px; font-weight:500; color:#6b7a88; margin-bottom:4px; letter-spacing:.02em; }
+    #section-proposta .p-field input, #section-proposta .p-field textarea { width:100%; font-family:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--pv-border); border-radius:var(--pv-radius); background:#fafbfc; color:#080808; transition:border-color .15s; outline:none; }
+    #section-proposta .p-field input:focus, #section-proposta .p-field textarea:focus { border-color:var(--pv-teal); background:#fff; }
+    #section-proposta .p-field textarea { resize:vertical; min-height:60px; line-height:1.5; }
+    #section-proposta .p-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    #section-proposta .p-check-item { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:var(--pv-radius); background:#f7f9fa; border:1px solid var(--pv-border); margin-bottom:6px; cursor:pointer; }
+    #section-proposta .p-check-item input[type="checkbox"] { width:14px; height:14px; flex-shrink:0; accent-color:var(--pv-teal); margin-top:1px; }
+    #section-proposta .p-check-item label { font-size:12px; color:#080808; cursor:pointer; margin:0; font-weight:400; }
+    #section-proposta .p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
+    #section-proposta .p-frente-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
+    #section-proposta .p-frente-num { width:20px; height:20px; border-radius:4px; background:var(--pv-navy); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    #section-proposta .p-frente-name { font-size:11px; font-weight:600; color:var(--pv-navy); }
+    #section-proposta .p-frente-block textarea { width:100%; border:none; padding:8px 12px; font-size:12px; min-height:52px; background:#fff; color:#080808; font-family:inherit; resize:vertical; outline:none; line-height:1.5; }
+    /* Preview pages */
+    #section-proposta .preview-page { background:#fff; width:595px; min-height:842px; padding:40px 44px 36px; position:relative; font-family:'Inter',sans-serif; color:#080808; font-size:10px; line-height:1.5; box-shadow:0 2px 12px rgba(0,0,0,.12); }
+    #section-proposta .preview-page::before { content:''; position:absolute; bottom:-40px; right:-60px; width:480px; height:480px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='%234CC5D7' opacity='0.12'%3E%3Crect x='80' y='40' width='240' height='44' rx='12'/%3E%3Crect x='80' y='40' width='44' height='280' rx='12'/%3E%3Cpath d='M210 84 A136 136 0 0 1 346 220 L346 268 A88 88 0 0 0 210 132 Z'/%3E%3Cpath d='M210 132 A88 88 0 0 1 298 220 L298 268 A40 40 0 0 0 210 180 Z'/%3E%3Crect x='80' y='276' width='240' height='44' rx='12'/%3E%3C/g%3E%3C/svg%3E"); background-size:contain; background-repeat:no-repeat; background-position:center; pointer-events:none; z-index:0; }
+    #section-proposta .preview-page > * { position:relative; z-index:1; }
+    #section-proposta .pv-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e8ecef; }
+    #section-proposta .pv-logo { height:18px; }
+    #section-proposta .pv-num { text-align:right; font-size:8px; letter-spacing:.08em; color:#888; line-height:1.8; }
+    #section-proposta .pv-tag { display:inline-flex; align-items:center; gap:6px; font-size:8px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:10px; }
+    #section-proposta .pv-tag::before { content:''; width:16px; height:2px; background:var(--pv-teal); }
+    #section-proposta .pv-title { font-size:22px; font-weight:700; color:var(--pv-navy); line-height:1.15; margin-bottom:18px; letter-spacing:-.3px; }
+    #section-proposta .pv-meta { display:grid; grid-template-columns:1fr 1fr 1fr; border-top:1px solid #e8ecef; border-bottom:1px solid #e8ecef; padding:10px 0; margin-bottom:16px; }
+    #section-proposta .pv-meta-item .ml { font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:#aaa; margin-bottom:2px; }
+    #section-proposta .pv-meta-item .mv { font-size:10px; font-weight:600; color:var(--pv-navy); }
+    #section-proposta .pv-intro { font-size:9.5px; color:#444; line-height:1.65; margin-bottom:18px; }
+    #section-proposta .pv-pricing { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+    #section-proposta .pv-card-dark { background:var(--pv-navy); border-radius:10px; padding:14px 16px; color:#fff; position:relative; overflow:hidden; }
+    #section-proposta .pv-card-dark::after { content:''; position:absolute; right:-20px; bottom:-20px; width:80px; height:80px; border-radius:50%; border:12px solid rgba(76,197,215,0.12); }
+    #section-proposta .pv-card-light { background:#eef8fa; border-radius:10px; padding:14px 16px; border:1px solid rgba(76,197,215,.3); }
+    #section-proposta .pv-card-label { font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:6px; }
+    #section-proposta .pv-price { font-size:24px; font-weight:700; color:#fff; line-height:1; }
+    #section-proposta .pv-price-unit { font-size:12px; font-weight:400; }
+    #section-proposta .pv-price-sub { font-size:8px; color:rgba(255,255,255,.55); margin-top:6px; line-height:1.5; }
+    #section-proposta .pv-comissao { font-size:22px; font-weight:700; color:var(--pv-navy); line-height:1; }
+    #section-proposta .pv-comissao-unit { font-size:11px; font-weight:400; color:#555; }
+    #section-proposta .pv-comissao-sub { font-size:8px; color:#666; margin-top:6px; line-height:1.5; }
+    #section-proposta .pv-incluso-title { font-size:11px; font-weight:700; color:var(--pv-navy); margin-bottom:10px; }
+    #section-proposta .pv-incluso-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; margin-bottom:20px; }
+    #section-proposta .pv-incluso-item { display:flex; align-items:flex-start; gap:5px; font-size:8.5px; color:#444; }
+    #section-proposta .pv-dot { width:5px; height:5px; border-radius:50%; background:var(--pv-teal); flex-shrink:0; margin-top:2px; }
+    #section-proposta .pv-footer { position:absolute; bottom:24px; left:44px; right:44px; border-top:1px solid #e8ecef; padding-top:8px; font-size:7.5px; color:#aaa; letter-spacing:.04em; display:flex; justify-content:space-between; }
+    #section-proposta .pv-section-tag { font-size:7px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--pv-teal); border-left:2px solid var(--pv-teal); padding-left:6px; margin-bottom:6px; }
+    #section-proposta .pv-section-title { font-size:16px; font-weight:700; color:var(--pv-navy); margin-bottom:18px; }
+    #section-proposta .pv-frente { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:10px 0; border-bottom:1px solid #f0f0f0; }
+    #section-proposta .pv-frente:last-of-type { border-bottom:none; }
+    #section-proposta .pv-frente-num { width:24px; height:24px; background:var(--pv-navy); border-radius:5px; color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    #section-proposta .pv-frente-label { font-size:7px; letter-spacing:.08em; text-transform:uppercase; color:#aaa; }
+    #section-proposta .pv-frente-name { font-size:9.5px; font-weight:700; color:var(--pv-navy); margin-bottom:2px; }
+    #section-proposta .pv-frente-desc { font-size:8.5px; color:#666; line-height:1.5; }
+    #section-proposta .pv-cond { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px; }
+    #section-proposta .pv-cond-item { background:#f4f6f8; border-radius:6px; padding:8px 10px; }
+    #section-proposta .pv-cond-label { font-size:6.5px; letter-spacing:.1em; text-transform:uppercase; color:#aaa; margin-bottom:3px; }
+    #section-proposta .pv-cond-val { font-size:8.5px; font-weight:600; color:var(--pv-navy); line-height:1.3; }
+    #section-proposta .pv-closing { margin-top:14px; font-size:8.5px; color:#555; line-height:1.6; border-top:1px solid #e8ecef; padding-top:12px; display:grid; grid-template-columns:1fr auto; gap:24px; }
+    #section-proposta .pv-closing-brand { font-size:9px; font-weight:700; color:var(--pv-navy); }
+    #section-proposta .pv-closing-email { font-size:8px; color:var(--pv-teal); }
+    /* Historico de propostas */
+    #proposta-historico { padding:1.5rem clamp(1.25rem,3vw,2.5rem); }
+    /* Print */
+    @media print {
+      .sidebar, .topbar, #section-proposta .proposta-header, #section-proposta .panel-form, #proposta-historico { display:none !important; }
+      #section-proposta .proposta-layout { grid-template-columns:1fr; height:auto; }
+      #section-proposta .panel-preview { background:#fff; overflow:visible; padding:0; }
+      .preview-page { box-shadow:none; page-break-after:always; }
+    }
   </style>
 </head>
 <body>
@@ -1216,6 +1296,10 @@
         <button class="nav-item" data-nav="prospects" onclick="navTo('prospects')" id="nav-prospects" hidden>
           <span class="nav-icon">🎯</span>
           <span class="nav-label">Prospects</span>
+        </button>
+        <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
+          <span class="nav-icon">📄</span>
+          <span class="nav-label">Proposta Comercial</span>
         </button>
         <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
           <span class="nav-icon">🔑</span>
@@ -1523,6 +1607,177 @@
           </div>
         </div>
         <div id="prospects-area">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
+      <!-- ── PROPOSTA COMERCIAL ── -->
+      <section id="section-proposta" class="section">
+        <div class="proposta-header">
+          <h1>Proposta Comercial</h1>
+          <div class="proposta-header-actions">
+            <button class="btn btn-primary btn-sm" id="btn-nova-proposta" onclick="propostaNova()">+ Nova Proposta</button>
+            <button class="btn btn-ghost btn-sm" id="btn-proposta-exportar" style="display:none" onclick="propostaExportarHTML()">↗ Exportar HTML</button>
+            <button class="btn btn-ghost btn-sm" id="btn-proposta-imprimir" style="display:none" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-ghost btn-sm" id="btn-proposta-salvar" style="display:none" onclick="propostaSalvar()">💾 Salvar</button>
+            <button class="btn btn-ghost btn-sm" id="btn-proposta-voltar" style="display:none" onclick="propostaVoltar()">← Histórico</button>
+          </div>
+        </div>
+
+        <!-- Editor: form + preview -->
+        <div class="proposta-layout" id="proposta-editor" style="display:none">
+          <!-- PAINEL DE FORMULÁRIO -->
+          <div class="panel-form">
+            <div class="p-section-label">Identificação</div>
+            <div class="p-row2">
+              <div class="p-field">
+                <label>Número da proposta</label>
+                <input type="text" id="pf_num" value="037 / 2026" oninput="propostaUpdate()">
+              </div>
+              <div class="p-field">
+                <label>Data</label>
+                <input type="date" id="pf_data" oninput="propostaUpdate()">
+              </div>
+            </div>
+
+            <div class="p-section-label">Cliente</div>
+            <div class="p-field">
+              <label>Razão social / Nome fantasia</label>
+              <input type="text" id="pf_cliente" placeholder="Ex: Distribuidora Silva Ltda." oninput="propostaUpdate()">
+            </div>
+            <div class="p-row2">
+              <div class="p-field">
+                <label>A/C (contato)</label>
+                <input type="text" id="pf_ac" placeholder="Diretoria Comercial" oninput="propostaUpdate()">
+              </div>
+              <div class="p-field">
+                <label>Referência</label>
+                <input type="text" id="pf_ref" placeholder="Reunião 26.05.2026" oninput="propostaUpdate()">
+              </div>
+            </div>
+
+            <div class="p-section-label">Valores</div>
+            <div class="p-row2">
+              <div class="p-field">
+                <label>Mensalidade (R$)</label>
+                <input type="text" id="pf_mensalidade" placeholder="2.500" oninput="propostaUpdate()">
+              </div>
+              <div class="p-field">
+                <label>Comissão de êxito (%)</label>
+                <input type="text" id="pf_comissao" value="5" oninput="propostaUpdate()">
+              </div>
+            </div>
+
+            <div class="p-section-label">Incluso na mensalidade</div>
+            <div id="p-incluso-list"></div>
+            <div class="p-field" style="margin-top:6px">
+              <label>Item adicional (opcional)</label>
+              <input type="text" id="pf_extra" placeholder="Ex: Relatório mensal de performance" oninput="propostaUpdate()">
+            </div>
+
+            <div class="p-section-label">Escopo de serviços</div>
+            <div id="p-frentes-list"></div>
+
+            <div class="p-section-label">Condições gerais</div>
+            <div class="p-row2">
+              <div class="p-field">
+                <label>Vigência</label>
+                <input type="text" id="pf_vigencia" value="12 meses, renovável" oninput="propostaUpdate()">
+              </div>
+              <div class="p-field">
+                <label>Faturamento</label>
+                <input type="text" id="pf_faturamento" value="Mensal, todo dia 5" oninput="propostaUpdate()">
+              </div>
+            </div>
+            <div class="p-row2">
+              <div class="p-field">
+                <label>Reajuste</label>
+                <input type="text" id="pf_reajuste" value="Anual pelo IPCA" oninput="propostaUpdate()">
+              </div>
+              <div class="p-field">
+                <label>Sigilo</label>
+                <input type="text" id="pf_sigilo" value="NDA mútuo desde a assinatura" oninput="propostaUpdate()">
+              </div>
+            </div>
+            <div class="p-field">
+              <label>CNPJ Conlicit</label>
+              <input type="text" id="pf_cnpj" value="54.077.796/0001-00" oninput="propostaUpdate()">
+            </div>
+          </div>
+
+          <!-- PAINEL DE PREVIEW -->
+          <div class="panel-preview" id="p-preview-area">
+            <!-- PÁGINA 1 -->
+            <div class="preview-page" id="p-page1">
+              <div class="pv-header">
+                <img src="/assets/images/logo-branco.png" class="pv-logo" alt="Conlicit" style="filter:invert(1)">
+                <div class="pv-num" id="p-pv_num_1"></div>
+              </div>
+              <div class="pv-tag">PROPOSTA COMERCIAL</div>
+              <div class="pv-title">assessoria<br>estratégica em<br>licitações públicas.</div>
+              <div class="pv-meta">
+                <div class="pv-meta-item">
+                  <div class="ml">APRESENTADA A</div>
+                  <div class="mv" id="p-pv_cliente">—</div>
+                </div>
+                <div class="pv-meta-item">
+                  <div class="ml">A/C</div>
+                  <div class="mv" id="p-pv_ac">—</div>
+                </div>
+                <div class="pv-meta-item">
+                  <div class="ml">REFERÊNCIA</div>
+                  <div class="mv" id="p-pv_ref">—</div>
+                </div>
+              </div>
+              <div class="pv-intro">O Grupo Conlicit atua na ponta operacional e estratégica das licitações públicas brasileiras — da leitura crítica do edital ao recurso administrativo. Esta proposta formaliza um modelo de acompanhamento contínuo, no qual a Conlicit passa a integrar a operação comercial do cliente como braço técnico especializado em compras públicas.</div>
+              <div class="pv-pricing">
+                <div class="pv-card-dark">
+                  <div class="pv-card-label">MENSALIDADE</div>
+                  <div class="pv-price">R$ <span id="p-pv_mens">000</span><span class="pv-price-unit">/mês</span></div>
+                  <div class="pv-price-sub">Inclui o time multidisciplinar, a plataforma Conlicit Hub e a cobertura completa do escopo descrito na página seguinte.</div>
+                </div>
+                <div class="pv-card-light">
+                  <div class="pv-card-label">COMISSÃO DE ÊXITO</div>
+                  <div class="pv-comissao"><span id="p-pv_com">5</span>%<span class="pv-comissao-unit"> sobre o contrato</span></div>
+                  <div class="pv-comissao-sub">Aplicada apenas sobre o valor homologado de pregões e licitações vencidos com nossa assessoria. Sem êxito, sem comissão.</div>
+                </div>
+              </div>
+              <div class="pv-incluso-title">o que está incluso na mensalidade</div>
+              <div class="pv-incluso-grid" id="p-pv_incluso"></div>
+              <div class="pv-footer">
+                <span id="p-pv_footer1"></span>
+                <span>PROPOSTA <span id="p-pv_num_foot1"></span> — PÁG. 1</span>
+              </div>
+            </div>
+
+            <!-- PÁGINA 2 -->
+            <div class="preview-page" id="p-page2">
+              <div class="pv-header">
+                <img src="/assets/images/logo-branco.png" class="pv-logo" alt="Conlicit" style="filter:invert(1)">
+                <div class="pv-num" id="p-pv_num_2"></div>
+              </div>
+              <div class="pv-section-tag">ESCOPO DE SERVIÇOS</div>
+              <div class="pv-section-title">o que entregamos, mês a mês.</div>
+              <div id="p-pv_frentes"></div>
+              <div class="pv-cond" id="p-pv_cond"></div>
+              <div class="pv-closing">
+                <div>Esta proposta tem validade de 30 dias a contar da data de emissão. Permanecemos à disposição para esclarecimentos e para adaptar o escopo à realidade operacional do cliente.</div>
+                <div>
+                  <div class="pv-closing-brand">Grupo Conlicit</div>
+                  <div style="font-size:8px;color:#666">Assessoria em compras públicas</div>
+                  <div class="pv-closing-email">contato@conlicit.com.br</div>
+                </div>
+              </div>
+              <div class="pv-footer">
+                <span id="p-pv_footer2"></span>
+                <span>PROPOSTA <span id="p-pv_num_foot2"></span> — PÁG. 2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histórico de Propostas -->
+        <div id="proposta-historico">
           <div class="state-box"><div class="spinner spinner-lg"></div></div>
         </div>
       </section>
@@ -2111,11 +2366,13 @@
 
     const admin    = isAdmin();
     const cliente  = isCliente();
+    const podeVerProposta = ['socio_fundador','diretor_comercial'].includes(userRole);
 
     document.getElementById('nav-usuarios').hidden       = !admin;
     document.getElementById('nav-pregoes-todos').hidden  = !admin;
     document.getElementById('nav-prospects').hidden      = !admin;
-    document.getElementById('nav-label-admin').hidden    = !admin;
+    document.getElementById('nav-proposta').hidden       = !podeVerProposta;
+    document.getElementById('nav-label-admin').hidden    = !admin && !podeVerProposta;
     document.getElementById('nav-minha-area').hidden      = !cliente;
     document.getElementById('nav-meus-pregoes').hidden    = !cliente;
     document.getElementById('nav-label-cliente').hidden   = !cliente;
@@ -2145,6 +2402,7 @@
     else if (section === 'minha-area')     carregarMinhaArea();
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
     else if (section === 'prospects')      carregarProspects();
+    else if (section === 'proposta')       propostaCarregarHistorico();
     else if (section === 'meus-pregoes')   { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -5766,6 +6024,269 @@
 
   // variável global para analise avulsa atual
   let edsonAtualAnaliseId = null;
+
+  // ── Proposta Comercial ──────────────────────────────────────────────────────
+  const PROPOSTA_INCLUSO = [
+    { id:'pi1', label:'Análise estratégica de editais e ETPs', on:true },
+    { id:'pi2', label:'Mecânica da disputa e plano de lance', on:true },
+    { id:'pi3', label:'Suporte à manutenção de cadastros', on:true },
+    { id:'pi4', label:'Elaboração de recursos administrativos', on:true },
+    { id:'pi5', label:'Checklists e governança documental', on:true },
+    { id:'pi6', label:'Acesso ao Conlicit Hub e ao radar', on:true },
+  ];
+
+  const PROPOSTA_FRENTES = [
+    { n:'01', name:'análise estratégica de editais', desc:'Leitura crítica do edital e anexos, sinalização de cláusulas restritivas, aderência ao perfil do cliente e parecer de ir/não-ir antes de comprometer recursos comerciais.' },
+    { n:'02', name:'mecânica da disputa', desc:'Plano de lance por item, definição de pisos, simulação de cenários e acompanhamento em tempo real da sessão pública, com operador dedicado quando solicitado.' },
+    { n:'03', name:'estudos técnicos preliminares', desc:'Apoio à elaboração e revisão de ETPs em contratações por adesão, inexigibilidade e dispensa, com base nas referências de mercado e jurisprudência aplicável.' },
+    { n:'04', name:'cadastros e habilitação', desc:'Manutenção do SICAF e demais cadastros públicos, controle de vencimentos de certidões e organização da documentação de habilitação por tipo de licitação.' },
+    { n:'05', name:'recursos administrativos', desc:'Redação de impugnações, recursos e contrarrazões, com base técnica e jurídica, dentro dos prazos legais. Acompanhamento até a decisão final do pregoeiro.' },
+    { n:'06', name:'checklists e governança', desc:'Checklists por modalidade, controle de prazos e rituais operacionais que garantem que nenhuma exigência do edital seja perdida por falha de processo interno.' },
+  ];
+
+  function pG(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+  function pS(id, val) { const el = document.getElementById(id); if(el) el.innerHTML = val; }
+  function pFmtDate(v) { if(!v) return '—'; const [y,m,d]=v.split('-'); return `${d}.${m}.${y}`; }
+
+  function propostaBuildForm() {
+    const il = document.getElementById('p-incluso-list');
+    if (!il) return;
+    il.innerHTML = PROPOSTA_INCLUSO.map(it => `
+      <div class="p-check-item">
+        <input type="checkbox" id="${it.id}" ${it.on?'checked':''} onchange="propostaUpdate()">
+        <label for="${it.id}">${it.label}</label>
+      </div>
+    `).join('');
+
+    const fl = document.getElementById('p-frentes-list');
+    fl.innerHTML = PROPOSTA_FRENTES.map((f,i) => `
+      <div class="p-frente-block">
+        <div class="p-frente-header">
+          <div class="p-frente-num">${f.n}</div>
+          <div class="p-frente-name">${f.name}</div>
+        </div>
+        <textarea id="pfd_${i}" oninput="propostaUpdate()">${f.desc}</textarea>
+      </div>
+    `).join('');
+  }
+
+  function propostaUpdate() {
+    const num  = pG('pf_num') || '037 / 2026';
+    const data = pFmtDate(pG('pf_data'));
+    const cliente = pG('pf_cliente') || 'CLIENTE';
+    const ac   = pG('pf_ac') || 'Diretoria Comercial';
+    const ref  = pG('pf_ref') || '—';
+    const mens = pG('pf_mensalidade') || '000';
+    const com  = pG('pf_comissao') || '5';
+    const cnpj = pG('pf_cnpj') || '54.077.796/0001-00';
+    const vig  = pG('pf_vigencia') || '12 meses, renovável';
+    const fat  = pG('pf_faturamento') || 'Mensal, todo dia 5';
+    const rea  = pG('pf_reajuste') || 'Anual pelo IPCA';
+    const sig  = pG('pf_sigilo') || 'NDA mútuo desde a assinatura';
+
+    const numStr  = `PROPOSTA · ${num}`;
+    const dataStr = `EMITIDA ${data}`;
+    pS('p-pv_num_1', `${numStr}<br>${dataStr}`);
+    pS('p-pv_num_2', `${numStr}<br>PÁGINA 2 DE 2`);
+    pS('p-pv_num_foot1', num); pS('p-pv_num_foot2', num);
+    pS('p-pv_cliente', cliente); pS('p-pv_ac', ac); pS('p-pv_ref', ref);
+    pS('p-pv_mens', mens); pS('p-pv_com', com);
+
+    const footerBase = `CONLICIT · ASSESSORIA EM COMPRAS PÚBLICAS · CNPJ ${cnpj} · CONTATO@CONLICIT.COM.BR`;
+    pS('p-pv_footer1', footerBase); pS('p-pv_footer2', footerBase);
+
+    const incluso = PROPOSTA_INCLUSO.filter(it => {
+      const el = document.getElementById(it.id);
+      return el && el.checked;
+    }).map(it => it.label);
+    const extra = pG('pf_extra').trim();
+    if (extra) incluso.push(extra);
+    pS('p-pv_incluso', incluso.map(i => `
+      <div class="pv-incluso-item"><div class="pv-dot"></div><span>${i}</span></div>
+    `).join(''));
+
+    pS('p-pv_frentes', PROPOSTA_FRENTES.map((f,i) => {
+      const desc = document.getElementById('pfd_'+i)?.value || f.desc;
+      return `
+        <div class="pv-frente">
+          <div class="pv-frente-num">${f.n}</div>
+          <div>
+            <div class="pv-frente-label">frente</div>
+            <div class="pv-frente-name">${f.name}</div>
+            <div class="pv-frente-desc">${desc}</div>
+          </div>
+        </div>
+      `;
+    }).join(''));
+
+    pS('p-pv_cond', [
+      ['VIGÊNCIA', vig], ['FATURAMENTO', fat], ['REAJUSTE', rea], ['SIGILO', sig]
+    ].map(([l,v]) => `
+      <div class="pv-cond-item">
+        <div class="pv-cond-label">${l}</div>
+        <div class="pv-cond-val">${v}</div>
+      </div>
+    `).join(''));
+  }
+
+  async function propostaNova() {
+    try {
+      const r = await fetch(`${API}/propostas/proximo-numero`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const { numero } = await r.json();
+      document.getElementById('pf_num').value = numero;
+    } catch (e) {
+      console.warn('Falha ao buscar próximo número:', e.message);
+    }
+
+    propostaBuildForm();
+    const now = new Date();
+    document.getElementById('pf_data').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    propostaUpdate();
+
+    document.getElementById('proposta-historico').style.display = 'none';
+    document.getElementById('proposta-editor').style.display = 'block';
+    document.getElementById('btn-nova-proposta').style.display = 'none';
+    document.getElementById('btn-proposta-exportar').style.display = '';
+    document.getElementById('btn-proposta-imprimir').style.display = '';
+    document.getElementById('btn-proposta-salvar').style.display = '';
+    document.getElementById('btn-proposta-voltar').style.display = '';
+  }
+
+  function propostaVoltar() {
+    document.getElementById('proposta-editor').style.display = 'none';
+    document.getElementById('proposta-historico').style.display = '';
+    document.getElementById('btn-nova-proposta').style.display = '';
+    document.getElementById('btn-proposta-exportar').style.display = 'none';
+    document.getElementById('btn-proposta-imprimir').style.display = 'none';
+    document.getElementById('btn-proposta-salvar').style.display = 'none';
+    document.getElementById('btn-proposta-voltar').style.display = 'none';
+    propostaCarregarHistorico();
+  }
+
+  async function propostaSalvar() {
+    const dados = {
+      numero: pG('pf_num'),
+      cliente: pG('pf_cliente'),
+      responsavel: currentEmail,
+      valor_mensalidade: parseFloat(pG('pf_mensalidade').replace(',','.')) || null,
+      percentual_comissao: parseFloat(pG('pf_comissao').replace(',','.')) || null,
+      dados_json: {
+        data: pG('pf_data'), ac: pG('pf_ac'), ref: pG('pf_ref'),
+        extra: pG('pf_extra'), vigencia: pG('pf_vigencia'),
+        faturamento: pG('pf_faturamento'), reajuste: pG('pf_reajuste'), sigilo: pG('pf_sigilo'),
+        frentes: PROPOSTA_FRENTES.map((f,i) => ({ ...f, desc: document.getElementById('pfd_'+i)?.value || f.desc })),
+        incluso: PROPOSTA_INCLUSO.map(it => ({ ...it, on: !!document.getElementById(it.id)?.checked })),
+      },
+    };
+    try {
+      const r = await fetch(`${API}/propostas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(dados),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Proposta salva com sucesso!', 'success');
+    } catch (e) { toast(e.message || 'Erro ao salvar proposta', 'error'); }
+  }
+
+  function propostaExportarHTML() {
+    const pages = document.getElementById('p-preview-area');
+    if (!pages) return;
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Proposta Conlicit</title>
+<style>
+  body{margin:0;font-family:Inter,sans-serif;background:#eaecef}
+  .preview-page{background:#fff;width:595px;min-height:842px;padding:40px 44px 36px;margin:24px auto;position:relative;font-size:10px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+  ${document.getElementById('section-proposta')?.querySelector('style')?.textContent||''}
+</style></head><body>${pages.outerHTML}</body></html>`;
+    const blob = new Blob([html], {type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `proposta-conlicit-${pG('pf_num').replace(/\s*\/\s*/g,'-')}.html`;
+    a.click();
+  }
+
+  async function propostaCarregarHistorico() {
+    const area = document.getElementById('proposta-historico');
+    area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/propostas`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const lista = await r.json();
+      if (!lista.length) {
+        area.innerHTML = '<div class="state-box"><span class="icon">📄</span><h3>Nenhuma proposta</h3><p>Clique em "+ Nova Proposta" para começar.</p></div>';
+        return;
+      }
+      const isDiretor = userRole === 'diretor_comercial';
+      area.innerHTML = `
+        <table class="table" style="width:100%">
+          <thead><tr>
+            <th>Nº</th><th>Cliente</th><th>Mensalidade</th>
+            ${!isDiretor ? '<th>Comissão</th><th>Responsável</th>' : ''}
+            <th>Data</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${lista.map(p => `
+              <tr>
+                <td><strong>${p.numero}</strong></td>
+                <td>${p.cliente||'—'}</td>
+                <td>${p.valor_mensalidade ? 'R$ '+parseFloat(p.valor_mensalidade).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
+                ${!isDiretor ? `<td>${p.percentual_comissao ? p.percentual_comissao+'%' : '—'}</td><td>${p.criado_por_nome||p.responsavel||'—'}</td>` : ''}
+                <td>${new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick='propostaReabrir(${JSON.stringify(p)})'>Reabrir</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+  }
+
+  async function propostaReabrir(p) {
+    try {
+      const r = await fetch(`${API}/propostas/${p.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const dados = await r.json();
+      propostaBuildForm();
+
+      document.getElementById('pf_num').value   = dados.numero || '';
+      document.getElementById('pf_cliente').value = dados.cliente || '';
+      document.getElementById('pf_comissao').value = dados.percentual_comissao || '5';
+      document.getElementById('pf_mensalidade').value = dados.valor_mensalidade || '';
+
+      const dj = dados.dados_json || {};
+      if (dj.data)        document.getElementById('pf_data').value       = dj.data;
+      if (dj.ac)          document.getElementById('pf_ac').value          = dj.ac;
+      if (dj.ref)         document.getElementById('pf_ref').value         = dj.ref;
+      if (dj.extra)       document.getElementById('pf_extra').value       = dj.extra;
+      if (dj.vigencia)    document.getElementById('pf_vigencia').value    = dj.vigencia;
+      if (dj.faturamento) document.getElementById('pf_faturamento').value = dj.faturamento;
+      if (dj.reajuste)    document.getElementById('pf_reajuste').value    = dj.reajuste;
+      if (dj.sigilo)      document.getElementById('pf_sigilo').value      = dj.sigilo;
+
+      if (dj.frentes) dj.frentes.forEach((f,i) => {
+        const el = document.getElementById('pfd_'+i);
+        if (el) el.value = f.desc || PROPOSTA_FRENTES[i]?.desc || '';
+      });
+      if (dj.incluso) dj.incluso.forEach(it => {
+        const el = document.getElementById(it.id);
+        if (el) el.checked = it.on;
+      });
+
+      propostaUpdate();
+
+      document.getElementById('proposta-historico').style.display = 'none';
+      document.getElementById('proposta-editor').style.display = 'block';
+      document.getElementById('btn-nova-proposta').style.display = 'none';
+      document.getElementById('btn-proposta-exportar').style.display = '';
+      document.getElementById('btn-proposta-imprimir').style.display = '';
+      document.getElementById('btn-proposta-salvar').style.display = '';
+      document.getElementById('btn-proposta-voltar').style.display = '';
+    } catch (e) { toast(e.message || 'Erro ao reabrir proposta', 'error'); }
+  }
 
   // ── Calendário: deletar pregão ────────────────────────────────────────────────
   async function excluirPregaoCalendario(pid, cid, numero) {

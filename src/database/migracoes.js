@@ -283,6 +283,36 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_economica_json JSONB`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS capacidade_tecnica_json   JSONB`);
 
+  // Expandir roles para incluir socio_fundador e diretor_comercial
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
+      ) THEN
+        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
+      END IF;
+      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+        CHECK (role IN ('admin','assistente','cliente','socio_fundador','diretor_comercial'));
+    END $$
+  `);
+
+  // Tabela de propostas comerciais
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS propostas (
+      id                  SERIAL PRIMARY KEY,
+      numero              VARCHAR(20) NOT NULL,
+      cliente             VARCHAR(255),
+      responsavel         VARCHAR(100),
+      valor_mensalidade   DECIMAL(10,2),
+      percentual_comissao DECIMAL(5,2),
+      dados_json          JSONB,
+      criado_por          INTEGER REFERENCES usuarios(id),
+      created_at          TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 
