@@ -409,6 +409,108 @@ ${itensStr}
 Analise todos os dados acima aplicando as 5 regras. Responda APENAS com o JSON.`;
 }
 
+// ── MODO REUNIÃO — prompt compacto, resposta rápida ──────────────────────────
+
+const JSON_SCHEMA_REUNIAO = `{
+  "criterios_score": {
+    "alinhamento_objeto": <0-25>,
+    "complexidade_habilitacao": <0-20>,
+    "valor_viabilidade": <0-20>,
+    "modo_disputa": <0-15>,
+    "risco_juridico": <0-10>,
+    "prazo_adequado": <0-10>
+  },
+  "score_justificativa": "<2 frases diretas>",
+  "resumo_executivo": "<3 frases executivas>",
+  "modalidade": "<str>",
+  "modo_disputa": "<str>",
+  "tipo_julgamento": "<str>",
+  "itens": [
+    { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number|null> }
+  ],
+  "habilitacao": [
+    { "categoria": "<str>", "documentos": [{ "nome": "<str>", "obrigatorio": <bool> }] }
+  ],
+  "clausulas_restritivas": [
+    { "clausula": "<str>", "violacao": "<artigo>", "recomendacao": "<str>" }
+  ],
+  "prazos_legais": {
+    "data_sessao": "<str|null>",
+    "prazo_impugnacao": "<str|null>",
+    "prazo_esclarecimento": "<str|null>",
+    "dias_uteis_restantes": <int>,
+    "alerta_prazo": "<null|URGENTE|ATENÇÃO|OK>"
+  },
+  "beneficios_me_epp": {
+    "exclusividade_obrigatoria": <bool>,
+    "exclusividade_prevista": <bool>,
+    "empate_ficto_aplicavel": <bool>,
+    "alerta": "<str|null>"
+  },
+  "riscos": [
+    { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "base_legal": "<str|null>", "recomendacao": "<str>" }
+  ],
+  "checklist": {
+    "antes": ["<str>"],
+    "durante": ["<str>"],
+    "apos": ["<str>"]
+  },
+  "tipo_fornecimento": "<produto|servico|obra>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<str|null>",
+  "prazo_entrega": "<str|null>",
+  "habilitacao_juridica": ["<str>"],
+  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<str|null>", "detalhes": "<str>" },
+  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<str>" }
+}`;
+
+function buildPromptReuniao(dados, pdfText, itensPNCP, dataSessao) {
+  const objeto = dados.objeto || dados.referencia || '—';
+  const orgao  = dados.orgao || '—';
+  const valor  = dados.valor_estimado
+    ? `R$ ${Number(dados.valor_estimado).toLocaleString('pt-BR', {minimumFractionDigits:2})}`
+    : '—';
+  const cliente  = dados.nome || dados.clienteNome || '—';
+  const uf       = dados.uf || dados.clienteUF || '—';
+  const palavras = Array.isArray(dados.palavras_chave)
+    ? dados.palavras_chave.join(', ')
+    : dados.palavrasChave || dados.palavras_chave || '—';
+
+  const itensStr = pdfText
+    ? `TEXTO DO EDITAL:\n${pdfText.slice(0, 40000)}`
+    : itensPNCP && itensPNCP.length > 0
+      ? `ITENS PNCP:\n${JSON.stringify(itensPNCP.slice(0, 40).map(i => ({
+          numero: i.numeroItem, descricao: i.descricao,
+          unidade: i.unidadeMedida, quantidade: i.quantidade,
+          valorUnitarioEstimado: i.valorUnitarioEstimado,
+        })), null, 2)}`
+      : `OBJETO: ${objeto}`;
+
+  return `Você é o Edson, especialista em licitações públicas (Lei 14.133/2021).
+Faça uma análise objetiva e direta para uso em reunião comercial com o cliente.
+
+REGRAS CRÍTICAS:
+- Identifique cláusulas restritivas ilegais (atestado >50% objeto: Súmula 272 TCU; capital >10% valor: art.69§2°; tempo empresa >1 ano: art.67§1°)
+- Calcule prazo de impugnação (sessão − 3 dias úteis, art.164)
+- Verifique exclusividade ME/EPP (obrigatória se valor ≤ R$80.000, art.48 LC123)
+- Mínimo 4 riscos com base legal; checklist específico ao edital
+- NUNCA use linguagem genérica — referencie o objeto e o edital analisado
+
+DADOS:
+Objeto: ${objeto}
+Órgão: ${orgao}
+Valor estimado: ${valor}
+Data da sessão: ${dataSessao || '—'}
+Cliente: ${cliente} | UF: ${uf}
+Segmento: ${palavras}
+
+${itensStr}
+
+Responda APENAS com este JSON preenchido:
+${JSON_SCHEMA_REUNIAO}`;
+}
+
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
 async function callClaude(prompt, maxTokens = 16000, extraContent = []) {
@@ -541,7 +643,7 @@ async function salvarErro(analiseId, msg) {
 
 // ── Análises ──────────────────────────────────────────────────────────────────
 
-async function analisarPregao(analiseId, pregaoId) {
+async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
   try {
     const { rows: [pregao] } = await db.query(
       `SELECT p.*, c.nome, c.uf, c.palavras_chave
@@ -563,7 +665,15 @@ async function analisarPregao(analiseId, pregaoId) {
     }
 
     const dataSessao = await buscarDataSessao(pregao);
-    const raw = await callClaude(buildPrompt(pregao, itensPNCP, dataSessao));
+    let prompt, maxTok;
+    if (modo === 'reuniao') {
+      prompt = buildPromptReuniao(pregao, null, itensPNCP, dataSessao);
+      maxTok = 6000;
+    } else {
+      prompt = buildPrompt(pregao, itensPNCP, dataSessao);
+      maxTok = 16000;
+    }
+    const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
@@ -573,7 +683,7 @@ async function analisarPregao(analiseId, pregaoId) {
   }
 }
 
-async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
+async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'completo') {
   try {
     const pdfData = await pdfParse(pdfBuffer);
     const pdfText = pdfData.text.trim().slice(0, 80000);
@@ -590,7 +700,15 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
     if (!pregao) throw new Error('Pregão não encontrado');
 
     const dataSessao = await buscarDataSessao(pregao);
-    const raw = await callClaude(buildPromptPDF(pregao, pdfText, dataSessao));
+    let prompt, maxTok;
+    if (modo === 'reuniao') {
+      prompt = buildPromptReuniao(pregao, pdfText, [], dataSessao);
+      maxTok = 6000;
+    } else {
+      prompt = buildPromptPDF(pregao, pdfText, dataSessao);
+      maxTok = 16000;
+    }
+    const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
@@ -603,6 +721,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
 async function analisarAvulso(analiseId, opts) {
   try {
     const { numero_controle_pncp, referencia, clienteNome, clienteUF, palavrasChave, pdfBuffer } = opts;
+    const modo = opts.modo || 'completo';
 
     let itensPNCP = [];
     let pdfText   = null;
@@ -621,7 +740,15 @@ async function analisarAvulso(analiseId, opts) {
       }
     }
 
-    const raw = await callClaude(buildPromptAvulso(opts, itensPNCP, pdfText));
+    let prompt, maxTok;
+    if (modo === 'reuniao') {
+      prompt = buildPromptReuniao(opts, pdfText, itensPNCP, null);
+      maxTok = 6000;
+    } else {
+      prompt = buildPromptAvulso(opts, itensPNCP, pdfText);
+      maxTok = 16000;
+    }
+    const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));

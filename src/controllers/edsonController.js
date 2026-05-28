@@ -104,7 +104,7 @@ async function disparar(req, res) {
 
 async function avulso(req, res) {
   try {
-    const { numero_controle_pncp, referencia, cliente_id } = req.body ?? {};
+    const { numero_controle_pncp, referencia, cliente_id, modo } = req.body ?? {};
     if (!referencia?.trim() && !numero_controle_pncp?.trim() && !req.file) {
       return res.status(400).json({ erro: 'Informe referência, número PNCP ou PDF' });
     }
@@ -133,6 +133,7 @@ async function avulso(req, res) {
         clienteNome, clienteUF,
         palavrasChave: Array.isArray(palavrasChave) ? palavrasChave.join(', ') : palavrasChave,
         pdfBuffer: req.file.buffer,
+        modo: modo || 'completo',
       }).catch(console.error);
       return res.json({ mensagem: 'Análise avulsa iniciada', analise_id: analise.id });
     }
@@ -396,7 +397,8 @@ async function uploadPDF(req, res) {
       [pregao_id],
     );
 
-    analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer).catch(console.error);
+    const { modo: modoUpload } = req.body ?? {};
+    analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer, modoUpload || 'completo').catch(console.error);
     return res.json({ mensagem: 'Análise iniciada', analise_id: analise.id });
   } catch (e) {
     console.error('[Edson] uploadPDF:', e.message);
@@ -426,6 +428,7 @@ async function uploadPDFAvulso(req, res) {
       [analise_id],
     );
 
+    const { modo: modoAvulso } = req.body ?? {};
     analisarAvulso(parseInt(analise_id, 10), {
       referencia: analise.referencia || 'Análise avulsa',
       clienteNome: analise.cliente_nome || null,
@@ -434,6 +437,7 @@ async function uploadPDFAvulso(req, res) {
         ? analise.palavras_chave.join(', ')
         : analise.palavras_chave,
       pdfBuffer: req.file.buffer,
+      modo: modoAvulso || 'completo',
     }).catch(console.error);
 
     return res.json({ mensagem: 'Análise iniciada', analise_id: parseInt(analise_id, 10) });

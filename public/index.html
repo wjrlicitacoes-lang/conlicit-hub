@@ -1016,6 +1016,16 @@
     .score-verde   { border-color: var(--primary);  color: var(--primary); }
     .score-amarelo { border-color: var(--warning);  color: var(--warning); }
     .score-vermelho{ border-color: var(--danger);   color: var(--danger); }
+    /* Seletor de modo de análise Edson */
+    .modo-analise-selector { margin: 16px 0 4px; }
+    .modo-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #4CC5D7; margin-bottom: 10px; }
+    .modo-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modo-opcao input[type="radio"] { display: none; }
+    .modo-card { border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; cursor: pointer; transition: border-color .15s, background .15s; background: rgba(255,255,255,0.04); }
+    .modo-opcao input:checked + .modo-card { border-color: #4CC5D7; background: rgba(76,197,215,0.08); }
+    .modo-icon { font-size: 20px; margin-bottom: 6px; }
+    .modo-nome { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .modo-desc { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.4; }
     .edson-chat-area {
       background: rgba(0,0,0,.15); border-radius: var(--radius-sm); padding: 1rem;
       max-height: 420px; overflow-y: auto; display: flex; flex-direction: column;
@@ -1972,8 +1982,8 @@
           <!-- Processando -->
           <div id="edson-processando" class="state-box" style="padding:3rem;display:none">
             <div class="spinner spinner-lg" style="width:3rem;height:3rem;border-width:4px"></div>
-            <h3 style="margin-top:1.25rem">Edson está analisando o pregão…</h3>
-            <p>Isso pode levar até 30 segundos</p>
+            <h3 style="margin-top:1.25rem">Edson está analisando…</h3>
+            <p>Realizando análise jurídica completa... (~90s)</p>
           </div>
 
           <!-- Erro -->
@@ -5577,8 +5587,18 @@
     }
     errEl.style.display = 'none';
 
+    const modoSelecionado = document.querySelector('input[name="modo_analise"]:checked')?.value || 'completo';
+
     const btn = document.getElementById('avulso-btn');
-    btn.disabled = true; btn.textContent = 'Iniciando…';
+    btn.disabled = true;
+    btn.textContent = modoSelecionado === 'reuniao' ? 'Preparando (~30s)…' : 'Iniciando (~90s)…';
+
+    const loadingP = document.querySelector('#edson-processando p');
+    if (loadingP) {
+      loadingP.textContent = modoSelecionado === 'reuniao'
+        ? 'Preparando análise para reunião... (~30s)'
+        : 'Realizando análise jurídica completa... (~90s)';
+    }
 
     try {
       const form = new FormData();
@@ -5586,6 +5606,7 @@
       if (pncp)       form.append('numero_controle_pncp', pncp);
       if (clienteId)  form.append('cliente_id', clienteId);
       if (pdfFile)    form.append('edital', pdfFile);
+      form.append('modo', modoSelecionado);
 
       const r = await fetch(`${API}/edson/avulso`, {
         method: 'POST',
@@ -6702,6 +6723,27 @@
         <select id="avulso-cliente">
           <option value="">Sem cliente (análise geral)</option>
         </select>
+      </div>
+      <div class="modo-analise-selector">
+        <div class="modo-label">Tipo de análise</div>
+        <div class="modo-opcoes">
+          <label class="modo-opcao">
+            <input type="radio" name="modo_analise" value="reuniao" id="modo-reuniao">
+            <div class="modo-card">
+              <div class="modo-icon">⚡</div>
+              <div class="modo-nome">Para Reunião</div>
+              <div class="modo-desc">Resumo executivo rápido com riscos e prazos — pronto em ~30s</div>
+            </div>
+          </label>
+          <label class="modo-opcao">
+            <input type="radio" name="modo_analise" value="completo" id="modo-completo" checked>
+            <div class="modo-card">
+              <div class="modo-icon">🔍</div>
+              <div class="modo-nome">Análise Completa</div>
+              <div class="modo-desc">Análise jurídica completa com Lei 14.133/2021, cláusulas e checklist — ~90s</div>
+            </div>
+          </label>
+        </div>
       </div>
       <div id="avulso-erro" style="display:none;color:var(--danger);font-size:.84rem"></div>
     </div>

@@ -87,7 +87,7 @@ process.on('uncaughtException', (err) => {
 const PORT = process.env.PORT || 3000;
 
 // Sobe imediatamente para o healthcheck do Railway passar; migrações rodam em background
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`ConlicitHub API rodando na porta ${PORT}`);
 
   executarMigracoes().catch((err) => {
@@ -96,5 +96,6 @@ app.listen(PORT, () => {
 
   iniciarAgendador();
 });
+server.timeout = 300000; // 5 minutos para análises longas do Edson
 
 module.exports = app;
