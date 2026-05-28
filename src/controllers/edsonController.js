@@ -31,6 +31,25 @@ const SELECT_ANALISE_COMPLETA = `
   LEFT JOIN pregoes p ON p.id = a.pregao_id
   LEFT JOIN clientes c ON c.id = p.cliente_id`;
 
+// Query completa com aliases explícitos para uso nos relatórios — cobre tanto análises
+// vinculadas a pregão quanto análises avulsas (cliente via a.cliente_id como fallback)
+const SELECT_ANALISE_RELATORIO = `
+  SELECT a.*,
+         p.numero          AS pregao_numero,
+         p.orgao           AS pregao_orgao,
+         p.objeto          AS pregao_objeto,
+         p.valor_estimado  AS pregao_valor_estimado,
+         p.data_abertura   AS pregao_data_abertura,
+         p.data_hora_abertura,
+         p.numero_controle_pncp,
+         p.link_pncp,
+         p.portal_disputa,
+         c.nome            AS cliente_nome,
+         c.uf              AS cliente_uf
+  FROM analises_edson a
+  LEFT JOIN pregoes p ON p.id = a.pregao_id
+  LEFT JOIN clientes c ON c.id = COALESCE(p.cliente_id, a.cliente_id)`;
+
 // ── Listar ────────────────────────────────────────────────────────────────────
 
 async function listar(req, res) {
@@ -321,13 +340,7 @@ async function planilha(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.itens, a.modalidade, a.tipo_julgamento,
-              p.numero, p.orgao, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome
-       FROM analises_edson a
-       JOIN pregoes p ON p.id = a.pregao_id
-       JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.pregao_id = $1 AND a.status = 'pronto'`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.pregao_id = $1 AND a.status = 'pronto'`,
       [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
@@ -346,16 +359,11 @@ async function relatorio(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome, c.uf
-       FROM analises_edson a
-       JOIN pregoes p ON p.id = a.pregao_id
-       JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.pregao_id = $1 AND a.status = 'pronto'`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.pregao_id = $1 AND a.status = 'pronto'`,
       [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
-    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.uf } });
+    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.cliente_uf } });
     const filename = `relatorio-edson-${(analise.numero || pregao_id).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -441,13 +449,7 @@ async function relatorioSimples(req, res) {
   const { pregao_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.link_pncp,
-              p.data_abertura, p.data_hora_abertura, p.portal_disputa,
-              c.nome AS cliente_nome, c.uf
-       FROM analises_edson a
-       LEFT JOIN pregoes p ON p.id = a.pregao_id
-       LEFT JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.pregao_id = $1`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.pregao_id = $1`,
       [pregao_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
@@ -467,13 +469,7 @@ async function relatorioSimplesAvulso(req, res) {
   const { analise_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.link_pncp,
-              p.data_abertura, p.data_hora_abertura, p.portal_disputa,
-              c.nome AS cliente_nome, c.uf
-       FROM analises_edson a
-       LEFT JOIN pregoes p ON p.id = a.pregao_id
-       LEFT JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.id = $1`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.id = $1`,
       [analise_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada' });
@@ -493,13 +489,7 @@ async function planilhaAvulso(req, res) {
   const { analise_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.itens, a.modalidade, a.tipo_julgamento, a.referencia,
-              p.numero, p.orgao, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome
-       FROM analises_edson a
-       LEFT JOIN pregoes p ON p.id = a.pregao_id
-       LEFT JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.id = $1 AND a.status = 'pronto'`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.id = $1 AND a.status = 'pronto'`,
       [analise_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
@@ -520,16 +510,11 @@ async function relatorioAvulso(req, res) {
   const { analise_id } = req.params;
   try {
     const { rows: [analise] } = await db.query(
-      `SELECT a.*, p.numero, p.orgao, p.objeto, p.valor_estimado, p.data_abertura, p.data_hora_abertura,
-              c.nome AS cliente_nome, c.uf
-       FROM analises_edson a
-       LEFT JOIN pregoes p ON p.id = a.pregao_id
-       LEFT JOIN clientes c ON c.id = p.cliente_id
-       WHERE a.id = $1 AND a.status = 'pronto'`,
+      `${SELECT_ANALISE_RELATORIO} WHERE a.id = $1 AND a.status = 'pronto'`,
       [analise_id],
     );
     if (!analise) return res.status(404).json({ erro: 'Análise não encontrada ou não concluída' });
-    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.uf } });
+    const buffer = await gerarRelatorioPDF({ analise, pregao: analise, cliente: { nome: analise.cliente_nome, uf: analise.cliente_uf } });
     const filename = `relatorio-edson-${(analise.numero || analise.referencia || analise_id).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

@@ -87,7 +87,17 @@ RUBRICA DE SCORE — preencha cada critério com o valor indicado:
     "prazo_adequado": <0-10>            // 10=prazo confortável, 0=prazo já passou/<24h
   }
 }
-NÃO inclua campo "score" — o sistema calcula a soma automaticamente.`;
+NÃO inclua campo "score" — o sistema calcula a soma automaticamente.
+
+INSTRUÇÕES CRÍTICAS:
+- Responda APENAS com JSON válido. Nenhum texto antes ou depois.
+- NUNCA omita campos do JSON, mesmo sem informação — use null ou array vazio [].
+- Para "itens": se o edital tiver itens no texto, extraia TODOS. Se não houver, retorne [].
+- Para "habilitacao": sempre preencha com base no objeto e modalidade, mesmo sem edital completo.
+- Para "riscos": retorne no mínimo 3 riscos relevantes.
+- Para "checklist": retorne no mínimo 5 itens em "antes" e 4 em "durante".
+- Números devem ser números (não strings): "quantidade": 10, não "quantidade": "10".
+- O JSON deve ser completo mesmo para editais simples — não abrevie.`;
 
 function buildPrompt(pregao, itensPNCP, dataSessao) {
   const itensStr = itensPNCP.length > 0
@@ -284,14 +294,14 @@ Responda APENAS com o JSON, nenhum texto adicional.`;
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
-async function callClaude(prompt, maxTokens = 4096, extraContent = []) {
+async function callClaude(prompt, maxTokens = 8192, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const content = extraContent.length > 0
     ? [{ type: 'text', text: prompt }, ...extraContent]
     : prompt;
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
+    { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
     {
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
@@ -306,11 +316,35 @@ async function callClaude(prompt, maxTokens = 4096, extraContent = []) {
 
 function parsearRespostaEdson(raw) {
   let parsed;
-  try { parsed = JSON.parse(raw); } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (match) parsed = JSON.parse(match[0]);
-    else throw new Error('Resposta da IA não é JSON válido');
+  let limpo = raw.trim();
+  limpo = limpo.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+  limpo = limpo.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+
+  try {
+    parsed = JSON.parse(limpo);
+  } catch {
+    const match = limpo.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch (e2) {
+        console.error('[Edson] JSON inválido após extração:', limpo.slice(0, 500));
+        throw new Error('Resposta da IA não é JSON válido: ' + e2.message);
+      }
+    } else {
+      console.error('[Edson] Nenhum JSON na resposta:', limpo.slice(0, 500));
+      throw new Error('Resposta da IA não contém JSON');
+    }
   }
+
+  if (!parsed.itens) parsed.itens = [];
+  if (!parsed.habilitacao) parsed.habilitacao = [];
+  if (!parsed.riscos) parsed.riscos = [];
+  if (!parsed.checklist) parsed.checklist = { antes: [], durante: [] };
+  if (!parsed.checklist.antes) parsed.checklist.antes = [];
+  if (!parsed.checklist.durante) parsed.checklist.durante = [];
+  if (!parsed.criterios_score) parsed.criterios_score = {};
+  if (!parsed.resumo_executivo) parsed.resumo_executivo = 'Análise não disponível.';
 
   const criterios = parsed.criterios_score || {};
   const score = calcularScore(criterios);
@@ -407,7 +441,7 @@ async function analisarPregao(analiseId, pregaoId) {
 async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
   try {
     const pdfData = await pdfParse(pdfBuffer);
-    const pdfText = pdfData.text.trim().slice(0, 30000);
+    const pdfText = pdfData.text.trim().slice(0, 60000);
     if (!pdfText) throw new Error('Não foi possível extrair texto do PDF');
 
     console.log(`[Edson] PDF analise ${analiseId}: ${pdfText.length} chars extraídos`);
@@ -577,7 +611,7 @@ async function reanalisarComSuplementos(analiseId) {
     }
 
     const prompt = buildPromptReanalise(analise, complementarNote);
-    const raw = await callClaude(prompt, 4096, extraContent);
+    const raw = await callClaude(prompt, 8192, extraContent);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
@@ -593,7 +627,7 @@ async function chamarClaude(systemPrompt, messages) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages },
+    { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages },
     {
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,

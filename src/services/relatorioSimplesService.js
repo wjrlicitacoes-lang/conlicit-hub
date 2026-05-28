@@ -146,12 +146,20 @@ function gerarHTMLResumo(analise) {
   const { label: scoreLabel, color: scoreColor } = scoreInfo(score);
   const scoreJust = analise.score_justificativa || '';
 
-  const numero = analise.numero || analise.referencia || '—';
-  const orgao  = fmt(analise.orgao);
-  const uf     = analise.uf || '';
-  const objeto = fmt(analise.objeto);
+  const numero = analise.pregao_numero ?? analise.numero ?? analise.referencia ?? '—';
+  const orgao  = fmt(analise.pregao_orgao ?? analise.orgao ?? analise.orgao_nome);
+  const uf     = analise.cliente_uf ?? analise.uf ?? '';
+  const objeto = fmt(analise.pregao_objeto ?? analise.objeto ?? analise.referencia);
   const portal = fmt(analise.portal_disputa);
-  const linkPortal = analise.link_pncp || null;
+  const linkPortal = analise.link_pncp ?? null;
+  // Sobrescreve valor_estimado com fallback para campo aliasado do JOIN
+  if (analise.pregao_valor_estimado != null && analise.valor_estimado == null) {
+    analise.valor_estimado = analise.pregao_valor_estimado;
+  }
+  // Sobrescreve data_hora_abertura com fallback
+  if (!analise.data_hora_abertura && analise.pregao_data_abertura) {
+    analise.data_hora_abertura = analise.pregao_data_abertura;
+  }
 
   // ✅ CORREÇÃO P1-B: usa a nova fmtDataHora que percorre múltiplos campos
   const dataHora = fmtDataHora(analise);

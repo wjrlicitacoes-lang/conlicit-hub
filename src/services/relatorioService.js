@@ -50,13 +50,58 @@ function fmtDate(v) {
 }
 
 async function gerarRelatorioPDF({ analise, pregao, cliente }) {
+  // Campos com fallback em múltiplas fontes (analise, pregao, raw)
+  const raw = analise.raw ?? analise.dados_json ?? {};
+
+  const orgao = analise.pregao_orgao
+    ?? analise.orgao
+    ?? pregao?.orgao
+    ?? raw.orgaoEntidade?.razaoSocial
+    ?? raw.orgao_nome
+    ?? '—';
+
+  const valorEstimado = analise.pregao_valor_estimado
+    ?? analise.valor_estimado
+    ?? pregao?.valor_estimado
+    ?? raw.valorTotalEstimado
+    ?? raw.valor_estimado
+    ?? null;
+
+  const dataAbertura = analise.data_hora_abertura
+    ?? analise.pregao_data_abertura
+    ?? analise.data_abertura
+    ?? pregao?.data_hora_abertura
+    ?? pregao?.data_abertura
+    ?? raw.dataAberturaProposta
+    ?? null;
+
+  const uf = analise.cliente_uf
+    ?? analise.uf
+    ?? cliente?.uf
+    ?? raw.unidadeOrgao?.ufSigla
+    ?? '—';
+
+  const numeroEdital = analise.pregao_numero
+    ?? analise.numero
+    ?? pregao?.numero
+    ?? analise.referencia
+    ?? '—';
+
+  const objeto = analise.pregao_objeto
+    ?? analise.objeto
+    ?? pregao?.objeto
+    ?? analise.referencia
+    ?? '—';
+
+  const clienteNome = analise.cliente_nome ?? cliente?.nome ?? pregao?.cliente_nome ?? '—';
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: 60, bottom: 60, left: 50, right: 50 },
       bufferPages: true,
       info: {
-        Title: `Relatório Edson — Pregão ${pregao.numero || ''}`,
+        Title: `Relatório Edson — Pregão ${numeroEdital}`,
         Author: 'ConlicitHub — Edson IA',
       },
     });
@@ -77,7 +122,7 @@ async function gerarRelatorioPDF({ analise, pregao, cliente }) {
       const y0 = 20;
       doc.rect(0, y0, PW, 28).fill(NAVY);
       doc.fillColor('white').fontSize(8).font('Helvetica')
-        .text(`ConlicitHub — Análise Edson IA   |   Pregão ${pregao.numero || '—'}   |   ${new Date().toLocaleDateString('pt-BR')}`,
+        .text(`ConlicitHub — Análise Edson IA   |   Pregão ${numeroEdital}   |   ${new Date().toLocaleDateString('pt-BR')}`,
           ML, y0 + 8, { width: CW - 60, align: 'left' });
     }
 
@@ -146,19 +191,19 @@ async function gerarRelatorioPDF({ analise, pregao, cliente }) {
     // Pregão details block
     doc.rect(ML, 180, CW, 80).fill('#EBF4F8');
     doc.fillColor(NAVY).fontSize(9).font('Helvetica-Bold')
-      .text(`Nº Pregão: ${fmt(pregao.numero)}`, ML + 12, 192)
-      .text(`Órgão: ${fmt(pregao.orgao)}`, ML + 12, 207)
+      .text(`Nº Pregão: ${fmt(numeroEdital)}`, ML + 12, 192)
+      .text(`Órgão: ${fmt(orgao)}`, ML + 12, 207)
       .text(`Modalidade: ${fmt(analise.modalidade)}   |   Modo de disputa: ${fmt(analise.modo_disputa)}`, ML + 12, 222)
-      .text(`Data de abertura: ${fmtDate(pregao.data_hora_abertura || pregao.data_abertura)}   |   Valor estimado: ${fmtBRL(pregao.valor_estimado)}`, ML + 12, 237);
+      .text(`Data de abertura: ${fmtDate(dataAbertura)}   |   Valor estimado: ${fmtBRL(valorEstimado)}`, ML + 12, 237);
 
     doc.fillColor(MID).fontSize(8.5).font('Helvetica')
-      .text(`Cliente: ${fmt(cliente?.nome || pregao.cliente_nome)}   |   UF: ${fmt(cliente?.uf || pregao.uf)}`, ML + 12, 252);
+      .text(`Cliente: ${fmt(clienteNome)}   |   UF: ${fmt(uf)}`, ML + 12, 252);
 
     // Objeto
     doc.y = 275;
     doc.fillColor(DARK).fontSize(9).font('Helvetica-Bold').text('Objeto:', ML);
     doc.fillColor(DARK).fontSize(9).font('Helvetica')
-      .text(fmt(pregao.objeto), ML, doc.y + 2, { width: CW });
+      .text(fmt(objeto), ML, doc.y + 2, { width: CW });
 
     // Gerado em
     doc.fillColor(MID).fontSize(8).font('Helvetica')
@@ -174,13 +219,13 @@ async function gerarRelatorioPDF({ analise, pregao, cliente }) {
 
     sectionTitle('1. Resumo Executivo');
     doc.moveDown(0.3);
-    kv('Número do pregão', pregao.numero);
-    kv('Órgão', pregao.orgao);
+    kv('Número do pregão', numeroEdital);
+    kv('Órgão', orgao);
     kv('Modalidade', analise.modalidade);
     kv('Modo de disputa', analise.modo_disputa);
     kv('Tipo de julgamento', analise.tipo_julgamento);
-    kv('Valor estimado', fmtBRL(pregao.valor_estimado));
-    kv('Data de abertura', fmtDate(pregao.data_hora_abertura || pregao.data_abertura));
+    kv('Valor estimado', fmtBRL(valorEstimado));
+    kv('Data de abertura', fmtDate(dataAbertura));
     kv('Score de oportunidade', sc != null ? `${sc}/100 — ${scoreLabel(sc)}` : '—');
 
     doc.moveDown(0.5);
