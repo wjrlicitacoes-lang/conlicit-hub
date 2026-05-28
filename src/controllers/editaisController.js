@@ -84,7 +84,7 @@ function formatarEdital(item) {
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal, pagina, tamanhoPagina }) {
+async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal, valorMin, valorMax, pagina, tamanhoPagina }) {
   const condicoes = [`data_encerramento >= NOW()`];
   const params = [];
   let idx = 1;
@@ -142,6 +142,16 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade
     // raio > 150 = sem filtro de localização (nacional)
   }
 
+  if (valorMin != null && !isNaN(valorMin)) {
+    condicoes.push(`valor_estimado >= $${idx++}`);
+    params.push(Number(valorMin));
+  }
+
+  if (valorMax != null && !isNaN(valorMax)) {
+    condicoes.push(`valor_estimado <= $${idx++}`);
+    params.push(Number(valorMax));
+  }
+
   if (portal) {
     // Filtra pelo portal detectado no campo raw->linkSistemaOrigem
     const portalMap = {
@@ -194,6 +204,8 @@ async function listarEditais(req, res) {
     cidade,
     raio_km,
     portal,
+    valorMin,
+    valorMax,
   } = req.query;
 
   if (!dataInicial || !dataFinal) {
@@ -214,7 +226,9 @@ async function listarEditais(req, res) {
 
   const tamanhoSolicitado = Math.max(Number(tamanhoPagina), 10);
   const paginaSolicitada  = Math.max(Number(pagina), 1);
-  const filtraLocal       = !!(q || uf || cidade || portal);
+  const vMin = valorMin != null && valorMin !== '' ? Number(valorMin) : null;
+  const vMax = valorMax != null && valorMax !== '' ? Number(valorMax) : null;
+  const filtraLocal = !!(q || uf || cidade || portal || vMin != null || vMax != null);
 
   try {
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
@@ -250,6 +264,7 @@ async function listarEditais(req, res) {
       // Cache populado → busca no banco (cobertura 100% dos editais sincronizados)
       const { total, dados } = await buscarNaCache({
         q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal,
+        valorMin: vMin, valorMax: vMax,
         pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado,
       });
 
@@ -315,6 +330,13 @@ async function listarEditais(req, res) {
       dados = dados.filter((item) =>
         semAcento(item.unidadeOrgao?.municipioNome ?? '').includes(cidadeLower),
       );
+    }
+
+    if (vMin != null) {
+      dados = dados.filter((item) => (item.valorTotalEstimado ?? 0) >= vMin);
+    }
+    if (vMax != null) {
+      dados = dados.filter((item) => (item.valorTotalEstimado ?? 0) <= vMax);
     }
 
     const vistos = new Set();

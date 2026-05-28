@@ -1433,6 +1433,14 @@
                 <option value="caixa">Caixa</option>
               </select>
             </div>
+            <div class="form-group" style="margin:0">
+              <label for="filtro-valor-min">Valor estimado mínimo (R$)</label>
+              <input type="number" id="filtro-valor-min" placeholder="Ex: 10000" min="0" step="1" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="filtro-valor-max">Valor estimado máximo (R$)</label>
+              <input type="number" id="filtro-valor-max" placeholder="Ex: 500000" min="0" step="1" />
+            </div>
           </div>
           <div class="search-actions">
             <button class="btn btn-ghost" onclick="limparBusca()">Limpar</button>
@@ -3667,6 +3675,10 @@
     const raioEl   = document.getElementById('raio_km');
     if (cidadeEl) cidadeEl.value = '';
     if (raioEl)   raioEl.value  = '0';
+    const vMinEl = document.getElementById('filtro-valor-min');
+    const vMaxEl = document.getElementById('filtro-valor-max');
+    if (vMinEl) vMinEl.value = '';
+    if (vMaxEl) vMaxEl.value = '';
     setDefaultDates();
     document.getElementById('results-area').innerHTML = '';
     lastParams = null;
@@ -3795,13 +3807,18 @@
     const raio    = document.getElementById('raio_km')?.value || '0';
     const portal     = document.getElementById('filtro-portal')?.value || '';
     const modalidade = document.getElementById('filtro-modalidade')?.value || '';
+    const valorMin   = document.getElementById('filtro-valor-min')?.value || '';
+    const valorMax   = document.getElementById('filtro-valor-max')?.value || '';
 
     if (!di || !df) { toast('Informe o período de busca', 'error'); return; }
     if (new Date(di) > new Date(df)) { toast('Data inicial deve ser anterior à data final', 'error'); return; }
+    if (valorMin && valorMax && Number(valorMin) > Number(valorMax)) {
+      toast('Valor mínimo não pode ser maior que o valor máximo', 'error'); return;
+    }
 
     const dataInicial = di.replace(/-/g, '');
     const dataFinal   = df.replace(/-/g, '');
-    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal, modalidade };
+    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal, modalidade, valorMin, valorMax };
     currentPage = pagina;
 
     const btn = document.getElementById('btn-buscar');
@@ -3817,6 +3834,8 @@
     if (cidade && parseInt(raio) < 999) { params.set('cidade', cidade); params.set('raio_km', raio); }
     if (portal) params.set('portal', portal);
     if (modalidade) params.set('modalidade', modalidade);
+    if (valorMin) params.set('valorMin', valorMin);
+    if (valorMax) params.set('valorMax', valorMax);
 
     try {
       const r = await fetch(`${API}/editais?${params}`, { headers: { Authorization: `Bearer ${token}` } });
