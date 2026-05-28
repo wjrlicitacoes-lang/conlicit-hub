@@ -12,6 +12,7 @@ const MODALIDADES = {
   'concorrencia presencial': 5, 'concorrência presencial': 5,
   'concorrencia': 4, 'concorrência': 4,
   'dispensa': 8, 'dispensa de licitacao': 8, 'dispensa de licitação': 8,
+  'dispensa eletronica': 8, 'dispensa eletrônica': 8,
   'inexigibilidade': 9,
   'leilao eletronico': 1, 'leilão eletrônico': 1,
   'leilao presencial': 13, 'leilão presencial': 13,

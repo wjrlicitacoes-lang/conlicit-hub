@@ -311,6 +311,7 @@
       text-align: left;
       border-radius: 0;
       position: relative;
+      overflow: hidden;
     }
     .nav-item:hover,
     body.tema-light .nav-item:hover {
@@ -1113,6 +1114,10 @@
       .metrics-grid { grid-template-columns: 1fr 1fr; }
     }
 
+    /* ── USUÁRIOS ─────────────────────────────────────────────────── */
+    #section-usuarios .table-container { overflow-x: auto; width: 100%; }
+    #modal-editar-usuario .modal { max-height: 90vh; overflow-y: auto; }
+
     /* ── PROPOSTA COMERCIAL ─────────────────────────────────────── */
     #section-proposta { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
     #section-proposta .proposta-header { padding:1.5rem clamp(1.25rem,3vw,2.5rem) 1rem; border-bottom:1px solid var(--border-l,#e8ecef); display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
@@ -1140,7 +1145,7 @@
     #section-proposta .p-frente-block textarea { width:100%; border:none; padding:8px 12px; font-size:12px; min-height:52px; background:#fff; color:#080808; font-family:inherit; resize:vertical; outline:none; line-height:1.5; }
     /* Preview pages */
     #section-proposta .preview-page { background:#fff; width:595px; min-height:842px; padding:40px 44px 36px; position:relative; font-family:'Inter',sans-serif; color:#080808; font-size:10px; line-height:1.5; box-shadow:0 2px 12px rgba(0,0,0,.12); }
-    #section-proposta .preview-page::before { content:''; position:absolute; bottom:-40px; right:-60px; width:480px; height:480px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='%234CC5D7' opacity='0.12'%3E%3Crect x='80' y='40' width='240' height='44' rx='12'/%3E%3Crect x='80' y='40' width='44' height='280' rx='12'/%3E%3Cpath d='M210 84 A136 136 0 0 1 346 220 L346 268 A88 88 0 0 0 210 132 Z'/%3E%3Cpath d='M210 132 A88 88 0 0 1 298 220 L298 268 A40 40 0 0 0 210 180 Z'/%3E%3Crect x='80' y='276' width='240' height='44' rx='12'/%3E%3C/g%3E%3C/svg%3E"); background-size:contain; background-repeat:no-repeat; background-position:center; pointer-events:none; z-index:0; }
+    #section-proposta .preview-page::before { display:none; }
     #section-proposta .preview-page > * { position:relative; z-index:1; }
     #section-proposta .pv-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e8ecef; }
     #section-proposta .pv-logo { height:18px; }
@@ -1406,17 +1411,14 @@
               <label for="filtro-portal">Portal de disputa</label>
               <select id="filtro-portal">
                 <option value="">Todos os portais</option>
-                <option value="Licitar Digital">Licitar Digital</option>
-                <option value="Compras.gov">Compras.gov.br</option>
-                <option value="Portal MG">Portal MG</option>
-                <option value="BLL">BLL Compras</option>
-                <option value="BBMNET">BBMNET</option>
-                <option value="Portal de Compras">Portal de Compras Públicas</option>
-                <option value="Sigmix">Sigmix</option>
-                <option value="Licitações-e">Licitações-e</option>
-                <option value="ComprasNet">ComprasNet</option>
-                <option value="BEC">BEC/SP</option>
-                <option value="PNCP">PNCP</option>
+                <option value="pncp">PNCP</option>
+                <option value="comprasnet">ComprasNet / Compras.gov.br</option>
+                <option value="bec/sp">BEC/SP</option>
+                <option value="licitacoes-e">Licitações-e</option>
+                <option value="comprasbr">ComprasBR</option>
+                <option value="bbmnet">BBMNET</option>
+                <option value="banrisul">Banrisul</option>
+                <option value="caixa">Caixa</option>
               </select>
             </div>
           </div>
@@ -4322,7 +4324,7 @@
     const file = input.files[0];
     if (!file) return;
     const aid = edsonAnaliseAtual && edsonAnaliseAtual.id;
-    if (!aid) { mostrarToast('Análise não identificada', 'error'); return; }
+    if (!aid) { toast('Análise não identificada', 'error'); return; }
     const btn = document.getElementById('btn-enviar-imagem');
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
@@ -4331,11 +4333,11 @@
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
       });
       if (!r.ok) throw new Error(((await r.json()).erro) || 'Erro ao enviar');
-      mostrarToast('Edson vai incluir as informações da imagem na análise', 'success');
+      toast('Edson vai incluir as informações da imagem na análise', 'success');
       document.getElementById('upload-imagem-area').style.display = 'none';
       _iniciarPollingReanálise(aid);
     } catch (e) {
-      mostrarToast('Erro: ' + e.message, 'error');
+      toast('Erro: ' + e.message, 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Enviar para o Edson reanalisar';
     }
@@ -4346,7 +4348,7 @@
     const file = input.files[0];
     if (!file) return;
     const aid = edsonAnaliseAtual && edsonAnaliseAtual.id;
-    if (!aid) { mostrarToast('Análise não identificada', 'error'); return; }
+    if (!aid) { toast('Análise não identificada', 'error'); return; }
     const btn = document.getElementById('btn-enviar-complementar');
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
@@ -4355,11 +4357,11 @@
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
       });
       if (!r.ok) throw new Error(((await r.json()).erro) || 'Erro ao enviar');
-      mostrarToast('Documento recebido. Edson vai reanalisar.', 'success');
+      toast('Documento recebido. Edson vai reanalisar.', 'success');
       document.getElementById('upload-complementar-area').style.display = 'none';
       _iniciarPollingReanálise(aid);
     } catch (e) {
-      mostrarToast('Erro: ' + e.message, 'error');
+      toast('Erro: ' + e.message, 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Enviar e reanalisar';
     }
@@ -4494,7 +4496,7 @@
     const texto = gerarCardWhatsapp(typeof analise === 'string' ? JSON.parse(analise) : analise);
     try {
       await navigator.clipboard.writeText(texto);
-      mostrarToast('Texto copiado para WhatsApp!', 'success');
+      toast('Texto copiado para WhatsApp!', 'success');
     } catch {
       const ta = document.createElement('textarea');
       ta.value = texto;
@@ -4502,7 +4504,7 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      mostrarToast('Texto copiado!', 'success');
+      toast('Texto copiado!', 'success');
     }
   }
 
@@ -4511,7 +4513,7 @@
     if (!e) return;
     const referencia = e.objeto ? e.objeto.slice(0, 120) : (e.numeroEdital || 'Análise via Busca');
     const numero_controle_pncp = e.numeroControlePNCP || e.numero_controle_pncp || null;
-    mostrarToast('Iniciando análise Edson…', 'info');
+    toast('Iniciando análise Edson…', 'info');
     try {
       const body = { referencia };
       if (numero_controle_pncp) body.numero_controle_pncp = numero_controle_pncp;
@@ -4525,7 +4527,7 @@
       navTo('edson');
       abrirEdsonDetalhePorId(d.analise_id);
     } catch (err) {
-      mostrarToast(err.message, 'error');
+      toast(err.message, 'error');
     }
   }
 
@@ -4551,7 +4553,7 @@
     const analiseId = document.getElementById('enviar-cliente-analise-id').value;
     const clienteId = document.getElementById('enviar-cliente-select').value;
     const incluirPDF = document.getElementById('enviar-cliente-pdf').checked;
-    if (!clienteId) { mostrarToast('Selecione um cliente', 'error'); return; }
+    if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
 
     try {
       if (pregaoId && pregaoId !== 'null') {
@@ -4574,10 +4576,10 @@
       if (incluirPDF && analiseId) {
         await baixarRelatorioSimples(pregaoId !== 'null' ? parseInt(pregaoId) : null, parseInt(analiseId));
       }
-      mostrarToast('Enviado para o cliente!', 'success');
+      toast('Enviado para o cliente!', 'success');
       document.getElementById('modal-enviar-cliente').classList.remove('visible');
     } catch (e) {
-      mostrarToast(e.message, 'error');
+      toast(e.message, 'error');
     }
   }
 
@@ -5457,7 +5459,7 @@
   async function confirmarVincularCliente() {
     const analiseId = document.getElementById('edson-avulso-analise-id').value;
     const clienteId = document.getElementById('edson-avulso-select').value;
-    if (!clienteId) { mostrarToast('Selecione um cliente', 'error'); return; }
+    if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
     try {
       const r = await fetch(`${API}/edson/analise/${analiseId}/vincular`, {
         method: 'PATCH',
@@ -5466,11 +5468,11 @@
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro');
-      mostrarToast(`Análise vinculada a ${d.cliente_nome}`, 'success');
+      toast(`Análise vinculada a ${d.cliente_nome}`, 'success');
       document.getElementById('edson-avulso-banner').style.display = 'none';
       document.getElementById('modal-vincular-avulso').classList.remove('visible');
     } catch (e) {
-      mostrarToast(e.message, 'error');
+      toast(e.message, 'error');
     }
   }
 
@@ -5496,10 +5498,10 @@
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro');
-      mostrarToast('Análise descartada', 'success');
+      toast('Análise descartada', 'success');
       voltarListaEdson();
     } catch (e) {
-      mostrarToast(e.message, 'error');
+      toast(e.message, 'error');
     }
   }
 
@@ -5510,34 +5512,34 @@
         ? `${API}/edson/${pregaoId}/relatorio-simples`
         : `${API}/edson/analise/${analiseId}/relatorio-simples`;
       const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { mostrarToast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
+      if (!r.ok) { toast('Relatório não disponível. Aguarde a análise concluir.', 'error'); return; }
       const html = await r.text();
       const w = window.open('', '_blank');
       if (w) { w.document.write(html); w.document.close(); }
-      else { mostrarToast('Permita pop-ups para abrir o relatório.', 'error'); }
-    } catch (e) { mostrarToast('Erro ao abrir relatório: ' + e.message, 'error'); }
+      else { toast('Permita pop-ups para abrir o relatório.', 'error'); }
+    } catch (e) { toast('Erro ao abrir relatório: ' + e.message, 'error'); }
   }
 
   async function baixarPlanilhaAvulso(analiseId) {
     try {
       const r = await fetch(`${API}/edson/analise/${analiseId}/planilha`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { mostrarToast('Planilha não disponível.', 'error'); return; }
+      if (!r.ok) { toast('Planilha não disponível.', 'error'); return; }
       const blob = await r.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = `planilha-${analiseId}.xlsx`; a.click();
       URL.revokeObjectURL(a.href);
-    } catch (e) { mostrarToast('Erro: ' + e.message, 'error'); }
+    } catch (e) { toast('Erro: ' + e.message, 'error'); }
   }
 
   async function baixarRelatorioAvulso(analiseId) {
     try {
       const r = await fetch(`${API}/edson/analise/${analiseId}/relatorio`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { mostrarToast('Relatório não disponível.', 'error'); return; }
+      if (!r.ok) { toast('Relatório não disponível.', 'error'); return; }
       const blob = await r.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = `relatorio-${analiseId}.pdf`; a.click();
       URL.revokeObjectURL(a.href);
-    } catch (e) { mostrarToast('Erro: ' + e.message, 'error'); }
+    } catch (e) { toast('Erro: ' + e.message, 'error'); }
   }
 
   // ── Deletar análise da lista ─────────────────────────────────────────────────

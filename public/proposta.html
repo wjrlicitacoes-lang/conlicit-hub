@@ -218,20 +218,7 @@
     font-size: 10px;
     line-height: 1.5;
   }
-  .preview-page::before {
-    content: '';
-    position: absolute;
-    bottom: -40px;
-    right: -60px;
-    width: 480px;
-    height: 480px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='%234CC5D7' opacity='0.12'%3E%3Crect x='80' y='40' width='240' height='44' rx='12'/%3E%3Crect x='80' y='40' width='44' height='280' rx='12'/%3E%3Cpath d='M210 84 A136 136 0 0 1 346 220 L346 268 A88 88 0 0 0 210 132 Z'/%3E%3Cpath d='M210 132 A88 88 0 0 1 298 220 L298 268 A40 40 0 0 0 210 180 Z'/%3E%3Crect x='80' y='276' width='240' height='44' rx='12'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 0;
-  }
+  .preview-page::before { display: none; }
   .preview-page > * {
     position: relative;
     z-index: 1;
