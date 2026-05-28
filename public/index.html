@@ -1154,7 +1154,7 @@
     #section-proposta .proposta-header h1 { font-size:1.4rem; font-weight:700; color:var(--t1,#fff); }
     #section-proposta .proposta-header-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
     #section-proposta .proposta-layout { display:grid; grid-template-columns:380px 1fr; height:calc(100vh - 115px); }
-    #section-proposta .panel-form { background:#fff; border-right:1px solid var(--pv-border); overflow-y:auto; padding:24px; }
+    #section-proposta .panel-form { background:#fff; border-right:1px solid var(--pv-border); overflow-y:auto; padding:24px; isolation:isolate; }
     #section-proposta .panel-preview { background:#eaecef; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:32px 24px; gap:16px; }
     #section-proposta .p-section-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:12px; margin-top:24px; display:flex; align-items:center; gap:6px; }
     #section-proposta .p-section-label:first-child { margin-top:0; }
@@ -1165,9 +1165,11 @@
     #section-proposta .p-field input:focus, #section-proposta .p-field textarea:focus { border-color:var(--pv-teal); background:#fff; }
     #section-proposta .p-field textarea { resize:vertical; min-height:60px; line-height:1.5; }
     #section-proposta .p-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    #section-proposta .p-check-item { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:var(--pv-radius); background:#f7f9fa; border:1px solid var(--pv-border); margin-bottom:6px; cursor:pointer; }
-    #section-proposta .p-check-item input[type="checkbox"] { width:14px; height:14px; flex-shrink:0; accent-color:var(--pv-teal); margin-top:1px; }
-    #section-proposta .p-check-item label { font-size:12px; color:#080808; cursor:pointer; margin:0; font-weight:400; }
+    #section-proposta .p-check-item { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:var(--pv-radius); background:#f7f9fa; border:1px solid var(--pv-border); margin-bottom:6px; cursor:pointer; position:relative; z-index:1; user-select:none; }
+    #section-proposta .p-check-item input[type="checkbox"] { width:14px; height:14px; flex-shrink:0; accent-color:var(--pv-teal); margin-top:1px; cursor:pointer; pointer-events:auto; position:relative; z-index:2; }
+    #section-proposta .p-check-item label { font-size:12px; color:#080808; cursor:pointer; margin:0; font-weight:400; pointer-events:auto; flex:1; }
+    #section-proposta .p-check-item:has(input:checked) { border-color:var(--pv-teal); background:rgba(76,197,215,0.08); }
+    #section-proposta .p-check-item:has(input:checked) label { color:var(--pv-navy); }
     #section-proposta .p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
     #section-proposta .p-frente-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
     #section-proposta .p-frente-num { width:20px; height:20px; border-radius:4px; background:var(--pv-navy); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -1233,7 +1235,13 @@
     #section-proposta .pv-closing-brand { font-size:9px; font-weight:700; color:var(--pv-navy); }
     #section-proposta .pv-closing-email { font-size:8px; color:var(--pv-teal); }
     /* Historico de propostas */
-    #proposta-historico { padding:1.5rem clamp(1.25rem,3vw,2.5rem); }
+    #proposta-historico { padding:1.5rem clamp(1.25rem,3vw,2.5rem); transition:opacity .2s; }
+    #proposta-historico.hidden { display:none !important; }
+    #section-proposta ~ .sidebar-footer,
+    #section-proposta .sidebar-footer { display:none !important; }
+    body:has(#section-proposta.active) .floating-btn,
+    body:has(#section-proposta.active) [class*="btn-float"],
+    body:has(#section-proposta.active) .fab { display:none !important; }
     /* Print */
     @media print {
       .sidebar, .topbar, #section-proposta .proposta-header, #section-proposta .panel-form, #proposta-historico { display:none !important; }
@@ -6280,11 +6288,15 @@
     const il = document.getElementById('p-incluso-list');
     if (!il) return;
     il.innerHTML = _propostaInclusoState.map(it => `
-      <div class="p-check-item" id="pci_wrap_${it.id}">
+      <div class="p-check-item" id="pci_wrap_${it.id}"
+           onclick="event.target.tagName!=='INPUT'&&event.target.tagName!=='BUTTON'&&(function(){var cb=document.getElementById('${it.id}');if(cb){cb.checked=!cb.checked;_propostaSetIncluso('${it.id}',cb.checked);}})()">
         <input type="checkbox" id="${it.id}" ${it.on?'checked':''}
-               onchange="_propostaSetIncluso('${it.id}',this.checked)">
-        <label for="${it.id}">${esc(it.label)}</label>
-        ${it.custom ? `<button class="p-item-remove" title="Remover" onclick="_propostaRemoverIncluso('${it.id}')">×</button>` : ''}
+               onchange="_propostaSetIncluso('${it.id}',this.checked)"
+               onclick="event.stopPropagation()">
+        <label for="${it.id}" onclick="event.preventDefault();event.stopPropagation();(function(){var cb=document.getElementById('${it.id}');if(cb){cb.checked=!cb.checked;_propostaSetIncluso('${it.id}',cb.checked);}})()">
+          ${esc(it.label)}
+        </label>
+        ${it.custom ? `<button class="p-item-remove" title="Remover" onclick="event.stopPropagation();_propostaRemoverIncluso('${it.id}')">×</button>` : ''}
       </div>
     `).join('') + `<button class="p-add-btn" onclick="_propostaAdicionarIncluso()">＋ Adicionar item personalizado</button>`;
 
