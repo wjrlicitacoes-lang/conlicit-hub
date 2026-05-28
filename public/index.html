@@ -523,6 +523,8 @@
     .busca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip { cursor: pointer; }
     .chip input[type="checkbox"] { display: none; }
+    /* Exceção: checkboxes reais da proposta e escopo nunca devem ser ocultados */
+    #section-proposta input[type="checkbox"] { display:block !important; opacity:1 !important; visibility:visible !important; }
     .chip span {
       display: inline-block; padding: 4px 11px; border-radius: 20px;
       border: 1px solid var(--bd); background: transparent;
@@ -1229,10 +1231,11 @@
     #section-proposta .p-field textarea { resize:vertical; min-height:60px; line-height:1.5; }
     #section-proposta .p-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     #section-proposta .p-check-item { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:var(--pv-radius); background:#f7f9fa; border:1px solid var(--pv-border); margin-bottom:6px; cursor:pointer; position:relative; z-index:1; user-select:none; }
-    #section-proposta .p-check-item input[type="checkbox"] { width:14px; height:14px; flex-shrink:0; accent-color:var(--pv-teal); margin-top:1px; cursor:pointer; pointer-events:auto; position:relative; z-index:2; }
+    #section-proposta .p-check-item input[type="checkbox"] { width:16px; height:16px; flex-shrink:0; accent-color:#4CC5D7; margin-top:2px; cursor:pointer; pointer-events:auto; position:relative; z-index:2; appearance:auto; -webkit-appearance:checkbox; opacity:1; visibility:visible; }
+    #section-proposta .p-check-item input[type="checkbox"]:checked { accent-color:#4CC5D7; background-color:#4CC5D7; }
     #section-proposta .p-check-item label { font-size:12px; color:#080808; cursor:pointer; margin:0; font-weight:400; pointer-events:auto; flex:1; }
-    #section-proposta .p-check-item:has(input:checked) { border-color:var(--pv-teal); background:rgba(76,197,215,0.08); }
-    #section-proposta .p-check-item:has(input:checked) label { color:var(--pv-navy); }
+    #section-proposta .p-check-item:has(input:checked) { border-color:#4CC5D7; background:rgba(76,197,215,0.08); }
+    #section-proposta .p-check-item:has(input:checked) label { color:#182A39; font-weight:500; }
     #section-proposta .p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
     #section-proposta .p-frente-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
     #section-proposta .p-frente-num { width:20px; height:20px; border-radius:4px; background:var(--pv-navy); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -1251,7 +1254,6 @@
     #section-proposta .p-add-btn:hover { background:rgba(76,197,215,.06); border-color:var(--pv-teal); }
     #section-proposta .p-item-remove { margin-left:auto; width:18px; height:18px; border:none; background:transparent; color:#ccc; font-size:13px; cursor:pointer; border-radius:3px; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; transition:all .15s; }
     #section-proposta .p-item-remove:hover { color:#d94c4c; background:rgba(217,76,76,.1); }
-    #section-proposta .p-check-item input[type="checkbox"] { margin-top:2px; }
     /* Preview pages */
     #section-proposta .preview-page { background:#fff; width:595px; min-height:842px; padding:40px 44px 36px; position:relative; font-family:'Inter',sans-serif; color:#080808; font-size:10px; line-height:1.5; box-shadow:0 2px 12px rgba(0,0,0,.12); }
     #section-proposta .preview-page::before { display:none; }
