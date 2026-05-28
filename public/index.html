@@ -663,7 +663,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,.6);
-      z-index: 400;
+      z-index: 1000;
       align-items: center;
       justify-content: center;
       padding: 1rem;
@@ -1117,6 +1117,7 @@
     /* ── USUÁRIOS ─────────────────────────────────────────────────── */
     #section-usuarios .table-container { overflow-x: auto; width: 100%; }
     #modal-editar-usuario .modal { max-height: 90vh; overflow-y: auto; }
+    .modal-box { background:var(--card-bg); border:1px solid var(--bd); border-radius:12px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); animation:modalIn .2s ease; }
 
     /* ── PROPOSTA COMERCIAL ─────────────────────────────────────── */
     #section-proposta { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
@@ -1139,10 +1140,24 @@
     #section-proposta .p-check-item input[type="checkbox"] { width:14px; height:14px; flex-shrink:0; accent-color:var(--pv-teal); margin-top:1px; }
     #section-proposta .p-check-item label { font-size:12px; color:#080808; cursor:pointer; margin:0; font-weight:400; }
     #section-proposta .p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
-    #section-proposta .p-frente-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
+    #section-proposta .p-frente-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
     #section-proposta .p-frente-num { width:20px; height:20px; border-radius:4px; background:var(--pv-navy); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     #section-proposta .p-frente-name { font-size:11px; font-weight:600; color:var(--pv-navy); }
     #section-proposta .p-frente-block textarea { width:100%; border:none; padding:8px 12px; font-size:12px; min-height:52px; background:#fff; color:#080808; font-family:inherit; resize:vertical; outline:none; line-height:1.5; }
+    #section-proposta .p-frente-block.p-frente-off { opacity:.5; }
+    #section-proposta .p-frente-block.p-frente-off textarea { background:#f4f6f8; color:#aaa; }
+    #section-proposta .p-frente-header-left { display:flex; align-items:center; gap:8px; }
+    #section-proposta .p-frente-controls { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+    #section-proposta .p-ctrl-btn { width:22px; height:22px; border:1px solid var(--pv-border); border-radius:4px; background:#fff; color:var(--pv-navy); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; transition:all .15s; }
+    #section-proposta .p-ctrl-btn:hover:not(:disabled) { background:var(--pv-navy); color:#fff; border-color:var(--pv-navy); }
+    #section-proposta .p-ctrl-btn:disabled { opacity:.3; cursor:default; }
+    #section-proposta .p-ctrl-remove { color:#d94c4c; border-color:#f5c6c6; }
+    #section-proposta .p-ctrl-remove:hover { background:#d94c4c !important; border-color:#d94c4c !important; color:#fff !important; }
+    #section-proposta .p-add-btn { display:flex; align-items:center; gap:6px; width:100%; padding:7px 10px; border:1px dashed var(--pv-border); border-radius:var(--pv-radius); background:transparent; color:var(--pv-teal); font-size:12px; cursor:pointer; margin-top:4px; transition:all .15s; }
+    #section-proposta .p-add-btn:hover { background:rgba(76,197,215,.06); border-color:var(--pv-teal); }
+    #section-proposta .p-item-remove { margin-left:auto; width:18px; height:18px; border:none; background:transparent; color:#ccc; font-size:13px; cursor:pointer; border-radius:3px; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; transition:all .15s; }
+    #section-proposta .p-item-remove:hover { color:#d94c4c; background:rgba(217,76,76,.1); }
+    #section-proposta .p-check-item input[type="checkbox"] { margin-top:2px; }
     /* Preview pages */
     #section-proposta .preview-page { background:#fff; width:595px; min-height:842px; padding:40px 44px 36px; position:relative; font-family:'Inter',sans-serif; color:#080808; font-size:10px; line-height:1.5; box-shadow:0 2px 12px rgba(0,0,0,.12); }
     #section-proposta .preview-page::before { display:none; }
@@ -1311,9 +1326,6 @@
           <span class="nav-label">Usuários</span>
         </button>
       </nav>
-      <div class="sidebar-footer">
-        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="logout()">Sair</button>
-      </div>
     </aside>
 
     <!-- CONTENT -->
@@ -1533,46 +1545,10 @@
           <h1>Usuários</h1>
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarUsuarios()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNovoUsuario()">＋ Novo usuário</button>
           </div>
         </div>
-        <div style="max-width:680px">
-          <div class="dados-bloco" style="margin-bottom:1.5rem">
-            <h4>Novo usuário</h4>
-            <form id="form-novo-usuario" onsubmit="salvarNovoUsuario(event)">
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="nu-nome">Nome</label>
-                  <input type="text" id="nu-nome" placeholder="Nome completo" />
-                </div>
-                <div class="form-group">
-                  <label for="nu-email">E-mail *</label>
-                  <input type="email" id="nu-email" placeholder="usuario@email.com" required />
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="nu-senha">Senha temporária *</label>
-                  <input type="password" id="nu-senha" placeholder="Mín. 6 caracteres" required minlength="6" />
-                </div>
-                <div class="form-group">
-                  <label for="nu-role">Nível de acesso *</label>
-                  <select id="nu-role" onchange="toggleClienteField()">
-                    <option value="assistente">Assistente</option>
-                    <option value="admin">Admin</option>
-                    <option value="cliente">Cliente (acesso restrito)</option>
-                  </select>
-                </div>
-              </div>
-              <div id="nu-cliente-field" style="display:none" class="form-group">
-                <label for="nu-cliente-id">Cliente vinculado *</label>
-                <select id="nu-cliente-id">
-                  <option value="">Carregando clientes…</option>
-                </select>
-              </div>
-              <div id="alert-novo-usuario" class="alert"></div>
-              <button type="submit" class="btn btn-primary" id="btn-salvar-usuario">Criar usuário</button>
-            </form>
-          </div>
+        <div style="max-width:780px">
           <div id="usuarios-lista">
             <div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>
           </div>
@@ -3380,6 +3356,17 @@
   // ─────────────────────────────────────────
   // USUÁRIOS (admin only)
   // ─────────────────────────────────────────
+  function abrirModalNovoUsuario() {
+    document.getElementById('form-novo-usuario').reset();
+    document.getElementById('nu-cliente-field').style.display = 'none';
+    document.getElementById('alert-novo-usuario').className = 'alert';
+    document.getElementById('alert-novo-usuario').textContent = '';
+    document.getElementById('modal-novo-usuario').classList.add('visible');
+  }
+  function fecharModalNovoUsuario() {
+    document.getElementById('modal-novo-usuario').classList.remove('visible');
+  }
+
   async function carregarUsuarios() {
     const lista = document.getElementById('usuarios-lista');
     lista.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>';
@@ -3459,8 +3446,7 @@
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao criar usuário');
-      document.getElementById('form-novo-usuario').reset();
-      document.getElementById('nu-cliente-field').style.display = 'none';
+      fecharModalNovoUsuario();
       toast('Usuário criado com sucesso!', 'success');
       carregarUsuarios();
     } catch (err) {
@@ -6028,23 +6014,24 @@
   let edsonAtualAnaliseId = null;
 
   // ── Proposta Comercial ──────────────────────────────────────────────────────
-  const PROPOSTA_INCLUSO = [
-    { id:'pi1', label:'Análise estratégica de editais e ETPs', on:true },
-    { id:'pi2', label:'Mecânica da disputa e plano de lance', on:true },
-    { id:'pi3', label:'Suporte à manutenção de cadastros', on:true },
-    { id:'pi4', label:'Elaboração de recursos administrativos', on:true },
-    { id:'pi5', label:'Checklists e governança documental', on:true },
-    { id:'pi6', label:'Acesso ao Conlicit Hub e ao radar', on:true },
+  const _PROPOSTA_INCLUSO_DEFAULT = [
+    { id:'pi1', label:'Análise estratégica de editais e ETPs', on:true, custom:false },
+    { id:'pi2', label:'Mecânica da disputa e plano de lance', on:true, custom:false },
+    { id:'pi3', label:'Suporte à manutenção de cadastros', on:true, custom:false },
+    { id:'pi4', label:'Elaboração de recursos administrativos', on:true, custom:false },
+    { id:'pi5', label:'Checklists e governança documental', on:true, custom:false },
+    { id:'pi6', label:'Acesso ao Conlicit Hub e ao radar', on:true, custom:false },
   ];
-
-  const PROPOSTA_FRENTES = [
-    { n:'01', name:'análise estratégica de editais', desc:'Leitura crítica do edital e anexos, sinalização de cláusulas restritivas, aderência ao perfil do cliente e parecer de ir/não-ir antes de comprometer recursos comerciais.' },
-    { n:'02', name:'mecânica da disputa', desc:'Plano de lance por item, definição de pisos, simulação de cenários e acompanhamento em tempo real da sessão pública, com operador dedicado quando solicitado.' },
-    { n:'03', name:'estudos técnicos preliminares', desc:'Apoio à elaboração e revisão de ETPs em contratações por adesão, inexigibilidade e dispensa, com base nas referências de mercado e jurisprudência aplicável.' },
-    { n:'04', name:'cadastros e habilitação', desc:'Manutenção do SICAF e demais cadastros públicos, controle de vencimentos de certidões e organização da documentação de habilitação por tipo de licitação.' },
-    { n:'05', name:'recursos administrativos', desc:'Redação de impugnações, recursos e contrarrazões, com base técnica e jurídica, dentro dos prazos legais. Acompanhamento até a decisão final do pregoeiro.' },
-    { n:'06', name:'checklists e governança', desc:'Checklists por modalidade, controle de prazos e rituais operacionais que garantem que nenhuma exigência do edital seja perdida por falha de processo interno.' },
+  const _PROPOSTA_FRENTES_DEFAULT = [
+    { id:'pf1', n:'01', name:'análise estratégica de editais', on:true, custom:false, desc:'Leitura crítica do edital e anexos, sinalização de cláusulas restritivas, aderência ao perfil do cliente e parecer de ir/não-ir antes de comprometer recursos comerciais.' },
+    { id:'pf2', n:'02', name:'mecânica da disputa', on:true, custom:false, desc:'Plano de lance por item, definição de pisos, simulação de cenários e acompanhamento em tempo real da sessão pública, com operador dedicado quando solicitado.' },
+    { id:'pf3', n:'03', name:'estudos técnicos preliminares', on:true, custom:false, desc:'Apoio à elaboração e revisão de ETPs em contratações por adesão, inexigibilidade e dispensa, com base nas referências de mercado e jurisprudência aplicável.' },
+    { id:'pf4', n:'04', name:'cadastros e habilitação', on:true, custom:false, desc:'Manutenção do SICAF e demais cadastros públicos, controle de vencimentos de certidões e organização da documentação de habilitação por tipo de licitação.' },
+    { id:'pf5', n:'05', name:'recursos administrativos', on:true, custom:false, desc:'Redação de impugnações, recursos e contrarrazões, com base técnica e jurídica, dentro dos prazos legais. Acompanhamento até a decisão final do pregoeiro.' },
+    { id:'pf6', n:'06', name:'checklists e governança', on:true, custom:false, desc:'Checklists por modalidade, controle de prazos e rituais operacionais que garantem que nenhuma exigência do edital seja perdida por falha de processo interno.' },
   ];
+  let _propostaInclusoState = _PROPOSTA_INCLUSO_DEFAULT.map(x => ({...x}));
+  let _propostaFrentesState = _PROPOSTA_FRENTES_DEFAULT.map(x => ({...x}));
 
   function pG(id) { const el = document.getElementById(id); return el ? el.value : ''; }
   function pS(id, val) { const el = document.getElementById(id); if(el) el.innerHTML = val; }
@@ -6053,23 +6040,84 @@
   function propostaBuildForm() {
     const il = document.getElementById('p-incluso-list');
     if (!il) return;
-    il.innerHTML = PROPOSTA_INCLUSO.map(it => `
-      <div class="p-check-item">
-        <input type="checkbox" id="${it.id}" ${it.on?'checked':''} onchange="propostaUpdate()">
-        <label for="${it.id}">${it.label}</label>
+    il.innerHTML = _propostaInclusoState.map(it => `
+      <div class="p-check-item" id="pci_wrap_${it.id}">
+        <input type="checkbox" id="${it.id}" ${it.on?'checked':''}
+               onchange="_propostaSetIncluso('${it.id}',this.checked)">
+        <label for="${it.id}">${esc(it.label)}</label>
+        ${it.custom ? `<button class="p-item-remove" title="Remover" onclick="_propostaRemoverIncluso('${it.id}')">×</button>` : ''}
       </div>
-    `).join('');
+    `).join('') + `<button class="p-add-btn" onclick="_propostaAdicionarIncluso()">＋ Adicionar item personalizado</button>`;
 
     const fl = document.getElementById('p-frentes-list');
-    fl.innerHTML = PROPOSTA_FRENTES.map((f,i) => `
-      <div class="p-frente-block">
+    const last = _propostaFrentesState.length - 1;
+    fl.innerHTML = _propostaFrentesState.map((f, i) => `
+      <div class="p-frente-block${f.on ? '' : ' p-frente-off'}" id="pfb_${f.id}">
         <div class="p-frente-header">
-          <div class="p-frente-num">${f.n}</div>
-          <div class="p-frente-name">${f.name}</div>
+          <div class="p-frente-header-left">
+            <input type="checkbox" id="pft_${f.id}" ${f.on?'checked':''}
+                   onchange="_propostaToggleFrente('${f.id}',this.checked)"
+                   style="width:14px;height:14px;accent-color:var(--pv-teal);flex-shrink:0">
+            <div class="p-frente-num">${f.n}</div>
+            <div class="p-frente-name">${esc(f.name)}</div>
+          </div>
+          <div class="p-frente-controls">
+            <button class="p-ctrl-btn" title="Mover para cima"
+                    onclick="_propostaReordenarFrente(${i},-1)" ${i===0?'disabled':''}>&uarr;</button>
+            <button class="p-ctrl-btn" title="Mover para baixo"
+                    onclick="_propostaReordenarFrente(${i},1)" ${i===last?'disabled':''}>&darr;</button>
+            ${f.custom ? `<button class="p-ctrl-btn p-ctrl-remove" title="Remover" onclick="_propostaRemoverFrente('${f.id}')">×</button>` : ''}
+          </div>
         </div>
-        <textarea id="pfd_${i}" oninput="propostaUpdate()">${f.desc}</textarea>
+        <textarea id="pfd_${f.id}" oninput="_propostaDescFrente('${f.id}',this.value)"
+                  ${f.on?'':'disabled'}>${esc(f.desc)}</textarea>
       </div>
-    `).join('');
+    `).join('') + `<button class="p-add-btn" onclick="_propostaAdicionarFrente()">＋ Nova frente de trabalho</button>`;
+  }
+
+  function _propostaSetIncluso(id, on) {
+    const it = _propostaInclusoState.find(x => x.id === id);
+    if (it) it.on = on;
+    propostaUpdate();
+  }
+  function _propostaRemoverIncluso(id) {
+    _propostaInclusoState = _propostaInclusoState.filter(x => x.id !== id);
+    propostaBuildForm(); propostaUpdate();
+  }
+  function _propostaAdicionarIncluso() {
+    const label = prompt('Nome do item personalizado:');
+    if (!label || !label.trim()) return;
+    _propostaInclusoState.push({ id:'pic_'+Date.now(), label:label.trim(), on:true, custom:true });
+    propostaBuildForm(); propostaUpdate();
+  }
+  function _propostaDescFrente(id, val) {
+    const f = _propostaFrentesState.find(x => x.id === id);
+    if (f) f.desc = val;
+    propostaUpdate();
+  }
+  function _propostaToggleFrente(id, on) {
+    const f = _propostaFrentesState.find(x => x.id === id);
+    if (f) f.on = on;
+    propostaBuildForm(); propostaUpdate();
+  }
+  function _propostaReordenarFrente(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= _propostaFrentesState.length) return;
+    const arr = [..._propostaFrentesState];
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    _propostaFrentesState = arr;
+    propostaBuildForm(); propostaUpdate();
+  }
+  function _propostaRemoverFrente(id) {
+    _propostaFrentesState = _propostaFrentesState.filter(x => x.id !== id);
+    propostaBuildForm(); propostaUpdate();
+  }
+  function _propostaAdicionarFrente() {
+    const name = prompt('Nome da nova frente de trabalho:');
+    if (!name || !name.trim()) return;
+    const n = String(_propostaFrentesState.length + 1).padStart(2, '0');
+    _propostaFrentesState.push({ id:'pfc_'+Date.now(), n, name:name.trim().toLowerCase(), on:true, custom:true, desc:'' });
+    propostaBuildForm(); propostaUpdate();
   }
 
   function propostaUpdate() {
@@ -6097,18 +6145,15 @@
     const footerBase = `CONLICIT · ASSESSORIA EM COMPRAS PÚBLICAS · CNPJ ${cnpj} · CONTATO@CONLICIT.COM.BR`;
     pS('p-pv_footer1', footerBase); pS('p-pv_footer2', footerBase);
 
-    const incluso = PROPOSTA_INCLUSO.filter(it => {
-      const el = document.getElementById(it.id);
-      return el && el.checked;
-    }).map(it => it.label);
+    const incluso = _propostaInclusoState.filter(it => it.on).map(it => it.label);
     const extra = pG('pf_extra').trim();
     if (extra) incluso.push(extra);
     pS('p-pv_incluso', incluso.map(i => `
       <div class="pv-incluso-item"><div class="pv-dot"></div><span>${i}</span></div>
     `).join(''));
 
-    pS('p-pv_frentes', PROPOSTA_FRENTES.map((f,i) => {
-      const desc = document.getElementById('pfd_'+i)?.value || f.desc;
+    pS('p-pv_frentes', _propostaFrentesState.filter(f => f.on).map(f => {
+      const desc = f.desc || '';
       return `
         <div class="pv-frente">
           <div class="pv-frente-num">${f.n}</div>
@@ -6143,6 +6188,8 @@
       console.warn('Falha ao buscar próximo número:', e.message);
     }
 
+    _propostaInclusoState = _PROPOSTA_INCLUSO_DEFAULT.map(x => ({...x}));
+    _propostaFrentesState = _PROPOSTA_FRENTES_DEFAULT.map(x => ({...x}));
     propostaBuildForm();
     const now = new Date();
     document.getElementById('pf_data').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -6179,8 +6226,8 @@
         data: pG('pf_data'), ac: pG('pf_ac'), ref: pG('pf_ref'),
         extra: pG('pf_extra'), vigencia: pG('pf_vigencia'),
         faturamento: pG('pf_faturamento'), reajuste: pG('pf_reajuste'), sigilo: pG('pf_sigilo'),
-        frentes: PROPOSTA_FRENTES.map((f,i) => ({ ...f, desc: document.getElementById('pfd_'+i)?.value || f.desc })),
-        incluso: PROPOSTA_INCLUSO.map(it => ({ ...it, on: !!document.getElementById(it.id)?.checked })),
+        frentes: _propostaFrentesState,
+        incluso: _propostaInclusoState,
       },
     };
     try {
@@ -6252,7 +6299,6 @@
       const r = await fetch(`${API}/propostas/${p.id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error((await r.json()).erro);
       const dados = await r.json();
-      propostaBuildForm();
 
       document.getElementById('pf_num').value   = dados.numero || '';
       document.getElementById('pf_cliente').value = dados.cliente || '';
@@ -6269,15 +6315,29 @@
       if (dj.reajuste)    document.getElementById('pf_reajuste').value    = dj.reajuste;
       if (dj.sigilo)      document.getElementById('pf_sigilo').value      = dj.sigilo;
 
-      if (dj.frentes) dj.frentes.forEach((f,i) => {
-        const el = document.getElementById('pfd_'+i);
-        if (el) el.value = f.desc || PROPOSTA_FRENTES[i]?.desc || '';
-      });
-      if (dj.incluso) dj.incluso.forEach(it => {
-        const el = document.getElementById(it.id);
-        if (el) el.checked = it.on;
-      });
-
+      if (dj.frentes && dj.frentes.length > 0) {
+        _propostaFrentesState = dj.frentes.map((f, i) => ({
+          id:     f.id || ('pf' + (i+1)),
+          n:      f.n  || String(i+1).padStart(2,'0'),
+          name:   f.name  || '',
+          desc:   f.desc  || '',
+          on:     f.on !== undefined ? f.on : true,
+          custom: f.custom || false,
+        }));
+      } else {
+        _propostaFrentesState = _PROPOSTA_FRENTES_DEFAULT.map(x => ({...x}));
+      }
+      if (dj.incluso && dj.incluso.length > 0) {
+        _propostaInclusoState = dj.incluso.map(it => ({
+          id:     it.id,
+          label:  it.label || '',
+          on:     it.on !== undefined ? it.on : true,
+          custom: it.custom || false,
+        }));
+      } else {
+        _propostaInclusoState = _PROPOSTA_INCLUSO_DEFAULT.map(x => ({...x}));
+      }
+      propostaBuildForm();
       propostaUpdate();
 
       document.getElementById('proposta-historico').style.display = 'none';
@@ -6391,6 +6451,53 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharModalAvulsoBtn()">Cancelar</button>
       <button class="btn btn-primary" id="avulso-btn" onclick="confirmarAvulso()">Iniciar análise</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Novo usuário -->
+<div class="modal-overlay" id="modal-novo-usuario" onclick="fecharModalNovoUsuario()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Novo usuário</h3>
+      <button class="modal-close" onclick="fecharModalNovoUsuario()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-novo-usuario" onsubmit="salvarNovoUsuario(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nu-nome">Nome</label>
+            <input type="text" id="nu-nome" placeholder="Nome completo" />
+          </div>
+          <div class="form-group">
+            <label for="nu-email">E-mail *</label>
+            <input type="email" id="nu-email" placeholder="usuario@email.com" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nu-senha">Senha temporária *</label>
+            <input type="password" id="nu-senha" placeholder="Mín. 6 caracteres" required minlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="nu-role">Nível de acesso *</label>
+            <select id="nu-role" onchange="toggleClienteField()">
+              <option value="assistente">Assistente</option>
+              <option value="admin">Admin</option>
+              <option value="cliente">Cliente (acesso restrito)</option>
+            </select>
+          </div>
+        </div>
+        <div id="nu-cliente-field" style="display:none" class="form-group">
+          <label for="nu-cliente-id">Cliente vinculado *</label>
+          <select id="nu-cliente-id"><option value="">Carregando clientes…</option></select>
+        </div>
+        <div id="alert-novo-usuario" class="alert"></div>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;padding-top:1rem">
+          <button type="button" class="btn btn-ghost" onclick="fecharModalNovoUsuario()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-salvar-usuario">Criar usuário</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
