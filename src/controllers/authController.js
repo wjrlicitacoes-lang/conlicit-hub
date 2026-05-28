@@ -254,6 +254,55 @@ async function patchPermissao(req, res) {
   }
 }
 
+// PUT /auth/usuarios/:id/permissoes — atualização em lote (só socio_fundador)
+async function atualizarPermissoes(req, res) {
+  if (!['socio_fundador'].includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Apenas sócios fundadores podem alterar permissões' });
+
+  const { id } = req.params;
+  const { permissoes } = req.body ?? {};
+  if (!permissoes || typeof permissoes !== 'object')
+    return res.status(400).json({ erro: 'permissoes deve ser um objeto {modulo: bool}' });
+
+  try {
+    for (const [modulo, liberado] of Object.entries(permissoes)) {
+      await db.query(
+        `INSERT INTO usuario_permissoes (usuario_id, modulo, liberado, alterado_por, alterado_em)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (usuario_id, modulo) DO UPDATE SET liberado=$3, alterado_por=$4, alterado_em=NOW()`,
+        [id, modulo, Boolean(liberado), req.usuario.id],
+      );
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[Permissoes]', e.message);
+    return res.status(500).json({ erro: 'Erro ao salvar permissões' });
+  }
+}
+
+// POST /auth/trocar-senha — usuário logado troca a própria senha
+async function trocarSenha(req, res) {
+  const { senha_atual, senha_nova } = req.body ?? {};
+  if (!senha_atual || !senha_nova)
+    return res.status(400).json({ erro: 'senha_atual e senha_nova são obrigatórios' });
+  if (senha_nova.length < 8)
+    return res.status(400).json({ erro: 'Nova senha deve ter pelo menos 8 caracteres' });
+  try {
+    const { rows } = await db.query(
+      'SELECT senha_hash FROM usuarios WHERE id = $1', [req.usuario.id],
+    );
+    if (!rows.length) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    const senhaOk = await bcrypt.compare(senha_atual, rows[0].senha_hash);
+    if (!senhaOk) return res.status(401).json({ erro: 'Senha atual incorreta' });
+    const novoHash = await bcrypt.hash(senha_nova, 10);
+    await db.query('UPDATE usuarios SET senha_hash=$1 WHERE id=$2', [novoHash, req.usuario.id]);
+    return res.json({ ok: true, mensagem: 'Senha alterada com sucesso' });
+  } catch (e) {
+    console.error('[TrocarSenha]', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
 // DELETE /auth/usuarios/:id/permissoes
 async function deletePermissoes(req, res) {
   if (!ROLES_GESTORES.includes(req.usuario.role))
@@ -271,4 +320,4 @@ async function deletePermissoes(req, res) {
   }
 }
 
-module.exports = { registrar, login, me, criarUsuario, listarUsuarios, editarUsuario, excluirUsuario, getPermissoes, patchPermissao, deletePermissoes };
+module.exports = { registrar, login, me, criarUsuario, listarUsuarios, editarUsuario, excluirUsuario, getPermissoes, patchPermissao, deletePermissoes, atualizarPermissoes, trocarSenha };

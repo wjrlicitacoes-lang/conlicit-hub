@@ -12,6 +12,8 @@ router.patch('/usuarios/:id',             autenticar, authController.editarUsuar
 router.delete('/usuarios/:id',            autenticar, authController.excluirUsuario);
 router.get('/usuarios/:id/permissoes',    autenticar, authController.getPermissoes);
 router.patch('/usuarios/:id/permissoes',  autenticar, authController.patchPermissao);
+router.put('/usuarios/:id/permissoes',    autenticar, authController.atualizarPermissoes);
 router.delete('/usuarios/:id/permissoes', autenticar, authController.deletePermissoes);
+router.post('/trocar-senha',              autenticar, authController.trocarSenha);
 
 module.exports = router;
