@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const editaisController = require('../controllers/editaisController');
+const { buscarItensPorEdital } = editaisController;
 const { sincronizarPNCP } = require('../services/pncpSyncService');
 
 // Lista editais com filtros (usa cache local se populado, fallback ao PNCP)
@@ -8,6 +9,9 @@ router.get('/', editaisController.listarEditais);
 
 // Busca edital específico por CNPJ/ano/sequencial
 router.get('/:cnpj/:ano/:sequencial', editaisController.buscarEditalPorId);
+
+// Itens de um edital via PNCP
+router.get('/:cnpj/:ano/:sequencial/itens', buscarItensPorEdital);
 
 // Dispara a sincronização do cache local com o PNCP
 // POST /editais/sincronizar?diasAdiante=90

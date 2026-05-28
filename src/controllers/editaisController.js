@@ -428,4 +428,23 @@ async function buscarEditalPorId(req, res) {
   }
 }
 
-module.exports = { listarEditais, buscarEditalPorId };
+// GET /editais/:cnpj/:ano/:sequencial/itens
+async function buscarItensPorEdital(req, res) {
+  const { cnpj, ano, sequencial } = req.params;
+  const PNCP_V1 = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
+  try {
+    const resposta = await axios.get(
+      `${PNCP_V1}/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`,
+      { timeout: 10000 },
+    );
+    const itens = Array.isArray(resposta.data) ? resposta.data : (resposta.data?.data ?? []);
+    return res.json({ itens, total: itens.length, fonte: 'PNCP' });
+  } catch (erro) {
+    if (erro.response?.status === 404) {
+      return res.json({ itens: [], total: 0, fonte: 'PNCP' });
+    }
+    return res.status(erro.response?.status ?? 502).json({ erro: erro.response?.data ?? 'Erro ao consultar itens no PNCP' });
+  }
+}
+
+module.exports = { listarEditais, buscarEditalPorId, buscarItensPorEdital };

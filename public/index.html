@@ -474,139 +474,183 @@
     .quick-card-info p { font-size: .8rem; color: var(--text-muted); }
 
     /* ── SEARCH BOX ── */
-    .search-box {
+    /* Suprimir qualquer botão flutuante global */
+    .floating-btn, .fab, [class*="btn-float"] { display: none !important; }
+
+    /* ── BUSCA DE EDITAIS — REDESIGN ───────────────────────────────────── */
+    .busca-painel {
       background: var(--card-bg);
       border: 1px solid var(--bd);
-      border-radius: var(--radius);
-      padding: 1.5rem 1.75rem;
-      margin-bottom: 1.75rem;
-      box-shadow: var(--shadow);
-    }
-    .search-box h2 {
-      font-family: var(--font-condensed);
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      margin-bottom: 1.25rem;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
       display: flex;
-      align-items: center;
-      gap: .5rem;
+      flex-direction: column;
+      gap: 14px;
     }
-    .search-box h2::before {
-      content: '';
-      display: inline-block;
-      width: 3px; height: 16px;
-      background: var(--primary);
-      border-radius: 2px;
+    .busca-linha { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .busca-linha-principal { align-items: flex-end; }
+    .busca-campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .busca-campo-lg { flex: 3; min-width: 200px; }
+    .busca-campo-md { flex: 2; min-width: 160px; }
+    .busca-campo-sm { flex: 1; min-width: 130px; }
+    .busca-campo-xs { flex: 0 0 110px; }
+    .busca-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-muted);
     }
-    .search-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: .75rem;
-      align-items: end;
+    .busca-input-icon { position: relative; }
+    .busca-input-icon svg {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      width: 15px; height: 15px; color: var(--text-muted); pointer-events: none;
     }
-    .search-actions {
-      display: flex;
-      gap: .5rem;
-      margin-top: 1rem;
-      justify-content: flex-end;
+    .busca-input-icon input { padding-left: 32px !important; }
+    .busca-linha-chips { align-items: flex-start; }
+    .busca-chips-group { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+    .busca-chips-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-muted);
     }
-    .btn-search {
-      background: var(--primary);
-      color: var(--secondary);
-      font-family: var(--font);
-      font-size: .9rem;
-      font-weight: 700;
-      padding: .65rem 2rem;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all .18s;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
+    .busca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { cursor: pointer; }
+    .chip input[type="checkbox"] { display: none; }
+    .chip span {
+      display: inline-block; padding: 4px 11px; border-radius: 20px;
+      border: 1px solid var(--bd); background: transparent;
+      font-size: 12px; color: var(--text-muted); transition: all .15s;
+      white-space: nowrap; cursor: pointer;
     }
-    .btn-search:hover { background: var(--primary-l); transform: translateY(-1px); }
-    .btn-search:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .chip:hover span { border-color: rgba(76,197,215,0.4); color: rgba(255,255,255,0.85); }
+    .chip input:checked + span {
+      background: rgba(76,197,215,0.15); border-color: #4CC5D7;
+      color: #4CC5D7; font-weight: 500;
+    }
+    .busca-linha-chips + .busca-linha-chips {
+      padding-top: 10px; border-top: 1px solid var(--sec-border);
+    }
+    .busca-acoes {
+      display: flex; justify-content: flex-end; align-items: center;
+      gap: 10px; padding-top: 6px; border-top: 1px solid var(--sec-border);
+    }
+    .btn-buscar-principal {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; background: #4CC5D7; color: #182A39;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s; font-family: inherit;
+    }
+    .btn-buscar-principal svg { width: 16px; height: 16px; }
+    .btn-buscar-principal:hover { background: #5ed3e4; }
+    .btn-buscar-principal:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* ── RESULTS ── */
     .results-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.25rem;
-      gap: 1rem;
-      flex-wrap: wrap;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; gap: 1rem; flex-wrap: wrap;
     }
-    .results-count { font-size: .9rem; color: var(--text-muted); }
-    .results-count strong { color: var(--primary); font-size: 1.1rem; }
+    .results-count { font-size: 13px; color: var(--text-muted); }
+    .results-count strong { color: #fff; font-size: 15px; }
     .fonte-badge {
-      font-size: .72rem;
-      padding: .2rem .6rem;
-      border-radius: 99px;
-      background: rgba(76,197,215,.1);
-      color: var(--primary);
-      border: 1px solid rgba(76,197,215,.25);
+      display: inline-block; padding: 2px 8px;
+      background: rgba(76,197,215,0.12); color: #4CC5D7;
+      border-radius: 4px; font-size: 11px; margin-left: 8px; font-weight: 500;
     }
 
     /* ── CARDS (editais) ── */
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
-      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px;
     }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--bd);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: .85rem;
-      transition: transform .2s, border-color .2s, box-shadow .2s;
-      position: relative;
-      overflow: hidden;
+    .edital-card {
+      background: var(--card-bg); border: 1px solid var(--bd);
+      border-radius: 10px; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px; transition: border-color .15s;
     }
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--primary-l));
-      opacity: 0;
-      transition: opacity .2s;
+    .edital-card:hover { border-color: rgba(76,197,215,0.3); }
+    .edital-card-top {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 8px;
     }
-    .card:hover { transform: translateY(-3px); border-color: rgba(76,197,215,.4); box-shadow: 0 8px 32px rgba(0,0,0,.4); }
-    .card:hover::before { opacity: 1; }
-    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
-    .card-numero {
-      font-size: .75rem; font-weight: 600; color: var(--primary); font-family: monospace;
-      background: rgba(76,197,215,.1); padding: .2rem .55rem; border-radius: 4px;
-      border: 1px solid rgba(76,197,215,.2); flex-shrink: 0;
+    .edital-badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .edital-numero { font-size: 11px; font-weight: 600; color: #4CC5D7; font-family: monospace; letter-spacing: 0.03em; }
+    .edital-badge-modal {
+      font-size: 10px; padding: 2px 7px; border-radius: 4px;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); font-weight: 500;
     }
-    .card-modalidade {
-      font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
-      padding: .2rem .6rem; border-radius: 4px; white-space: nowrap;
-      background: rgba(255,255,255,.07); color: var(--text-muted); border: 1px solid var(--sec-border);
+    .edital-urgencia { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+    .urgencia-hoje { background: rgba(239,68,68,0.15); color: #f87171; }
+    .urgencia-semana { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .urgencia-normal { background: rgba(76,197,215,0.1); color: #4CC5D7; }
+    .edital-orgao { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1.3; }
+    .edital-objeto {
+      font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .card-orgao { font-size: .95rem; font-weight: 600; color: var(--text); line-height: 1.3; }
-    .card-objeto {
-      font-size: .85rem; color: var(--text-muted); line-height: 1.55;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    .edital-meta {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
+      padding: 10px 0;
+      border-top: 1px solid var(--sec-border);
+      border-bottom: 1px solid var(--sec-border);
     }
-    .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .75rem; }
-    .meta-item { display: flex; flex-direction: column; gap: .1rem; }
-    .meta-label {
-      font-size: .7rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .6px; color: var(--text-muted); opacity: .7;
+    .edital-meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .edital-meta-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-muted);
     }
-    .meta-value { font-size: .82rem; color: var(--text); font-weight: 500; }
-    .meta-value.valor { color: var(--primary); font-weight: 700; font-size: .9rem; }
-    .meta-value.local { display: flex; align-items: center; gap: .3rem; }
-    .meta-value.local::before { content: '📍'; font-size: .7rem; }
-    .card-footer { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--sec-border); }
+    .edital-meta-value { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 500; }
+    .edital-meta-value.valor { color: #4CC5D7; }
+    .edital-acoes { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .btn-ver-pncp {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 6px; border: 1px solid var(--bd); background: transparent;
+      color: rgba(255,255,255,0.5); font-size: 11px; text-decoration: none; transition: all .15s; cursor: pointer;
+    }
+    .btn-ver-pncp:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); }
+    .btn-ver-pncp svg { width: 11px; height: 11px; }
+    .btn-ver-itens {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 6px; border: 1px solid rgba(76,197,215,0.25);
+      background: rgba(76,197,215,0.06); color: #4CC5D7;
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .btn-ver-itens:hover { background: rgba(76,197,215,0.14); border-color: #4CC5D7; }
+    .btn-oferecer {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 6px; border: 1px solid var(--bd); background: transparent;
+      color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .btn-oferecer:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); }
+    .btn-edson {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 6px; background: var(--secondary); color: #4CC5D7;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s;
+      font-family: inherit; border: 1px solid rgba(76,197,215,0.2);
+    }
+    .btn-edson:hover { border-color: #4CC5D7; }
+
+    /* ── MODAL ITENS ── */
+    .modal-itens { max-width: 680px; width: 95vw; max-height: 80vh; overflow-y: auto; }
+    .modal-itens-sub { font-size: 11px; color: var(--text-muted); margin: 2px 0 0; }
+    .itens-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+    .itens-table th {
+      padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+      border-bottom: 1px solid var(--sec-border);
+    }
+    .itens-table td {
+      padding: 9px 10px; border-bottom: 1px solid var(--sec-border);
+      color: rgba(255,255,255,0.75); vertical-align: top;
+    }
+    .itens-table tr:last-child td { border-bottom: none; }
+    .itens-table td.num { color: #4CC5D7; font-weight: 600; width: 36px; }
+    .itens-table td.valor { color: #4CC5D7; text-align: right; white-space: nowrap; }
+    .itens-table td.qtd { text-align: right; }
+    .itens-count {
+      font-size: 11px; color: var(--text-muted);
+      padding: 10px 0 0; border-top: 1px solid var(--sec-border); margin-top: 6px;
+    }
+
+    /* compat — mantém .btn-link para usos fora da busca */
     .btn-link {
       display: inline-flex; align-items: center; gap: .4rem;
       color: var(--primary); text-decoration: none; font-size: .82rem;
@@ -1476,15 +1520,21 @@
             <button class="btn btn-ghost btn-sm" onclick="sincronizarCache()">⟳ Sincronizar cache</button>
           </div>
         </div>
-        <div class="search-box">
-          <h2>Filtros de busca</h2>
-          <div class="search-grid">
-            <div class="form-group" style="margin:0">
-              <label for="q">Palavra-chave</label>
-              <input type="text" id="q" placeholder="Ex: limpeza, TI, obras, alimentação…" />
+
+        <!-- PAINEL DE FILTROS -->
+        <div class="busca-painel">
+
+          <!-- LINHA 1: Busca principal -->
+          <div class="busca-linha busca-linha-principal">
+            <div class="busca-campo busca-campo-lg">
+              <label class="busca-label">Palavra-chave</label>
+              <div class="busca-input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="q" placeholder="Ex: limpeza, TI, obras, alimentação…" />
+              </div>
             </div>
-            <div class="form-group" style="margin:0">
-              <label for="uf">Estado (UF)</label>
+            <div class="busca-campo busca-campo-sm">
+              <label class="busca-label">Estado (UF)</label>
               <select id="uf">
                 <option value="">Todos os estados</option>
                 <option value="AC">Acre</option><option value="AL">Alagoas</option>
@@ -1503,68 +1553,99 @@
                 <option value="TO">Tocantins</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0">
-              <label for="dataInicial">Encerramento a partir de</label>
+            <div class="busca-campo busca-campo-sm">
+              <label class="busca-label">Abertura de</label>
               <input type="date" id="dataInicial" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label for="dataFinal">Encerramento até</label>
+            <div class="busca-campo busca-campo-sm">
+              <label class="busca-label">Abertura até</label>
               <input type="date" id="dataFinal" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label for="cidade">Cidade</label>
+          </div>
+
+          <!-- LINHA 2: Localização + Valor -->
+          <div class="busca-linha">
+            <div class="busca-campo busca-campo-md">
+              <label class="busca-label">Cidade de referência</label>
               <input type="text" id="cidade" placeholder="Ex: Belo Horizonte" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label for="raio_km">Raio de cobertura</label>
-              <div style="position:relative">
-                <input type="number" id="raio_km" placeholder="Raio em km (ex: 50)" min="0" max="5000" step="10" style="padding-right:36px">
-                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none">km</span>
-              </div>
+            <div class="busca-campo busca-campo-xs">
+              <label class="busca-label">Raio (km)</label>
+              <input type="number" id="raio_km" placeholder="Ex: 80" min="0" max="5000" step="10" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label>Modalidade</label>
-              <div class="check-filtros" id="filtro-modalidades">
-                <label class="check-tag"><input type="checkbox" value="Pregão - Eletrônico"> Pregão Eletrônico</label>
-                <label class="check-tag"><input type="checkbox" value="Dispensa"> Dispensa</label>
-                <label class="check-tag"><input type="checkbox" value="Concorrência"> Concorrência</label>
-                <label class="check-tag"><input type="checkbox" value="Credenciamento"> Credenciamento</label>
-                <label class="check-tag"><input type="checkbox" value="Diálogo Competitivo"> Diálogo Competitivo</label>
-                <label class="check-tag"><input type="checkbox" value="Inexigibilidade"> Inexigibilidade</label>
-                <label class="check-tag"><input type="checkbox" value="Leilão"> Leilão</label>
-              </div>
+            <div class="busca-campo busca-campo-sm">
+              <label class="busca-label">Valor mínimo (R$)</label>
+              <input type="number" id="filtro-valor-min" placeholder="Ex: 10.000" min="0" step="1" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label>Plataforma</label>
-              <div class="check-filtros" id="filtro-portais">
-                <label class="check-tag"><input type="checkbox" value="Licitar Digital"> Licitar Digital</label>
-                <label class="check-tag"><input type="checkbox" value="Compras.gov"> Compras.gov</label>
-                <label class="check-tag"><input type="checkbox" value="BLL Compras"> BLL Compras</label>
-                <label class="check-tag"><input type="checkbox" value="BBMNET"> BBMNET</label>
-                <label class="check-tag"><input type="checkbox" value="Portal de Compras Públicas"> PCP</label>
-                <label class="check-tag"><input type="checkbox" value="Sigmix"> Sigmix</label>
-                <label class="check-tag"><input type="checkbox" value="Licitações-e"> Licitações-e</label>
-                <label class="check-tag"><input type="checkbox" value="Portal MG"> Portal MG</label>
-              </div>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label for="filtro-valor-min">Valor estimado mínimo (R$)</label>
-              <input type="number" id="filtro-valor-min" placeholder="Ex: 10000" min="0" step="1" />
-            </div>
-            <div class="form-group" style="margin:0">
-              <label for="filtro-valor-max">Valor estimado máximo (R$)</label>
-              <input type="number" id="filtro-valor-max" placeholder="Ex: 500000" min="0" step="1" />
+            <div class="busca-campo busca-campo-sm">
+              <label class="busca-label">Valor máximo (R$)</label>
+              <input type="number" id="filtro-valor-max" placeholder="Ex: 500.000" min="0" step="1" />
             </div>
           </div>
-          <div class="search-actions">
-            <button class="btn btn-ghost" onclick="limparBusca()">Limpar</button>
-            <button class="btn-search" id="btn-buscar" onclick="buscar(1)">
+
+          <!-- LINHA 3: Modalidade -->
+          <div class="busca-linha busca-linha-chips">
+            <div class="busca-chips-group">
+              <span class="busca-chips-label">Modalidade</span>
+              <div class="busca-chips" id="filtro-modalidades">
+                <label class="chip"><input type="checkbox" value="Pregão - Eletrônico"><span>Pregão Eletrônico</span></label>
+                <label class="chip"><input type="checkbox" value="Dispensa"><span>Dispensa</span></label>
+                <label class="chip"><input type="checkbox" value="Concorrência"><span>Concorrência</span></label>
+                <label class="chip"><input type="checkbox" value="Credenciamento"><span>Credenciamento</span></label>
+                <label class="chip"><input type="checkbox" value="Diálogo Competitivo"><span>Diálogo Competitivo</span></label>
+                <label class="chip"><input type="checkbox" value="Inexigibilidade"><span>Inexigibilidade</span></label>
+                <label class="chip"><input type="checkbox" value="Leilão"><span>Leilão</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 4: Plataforma -->
+          <div class="busca-linha busca-linha-chips">
+            <div class="busca-chips-group">
+              <span class="busca-chips-label">Plataforma</span>
+              <div class="busca-chips" id="filtro-portais">
+                <label class="chip"><input type="checkbox" value="Licitar Digital"><span>Licitar Digital</span></label>
+                <label class="chip"><input type="checkbox" value="Compras.gov"><span>Compras.gov</span></label>
+                <label class="chip"><input type="checkbox" value="BLL Compras"><span>BLL Compras</span></label>
+                <label class="chip"><input type="checkbox" value="BBMNET"><span>BBMNET</span></label>
+                <label class="chip"><input type="checkbox" value="Portal de Compras Públicas"><span>PCP</span></label>
+                <label class="chip"><input type="checkbox" value="Sigmix"><span>Sigmix</span></label>
+                <label class="chip"><input type="checkbox" value="Licitações-e"><span>Licitações-e</span></label>
+                <label class="chip"><input type="checkbox" value="Portal MG"><span>Portal MG</span></label>
+                <label class="chip"><input type="checkbox" value="outras"><span>Outras</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- AÇÕES -->
+          <div class="busca-acoes">
+            <button class="btn btn-ghost" onclick="limparBusca()">Limpar filtros</button>
+            <button class="btn-buscar-principal" id="btn-buscar" onclick="buscar(1)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               Buscar editais
             </button>
           </div>
         </div>
+
+        <!-- RESULTADOS -->
         <div id="results-area"></div>
+
+        <!-- MODAL ITENS DO PREGÃO -->
+        <div class="modal-overlay" id="modal-itens-pregao" onclick="this.classList.remove('visible')">
+          <div class="modal modal-itens" onclick="event.stopPropagation()">
+            <div class="modal-header">
+              <div>
+                <h3 id="modal-itens-titulo">Itens do Pregão</h3>
+                <p class="modal-itens-sub" id="modal-itens-sub"></p>
+              </div>
+              <button class="modal-close" onclick="document.getElementById('modal-itens-pregao').classList.remove('visible')">✕</button>
+            </div>
+            <div class="modal-body" id="modal-itens-body">
+              <div class="state-box"><div class="spinner"></div><p>Carregando itens…</p></div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ── CLIENTES ── -->
@@ -4120,44 +4201,148 @@
 
   function renderCard(e, idx) {
     const objeto = e.objeto || '—';
-    const valor = e.valorEstimado || '—';
-    const local = [e.municipio, e.estado].filter(Boolean).join(' · ') || '—';
+    const orgao  = e.orgao  || '—';
+    const valor  = e.valorEstimado
+      ? (typeof e.valorEstimado === 'number'
+          ? e.valorEstimado.toLocaleString('pt-BR', { style:'currency', currency:'BRL' })
+          : e.valorEstimado)
+      : '—';
+    const local  = [e.municipio, e.uf || e.estado].filter(Boolean).join(' · ') || '—';
     const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
-    return `<div class="card">
-      <div class="card-header">
-        <span class="card-numero">${esc(e.numeroEdital || '—')}</span>
-        ${e.modalidade ? `<span class="card-modalidade">${esc(e.modalidade)}</span>` : ''}
-        ${portal ? portalBadge(portal, e.linkSistemaOrigem || e.link) : ''}
+    const link   = e.link || e.linkSistemaOrigem || '';
+
+    // Urgência baseada no encerramento
+    const hoje = new Date();
+    const enc  = e.dataEncerramentoProposta ? new Date(e.dataEncerramentoProposta) : null;
+    let urgBadge = '';
+    if (enc) {
+      const dias = Math.ceil((enc - hoje) / 86400000);
+      if (dias <= 0)      urgBadge = '';
+      else if (dias <= 1) urgBadge = `<span class="edital-urgencia urgencia-hoje">Encerra hoje</span>`;
+      else if (dias <= 7) urgBadge = `<span class="edital-urgencia urgencia-semana">Encerra em ${dias}d</span>`;
+      else                urgBadge = `<span class="edital-urgencia urgencia-normal">${dias}d restantes</span>`;
+    }
+
+    // Botão de preview de itens via PNCP
+    const nPNCP = e.numeroControlePNCP || e.numero_controle_pncp || '';
+    let btnItens = '';
+    if (nPNCP) {
+      const m = nPNCP.match(/^(\d+)-\d+-(\d+)\/(\d+)$/);
+      if (m) {
+        const [, cnpj, seq, ano] = m;
+        btnItens = `<button class="btn-ver-itens" onclick="previewItens('${cnpj}','${ano}','${seq}','${esc(orgao)}',${idx})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Ver itens
+        </button>`;
+      }
+    }
+
+    return `<div class="edital-card">
+      <div class="edital-card-top">
+        <div class="edital-badges">
+          <span class="edital-numero">${esc(e.numeroEdital || nPNCP.slice(0,20) || '—')}</span>
+          ${e.modalidade ? `<span class="edital-badge-modal">${esc(e.modalidade)}</span>` : ''}
+          ${portal ? `<span class="edital-badge-modal" style="color:#4CC5D7">${esc(portal)}</span>` : ''}
+        </div>
+        ${urgBadge}
       </div>
-      <div class="card-orgao">${esc(e.orgao || '—')}</div>
-      <div class="card-objeto" title="${esc(objeto)}">${esc(objeto)}</div>
-      <div class="card-meta">
-        <div class="meta-item">
-          <span class="meta-label">Valor estimado</span>
-          <span class="meta-value valor">${esc(String(valor))}</span>
+      <div class="edital-orgao">${esc(orgao)}</div>
+      <div class="edital-objeto" title="${esc(objeto)}">${esc(objeto)}</div>
+      <div class="edital-meta">
+        <div class="edital-meta-item">
+          <span class="edital-meta-label">Valor estimado</span>
+          <span class="edital-meta-value valor">${esc(String(valor))}</span>
         </div>
-        <div class="meta-item">
-          <span class="meta-label">Local</span>
-          <span class="meta-value local">${esc(local)}</span>
+        <div class="edital-meta-item">
+          <span class="edital-meta-label">Local</span>
+          <span class="edital-meta-value">${esc(local)}</span>
         </div>
-        <div class="meta-item">
-          <span class="meta-label">Publicação</span>
-          <span class="meta-value">${esc(e.dataPublicacao || '—')}</span>
+        <div class="edital-meta-item">
+          <span class="edital-meta-label">Publicação</span>
+          <span class="edital-meta-value">${esc(e.dataPublicacao || '—')}</span>
         </div>
-        <div class="meta-item">
-          <span class="meta-label">Encerramento</span>
-          <span class="meta-value">${esc(e.dataEncerramentoProposta || '—')}</span>
+        <div class="edital-meta-item">
+          <span class="edital-meta-label">Encerramento</span>
+          <span class="edital-meta-value">${esc(e.dataEncerramentoProposta || '—')}</span>
         </div>
       </div>
-      <div class="card-footer" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-        ${e.link ? `<a class="btn-link" href="${e.link}" target="_blank" rel="noopener">
-          Ver edital no PNCP
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <div class="edital-acoes">
+        ${link ? `<a class="btn-ver-pncp" href="${link}" target="_blank" rel="noopener">
+          PNCP <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>` : ''}
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalOferecer(${idx})" style="font-size:.8rem">+ Oferecer para cliente</button>
-        <button class="btn btn-primary btn-sm" onclick="analisarComEdson(${idx})" style="font-size:.8rem">🤖 Analisar com Edson</button>
+        ${btnItens}
+        <button class="btn-oferecer" onclick="abrirModalOferecer(${idx})">+ Oferecer</button>
+        <button class="btn-edson" onclick="analisarComEdson(${idx})">🤖 Edson</button>
       </div>
     </div>`;
+  }
+
+  async function previewItens(cnpj, ano, seq, orgaoNome, idx) {
+    const modal  = document.getElementById('modal-itens-pregao');
+    const body   = document.getElementById('modal-itens-body');
+    const titulo = document.getElementById('modal-itens-titulo');
+    const sub    = document.getElementById('modal-itens-sub');
+
+    titulo.textContent = 'Itens do Pregão';
+    sub.textContent = orgaoNome || '';
+    body.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Carregando itens…</p></div>';
+    modal.classList.add('visible');
+
+    try {
+      const resp = await fetch(`${API}/editais/${cnpj}/${ano}/${seq}/itens`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await resp.json();
+      const itens = data.itens ?? data ?? [];
+
+      if (!Array.isArray(itens) || itens.length === 0) {
+        body.innerHTML = `<div class="state-box">
+          <span class="icon">📋</span>
+          <p>Nenhum item encontrado para este edital.</p>
+          <p style="font-size:11px;color:var(--text-muted)">Os itens podem não estar disponíveis no PNCP para esta modalidade.</p>
+        </div>`;
+        return;
+      }
+
+      titulo.textContent = `Itens do Pregão (${itens.length})`;
+      body.innerHTML = `
+        <table class="itens-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Descrição</th>
+              <th style="text-align:right">Qtd</th>
+              <th>Un</th>
+              <th style="text-align:right">Vr Unit. Est.</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itens.map((item, i) => {
+              const desc = item.descricao || item.materialServico?.descricao || item.descricaoItem || '—';
+              const qtd  = item.quantidade ?? '—';
+              const un   = item.unidadeMedida || item.unidade || '—';
+              const vr   = item.valorUnitarioEstimado != null
+                ? Number(item.valorUnitarioEstimado).toLocaleString('pt-BR', {style:'currency',currency:'BRL'})
+                : '—';
+              return `<tr>
+                <td class="num">${item.numeroItem ?? i + 1}</td>
+                <td>${esc(desc)}</td>
+                <td class="qtd">${qtd}</td>
+                <td>${esc(un)}</td>
+                <td class="valor">${vr}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <div class="itens-count">${itens.length} item(s) · Fonte: ${esc(data.fonte || 'PNCP')}</div>
+      `;
+    } catch (err) {
+      body.innerHTML = `<div class="state-box">
+        <span class="icon">⚠️</span>
+        <p>Erro ao carregar itens.</p>
+        <p style="font-size:11px;color:var(--text-muted)">${esc(err.message)}</p>
+      </div>`;
+    }
   }
 
   function renderPagination(current, total) {
