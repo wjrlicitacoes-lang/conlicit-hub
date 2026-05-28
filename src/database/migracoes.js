@@ -341,6 +341,11 @@ async function executarMigracoes() {
     END $$
   `);
 
+  // Novos campos Edson — Lei 14.133/2021
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS clausulas_restritivas JSONB DEFAULT '[]'`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazos_legais JSONB DEFAULT '{}'`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS beneficios_me_epp JSONB DEFAULT '{}'`);
+
   console.log('Migrações executadas com sucesso');
 }
 

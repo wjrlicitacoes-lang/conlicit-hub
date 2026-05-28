@@ -73,37 +73,224 @@ async function buscarDataSessao(pregao) {
   return formatarDataHora(dt);
 }
 
-// ── Prompts ───────────────────────────────────────────────────────────────────
+// ── Prompts — Lei 14.133/2021 ─────────────────────────────────────────────────
 
 const RUBRICA_INSTRUCAO = `
-RUBRICA DE SCORE — preencha cada critério com o valor indicado:
+RUBRICA DE SCORE — preencha cada critério com o valor numérico indicado:
 {
   "criterios_score": {
-    "alinhamento_objeto": <0-25>,       // 25=objeto exato do cliente, 0=sem relação
-    "complexidade_habilitacao": <0-20>, // 20=só declarações, 0=atestado técnico complexo
-    "valor_viabilidade": <0-20>,        // 20=valor alto e rentável, 0=valor baixo/sigiloso
-    "modo_disputa": <0-15>,             // 15=aberto por item, 0=fechado global
-    "risco_juridico": <0-10>,           // 10=sem riscos, 0=muitos riscos graves
-    "prazo_adequado": <0-10>            // 10=prazo confortável, 0=prazo já passou/<24h
+    "alinhamento_objeto": <0-25>,       // 25=objeto exato do segmento do cliente; 0=sem relação
+    "complexidade_habilitacao": <0-20>, // 20=só declarações/SICAF; 0=atestado técnico complexo ou balanço exigente
+    "valor_viabilidade": <0-20>,        // 20=valor alto e rentável; 0=valor sigiloso ou abaixo do custo mínimo
+    "modo_disputa": <0-15>,             // 15=aberto por item; 5=fechado ou global; 0=sem informação
+    "risco_juridico": <0-10>,           // 10=edital sem irregularidades; 0=múltiplas cláusulas restritivas
+    "prazo_adequado": <0-10>            // 10=prazo >5 dias úteis; 5=2-5 dias úteis; 0=<2 dias ou já encerrado
   }
 }
-NÃO inclua campo "score" — o sistema calcula a soma automaticamente.
+NÃO inclua campo "score" — o sistema calcula a soma automaticamente.`;
 
-INSTRUÇÕES CRÍTICAS:
-- Responda APENAS com JSON válido. Nenhum texto antes ou depois.
-- NUNCA omita campos do JSON, mesmo sem informação — use null ou array vazio [].
-- Para "itens": se o edital tiver itens no texto, extraia TODOS. Se não houver, retorne [].
-- Para "habilitacao": sempre preencha com base no objeto e modalidade, mesmo sem edital completo.
-- Para "riscos": retorne no mínimo 3 riscos relevantes.
-- Para "checklist": retorne no mínimo 5 itens em "antes" e 4 em "durante".
-- Números devem ser números (não strings): "quantidade": 10, não "quantidade": "10".
-- O JSON deve ser completo mesmo para editais simples — não abrevie.`;
+// ── Base de conhecimento Lei 14.133/2021 ──────────────────────────────────────
+
+const BASE_LEGAL_14133 = `
+=== BASE LEGAL — LEI 14.133/2021 (Nova Lei de Licitações) ===
+
+MODALIDADES E LIMITES (art. 28 e 75):
+- Pregão Eletrônico: obrigatório para bens e serviços comuns (art. 176). Modo padrão.
+- Concorrência: obras >R$ 3,3M ou serviços especiais >R$ 1,76M (Decreto 11.871/2023).
+- Concurso: seleção de trabalho técnico, científico ou artístico.
+- Leilão: alienação de bens ou concessões.
+- Diálogo Competitivo: soluções inovadoras de alta complexidade.
+- Dispensa Eletrônica (art. 75, II): até R$ 57.208,33 para bens/serviços comuns (2024).
+- Dispensa (art. 75, I): obras até R$ 114.416,66.
+- Inexigibilidade (art. 74): fornecedor exclusivo, serviço técnico especializado ou artista consagrado.
+
+HABILITAÇÃO — DOCUMENTOS LEGAIS (art. 62-70):
+Jurídica (art. 66): ato constitutivo, CNPJ, identificação dos administradores, autorização para a atividade.
+Fiscal/Trabalhista (art. 68): CND Federal+PGFN, CND Estadual, CND Municipal, CRF/FGTS, CNDT (TST), prova de inscrição CNPJ/CPF.
+Econômico-financeira (art. 69): balanço patrimonial, certidão negativa de falência/recuperação judicial, capital social ou patrimônio líquido mínimo (se exigido — limitado a 10% do valor estimado pelo art. 69, §2°).
+Técnica (art. 67): atestado de desempenho anterior emitido por pessoa jurídica de direito público ou privado. PROIBIDO exigir: (a) mais de 3 atestados para o mesmo serviço; (b) quantitativo superior a 50% do objeto (Súmula 272 TCU); (c) execução anterior junto ao mesmo órgão; (d) prazo mínimo de funcionamento da empresa superior a 1 ano (art. 67, §1°).
+Qualificação Técnica — CUIDADO: exigência de certificação ou registro em conselho profissional é válida apenas quando a lei específica exige (ex: CREA para obras, CRF para farmacêuticos). Fora dessas hipóteses, é cláusula restritiva ilegal (art. 9°, III).
+
+PRAZOS LEGAIS CRÍTICOS:
+- Publicação → Apresentação de propostas: mínimo 8 dias úteis para Pregão (art. 55, I).
+- Impugnação ao edital: até 3 dias úteis antes da abertura (art. 164).
+- Pedido de esclarecimento: até 3 dias úteis antes da abertura (art. 164, §1°).
+- Resposta da Administração a impugnação/esclarecimento: 3 dias úteis (art. 164, §2°).
+- Recurso pós-habilitação/desclassificação: 3 dias úteis (art. 165).
+- Contrarrazões ao recurso: 3 dias úteis após intimação (art. 165, §2°).
+- Assinatura do contrato após convocação: 5 dias úteis (art. 90, prorrogável por igual período).
+- Publicação do extrato do contrato: 20 dias após assinatura (art. 94).
+
+BENEFÍCIOS ME/EPP — LC 123/2006 + Lei 14.133/2021 (art. 4°):
+- Exclusividade ME/EPP OBRIGATÓRIA: itens ou lotes com valor até R$ 80.000,00 (art. 48, I, LC 123).
+- Cota reservada 25% OBRIGATÓRIA: quando a licitação admite cota reservada para ME/EPP.
+- Empate ficto (art. 44 LC 123): ME/EPP pode cobrir proposta de grande empresa com diferença de até 5%.
+- Regularização fiscal posterior: ME/EPP com restrição fiscal tem 5 dias úteis após declaração de vencedor para regularizar (art. 43, §1°, LC 123).
+- ATENÇÃO: licitação acima de R$ 80.000,00 SEM cota reservada, sendo divisível por itens, pode configurar irregularidade.
+
+CLÁUSULAS RESTRITIVAS ILEGAIS (art. 9°):
+São NULAS e impugnáveis as cláusulas que:
+1. Exijam atestado com quantidade superior a 50% do objeto (viola Súmula 272 TCU).
+2. Exijam que o atestado seja de execução junto ao mesmo órgão contratante.
+3. Exijam tempo mínimo de existência da empresa superior a 1 ano (art. 67, §1°).
+4. Exijam capital social mínimo superior a 10% do valor estimado (art. 69, §2°).
+5. Contenham critérios não previstos no edital que direcionem o resultado.
+6. Exijam registro em entidade profissional quando a lei não prevê para o objeto.
+7. Estabeleçam restrição de participação por UF, localização ou proximidade sem justificativa técnica.
+8. Exijam amostra ou protótipo em fase de habilitação (permitido apenas na fase de julgamento).
+
+IRREGULARIDADES RECORRENTES — JURISPRUDÊNCIA TCU:
+- Acórdão 2.637/2015: vedada a exigência de atestado com quantitativo mínimo superior a 50%.
+- Acórdão 1.102/2021: obrigatoriedade de cota reservada ME/EPP para itens divisíveis ≤R$ 80k.
+- Súmula 247 TCU: obrigatória a ampla pesquisa de mercado para formação do preço de referência.
+- Acórdão 1.793/2011: vedado exigir exclusividade de propriedade de equipamentos — admitida locação/arrendamento.
+- Orientação Normativa AGU 58/2014: capital social mínimo limitado a 10% do valor estimado.
+
+FRAUDES E RISCOS A IDENTIFICAR:
+- Valor estimado sigiloso sem justificativa: dificulta formação de proposta competitiva, pode ser impugnado.
+- Prazo de entrega/execução incompatível com o mercado: risco de desclassificação por inexequibilidade.
+- Objeto superficialmente descrito: risco de glosa no recebimento ou conflito na execução contratual.
+- Licitação dividida para fugir de limites de modalidade (fracionamento ilegal — art. 8°, §1°).
+- Dispensa/Inexigibilidade sem processo formal completo: nulidade do contrato e responsabilidade do gestor.
+`;
+
+// ── Estrutura JSON de saída — única fonte da verdade ─────────────────────────
+
+const JSON_SCHEMA = `{
+  "criterios_score": {
+    "alinhamento_objeto": <0-25>,
+    "complexidade_habilitacao": <0-20>,
+    "valor_viabilidade": <0-20>,
+    "modo_disputa": <0-15>,
+    "risco_juridico": <0-10>,
+    "prazo_adequado": <0-10>
+  },
+  "score_justificativa": "<2-3 frases citando artigos da Lei 14.133/2021 quando aplicável>",
+  "resumo_executivo": "<3-4 frases de análise executiva com embasamento legal>",
+  "modalidade": "<Pregão Eletrônico|Dispensa Eletrônica|Concorrência|Inexigibilidade|...>",
+  "modo_disputa": "<Aberto|Fechado|Aberto e Fechado|Disputa Final|não informado>",
+  "tipo_julgamento": "<Menor Preço|Melhor Técnica|Técnica e Preço|Maior Desconto|Maior Lance>",
+  "itens": [
+    { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number|null> }
+  ],
+  "habilitacao": [
+    {
+      "categoria": "<Jurídica|Fiscal e Trabalhista|Técnica|Econômico-financeira|Declarações>",
+      "documentos": [{ "nome": "<str>", "obrigatorio": <bool>, "base_legal": "<art. XX Lei 14.133/2021 ou LC 123/2006>" }]
+    }
+  ],
+  "clausulas_restritivas": [
+    {
+      "clausula": "<transcrição ou descrição da cláusula problemática>",
+      "violacao": "<artigo ou súmula violada>",
+      "recomendacao": "<impugnar até 3 dias úteis antes / solicitar esclarecimento / participar mesmo assim com ressalva>"
+    }
+  ],
+  "prazos_legais": {
+    "data_sessao": "<data e hora da sessão ou null>",
+    "prazo_impugnacao": "<data limite para impugnar — 3 dias úteis antes da sessão>",
+    "prazo_esclarecimento": "<data limite para pedir esclarecimento — 3 dias úteis antes>",
+    "dias_uteis_restantes": <int — dias úteis até a sessão, -1 se não calculável>,
+    "alerta_prazo": "<null | 'URGENTE: menos de 2 dias úteis' | 'ATENÇÃO: 2-3 dias úteis' | 'OK: prazo confortável'>"
+  },
+  "beneficios_me_epp": {
+    "exclusividade_obrigatoria": <bool — true se valor ≤ R$ 80.000>,
+    "exclusividade_prevista": <bool — se o edital prevê>,
+    "cota_reservada": <bool — se o edital prevê cota 25%>,
+    "empate_ficto_aplicavel": <bool>,
+    "alerta": "<null | descrição do benefício não aplicado que deveria ser>"
+  },
+  "riscos": [
+    {
+      "risco": "<descrição objetiva do risco>",
+      "nivel": "<Alto|Médio|Baixo>",
+      "base_legal": "<artigo da Lei 14.133/2021, LC 123/2006, Súmula TCU ou null>",
+      "recomendacao": "<ação específica com prazo quando aplicável>"
+    }
+  ],
+  "checklist": {
+    "antes": ["<ação específica com referência ao edital ou à lei quando aplicável>"],
+    "durante": ["<ação específica com referência ao edital ou à lei quando aplicável>"],
+    "apos": ["<ação pós-sessão: homologação, assinatura, publicação>"]
+  },
+  "tipo_fornecimento": "<produto|servico|obra>",
+  "entrega_tipo": "<integral|parcelada|null>",
+  "julgamento_tipo": "<por_item|por_lote|global>",
+  "locais_entrega": "<string com locais ou null>",
+  "prazo_entrega": "<string com prazo ou null>",
+  "habilitacao_juridica": ["<doc 1 — com base legal>"],
+  "habilitacao_economica": {
+    "exige_balanco": <bool>,
+    "capital_minimo": "<valor ou null>",
+    "percentual_valor_estimado": <number|null — capital mínimo como % do valor estimado>,
+    "legal": <bool — false se capital_minimo > 10% do valor estimado>,
+    "detalhes": "<string>"
+  },
+  "capacidade_tecnica": {
+    "exige_atestado": <bool>,
+    "quantitativo_exigido": "<percentual ou valor exigido no atestado ou null>",
+    "legal": <bool — false se quantitativo > 50% do objeto>,
+    "descricao": "<string>"
+  }
+}`;
+
+const INSTRUCOES_ANALISE = `
+=== INSTRUÇÕES DE ANÁLISE — APLIQUE SEMPRE ===
+
+REGRA 1 — CLÁUSULAS RESTRITIVAS:
+Verifique ATIVAMENTE se o edital contém qualquer das situações abaixo e preencha "clausulas_restritivas":
+- Atestado com quantitativo > 50% do objeto → viola Súmula 272 TCU
+- Capital social mínimo > 10% do valor estimado → viola art. 69, §2°, Lei 14.133/2021
+- Exigência de tempo de existência da empresa > 1 ano → viola art. 67, §1°, Lei 14.133/2021
+- Exigência de execução anterior no mesmo órgão → cláusula restritiva ilegal
+- Registro em entidade profissional não previsto em lei para o objeto → viola art. 9°, III
+- Objeto sigiloso sem justificativa → dificulta competição, pode ser impugnado
+- Prazo entre publicação e abertura inferior a 8 dias úteis → viola art. 55, I (Pregão)
+Se não houver cláusulas restritivas, retorne "clausulas_restritivas": [].
+
+REGRA 2 — PRAZOS LEGAIS:
+Calcule "prazos_legais" com base na data da sessão informada.
+- Prazo de impugnação = data da sessão − 3 dias úteis
+- Prazo de esclarecimento = data da sessão − 3 dias úteis
+- "dias_uteis_restantes" = dias úteis entre hoje e a data da sessão
+- "alerta_prazo": URGENTE se < 2 dias úteis; ATENÇÃO se 2–3 dias úteis; OK se > 3 dias úteis
+Desconsidere sábados, domingos e feriados nacionais do cálculo.
+
+REGRA 3 — BENEFÍCIOS ME/EPP:
+- Se valor estimado ≤ R$ 80.000,00: "exclusividade_obrigatoria" = true. Se o edital não prevê exclusividade, incluir alerta.
+- Se valor > R$ 80.000,00 com itens divisíveis ≤ R$ 80.000,00: verificar se cota reservada está prevista.
+- Sempre calcule "empate_ficto_aplicavel" = true para pregões (salvo dispensa ou inexigibilidade).
+
+REGRA 4 — HABILITAÇÃO TÉCNICA:
+Preencha "capacidade_tecnica.legal":
+- false se o edital exige atestado com quantitativo específico E esse quantitativo supera 50% do objeto
+- false se exige mais de 3 atestados para o mesmo serviço
+- true nos demais casos
+Sempre informe o quantitativo exigido em "quantitativo_exigido".
+
+REGRA 5 — QUALIDADE DA ANÁLISE:
+- Cite artigos da Lei 14.133/2021, LC 123/2006 ou Súmulas do TCU em TODOS os campos que envolvam legalidade.
+- "riscos": mínimo 4 riscos, sempre com "base_legal" quando aplicável.
+- "checklist.antes": mínimo 8 itens específicos ao edital analisado.
+- "checklist.durante": mínimo 5 itens com referência a prazos da sessão.
+- "checklist.apos": mínimo 3 itens (homologação, contrato, publicação).
+- Nunca use linguagem genérica tipo "verificar documentação" — seja específico ao objeto e ao edital.
+
+REGRA ABSOLUTA — JSON VÁLIDO:
+- Responda APENAS com o JSON. Sem markdown, sem texto antes ou depois.
+- NUNCA omita campos — use null ou [] para campos sem informação.
+- Todos os números devem ser numbers (não strings): "quantidade": 10, não "quantidade": "10".
+`;
+
+// ── Funções de build de prompt ────────────────────────────────────────────────
 
 function buildPrompt(pregao, itensPNCP, dataSessao) {
   const itensStr = itensPNCP.length > 0
-    ? JSON.stringify(itensPNCP.slice(0, 50).map(i => ({
-        numero: i.numeroItem, descricao: i.descricao,
-        unidade: i.unidadeMedida, quantidade: i.quantidade,
+    ? JSON.stringify(itensPNCP.slice(0, 80).map(i => ({
+        numero: i.numeroItem,
+        descricao: i.descricao,
+        unidade: i.unidadeMedida,
+        quantidade: i.quantidade,
         valorUnitarioEstimado: i.valorUnitarioEstimado,
       })), null, 2)
     : 'Não disponível via PNCP — inferir a partir do objeto do pregão.';
@@ -112,73 +299,37 @@ function buildPrompt(pregao, itensPNCP, dataSessao) {
     ? pregao.palavras_chave.join(', ')
     : pregao.palavras_chave || '—';
 
-  return `Você é o Edson, assistente especialista em licitações públicas brasileiras do ConlicitHub.
+  return `Você é o Edson, especialista jurídico em licitações públicas brasileiras da Conlicit.
+Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
+Sua função é analisar pregões com rigor técnico-jurídico e proteger os interesses do cliente.
 
-REGRA ABSOLUTA: Nunca invente, assuma ou deduza informações não explicitamente presentes no documento. Se uma informação não estiver no edital, responda exatamente "Não informado no edital". Toda afirmação deve ter referência direta no documento analisado.
+${BASE_LEGAL_14133}
 
-Analise o pregão abaixo e responda APENAS com um JSON válido (sem markdown, sem texto extra) com exatamente esta estrutura:
-
-{
-  "criterios_score": {
-    "alinhamento_objeto": <0-25>,
-    "complexidade_habilitacao": <0-20>,
-    "valor_viabilidade": <0-20>,
-    "modo_disputa": <0-15>,
-    "risco_juridico": <0-10>,
-    "prazo_adequado": <0-10>
-  },
-  "score_justificativa": "<2-3 frases explicando os pontos fortes e fracos>",
-  "resumo_executivo": "<3-4 frases de análise executiva>",
-  "modalidade": "<ex: Pregão Eletrônico>",
-  "modo_disputa": "<ex: Aberto>",
-  "tipo_julgamento": "<ex: Menor Preço>",
-  "itens": [
-    { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> }
-  ],
-  "habilitacao": [
-    {
-      "categoria": "<Jurídica|Fiscal|Técnica|Econômico-financeira>",
-      "documentos": [{ "nome": "<str>", "obrigatorio": <bool> }]
-    }
-  ],
-  "riscos": [
-    { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" }
-  ],
-  "checklist": {
-    "antes": ["<str>", ...],
-    "durante": ["<str>", ...]
-  },
-  "tipo_fornecimento": "<produto|servico>",
-  "entrega_tipo": "<integral|parcelada|null>",
-  "julgamento_tipo": "<por_item|por_lote|global>",
-  "locais_entrega": "<string com locais ou null>",
-  "prazo_entrega": "<string com prazo ou null>",
-  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
-  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
-  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
-}
+${INSTRUCOES_ANALISE}
 
 ${RUBRICA_INSTRUCAO}
 
-DADOS DO PREGÃO:
-- Número: ${pregao.numero || '—'}
-- Órgão: ${pregao.orgao || '—'}
-- Objeto: ${pregao.objeto || '—'}
-- Valor estimado: ${pregao.valor_estimado ? `R$ ${pregao.valor_estimado}` : '—'}
-⚠️ DATA DA SESSÃO: ${dataSessao} — use esta data em toda análise
-${pregao.numero_controle_pncp ? `- Nº Controle PNCP: ${pregao.numero_controle_pncp}` : ''}
+Responda APENAS com o JSON abaixo, preenchido com a análise do pregão:
+${JSON_SCHEMA}
 
-PERFIL DO CLIENTE:
-- Nome: ${pregao.nome || '—'}
-- UF: ${pregao.uf || '—'}
-- Palavras-chave de interesse: ${palavrasChave}
+=== DADOS DO PREGÃO ===
+Número: ${pregao.numero || '—'}
+Órgão: ${pregao.orgao || '—'}
+Objeto: ${pregao.objeto || '—'}
+Valor estimado: ${pregao.valor_estimado ? `R$ ${Number(pregao.valor_estimado).toLocaleString('pt-BR', {minimumFractionDigits:2})}` : '—'}
+Data da sessão: ${dataSessao}
+${pregao.numero_controle_pncp ? `Nº Controle PNCP: ${pregao.numero_controle_pncp}` : ''}
+Modalidade informada: ${pregao.modalidade || '—'}
 
-ITENS DO EDITAL (via PNCP):
+=== PERFIL DO CLIENTE ===
+Nome: ${pregao.nome || '—'}
+UF: ${pregao.uf || '—'}
+Segmento/palavras-chave: ${palavrasChave}
+
+=== ITENS DO EDITAL (via PNCP) ===
 ${itensStr}
 
-Para habilitação, infira os requisitos típicos com base no objeto e valor.
-Para o checklist, use as melhores práticas de pregão eletrônico no Brasil.
-Responda APENAS com o JSON, nenhum texto adicional.`;
+Analise TODOS os dados acima aplicando as 5 regras de análise. Responda APENAS com o JSON.`;
 }
 
 function buildPromptPDF(pregao, pdfText, dataSessao) {
@@ -186,115 +337,81 @@ function buildPromptPDF(pregao, pdfText, dataSessao) {
     ? pregao.palavras_chave.join(', ')
     : pregao.palavras_chave || '—';
 
-  return `Você é o Edson, assistente especialista em licitações públicas brasileiras do ConlicitHub.
+  return `Você é o Edson, especialista jurídico em licitações públicas brasileiras da Conlicit.
+Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
+Sua função é analisar editais com rigor técnico-jurídico e proteger os interesses do cliente.
 
-Analise o edital abaixo (extraído de PDF) e responda APENAS com um JSON válido (sem markdown, sem texto extra) com exatamente esta estrutura:
+${BASE_LEGAL_14133}
 
-{
-  "criterios_score": {
-    "alinhamento_objeto": <0-25>,
-    "complexidade_habilitacao": <0-20>,
-    "valor_viabilidade": <0-20>,
-    "modo_disputa": <0-15>,
-    "risco_juridico": <0-10>,
-    "prazo_adequado": <0-10>
-  },
-  "score_justificativa": "<2-3 frases>",
-  "resumo_executivo": "<3-4 frases>",
-  "modalidade": "<str>",
-  "modo_disputa": "<str>",
-  "tipo_julgamento": "<str>",
-  "itens": [ { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> } ],
-  "habilitacao": [ { "categoria": "<str>", "documentos": [ { "nome": "<str>", "obrigatorio": <bool> } ] } ],
-  "riscos": [ { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" } ],
-  "checklist": { "antes": ["<str>"], "durante": ["<str>"] },
-  "tipo_fornecimento": "<produto|servico>",
-  "entrega_tipo": "<integral|parcelada|null>",
-  "julgamento_tipo": "<por_item|por_lote|global>",
-  "locais_entrega": "<string com locais ou null>",
-  "prazo_entrega": "<string com prazo ou null>",
-  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
-  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
-  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
-}
+${INSTRUCOES_ANALISE}
 
 ${RUBRICA_INSTRUCAO}
 
-DADOS DO PREGÃO:
-- Número: ${pregao.numero || '—'}
-- Órgão: ${pregao.orgao || '—'}
-- Objeto: ${pregao.objeto || '—'}
-- Valor estimado: ${pregao.valor_estimado ? `R$ ${pregao.valor_estimado}` : '—'}
-⚠️ DATA DA SESSÃO: ${dataSessao} — use esta data em toda análise
-${pregao.numero_controle_pncp ? `- Nº Controle PNCP: ${pregao.numero_controle_pncp}` : ''}
+Responda APENAS com o JSON abaixo, preenchido com a análise do edital:
+${JSON_SCHEMA}
 
-PERFIL DO CLIENTE:
-- Nome: ${pregao.nome || '—'}
-- UF: ${pregao.uf || '—'}
-- Palavras-chave de interesse: ${palavrasChave}
+=== DADOS DO PREGÃO ===
+Número: ${pregao.numero || '—'}
+Órgão: ${pregao.orgao || '—'}
+Objeto: ${pregao.objeto || '—'}
+Valor estimado: ${pregao.valor_estimado ? `R$ ${Number(pregao.valor_estimado).toLocaleString('pt-BR', {minimumFractionDigits:2})}` : '—'}
+Data da sessão: ${dataSessao}
+${pregao.numero_controle_pncp ? `Nº Controle PNCP: ${pregao.numero_controle_pncp}` : ''}
 
-TEXTO DO EDITAL (extraído do PDF):
+=== PERFIL DO CLIENTE ===
+Nome: ${pregao.nome || '—'}
+UF: ${pregao.uf || '—'}
+Segmento/palavras-chave: ${palavrasChave}
+
+=== TEXTO DO EDITAL (extraído do PDF) ===
 ${pdfText}
 
-Responda APENAS com o JSON, nenhum texto adicional.`;
+Analise o edital COMPLETO acima aplicando as 5 regras. Priorize o texto do edital sobre qualquer inferência. Responda APENAS com o JSON.`;
 }
 
 function buildPromptAvulso(opts, itensPNCP, pdfText) {
   const { referencia, numero_controle_pncp, clienteNome, clienteUF, palavrasChave } = opts;
+
   const itensStr = pdfText
-    ? `TEXTO DO EDITAL (extraído do PDF):\n${pdfText}`
+    ? `=== TEXTO DO EDITAL (extraído do PDF) ===\n${pdfText}`
     : itensPNCP.length > 0
-      ? `ITENS DO EDITAL (via PNCP):\n${JSON.stringify(itensPNCP.slice(0, 50).map(i => ({
-          numero: i.numeroItem, descricao: i.descricao,
-          unidade: i.unidadeMedida, quantidade: i.quantidade,
-          valorUnitarioEstimado: i.valorUnitarioEstimado,
-        })), null, 2)}`
-      : 'ITENS DO EDITAL: Não disponível — infira com base no objeto.';
+      ? `=== ITENS DO EDITAL (via PNCP) ===\n${JSON.stringify(
+          itensPNCP.slice(0, 80).map(i => ({
+            numero: i.numeroItem,
+            descricao: i.descricao,
+            unidade: i.unidadeMedida,
+            quantidade: i.quantidade,
+            valorUnitarioEstimado: i.valorUnitarioEstimado,
+          })), null, 2)}`
+      : '=== ITENS DO EDITAL ===\nNão disponível — inferir a partir do objeto.';
 
-  return `Você é o Edson, assistente especialista em licitações públicas brasileiras do ConlicitHub.
+  return `Você é o Edson, especialista jurídico em licitações públicas brasileiras da Conlicit.
+Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
+Sua função é analisar licitações com rigor técnico-jurídico e proteger os interesses do cliente.
 
-Analise a licitação abaixo e responda APENAS com um JSON válido com exatamente esta estrutura:
+${BASE_LEGAL_14133}
 
-{
-  "criterios_score": {
-    "alinhamento_objeto": <0-25>,
-    "complexidade_habilitacao": <0-20>,
-    "valor_viabilidade": <0-20>,
-    "modo_disputa": <0-15>,
-    "risco_juridico": <0-10>,
-    "prazo_adequado": <0-10>
-  },
-  "score_justificativa": "<2-3 frases>",
-  "resumo_executivo": "<3-4 frases>",
-  "modalidade": "<str>", "modo_disputa": "<str>", "tipo_julgamento": "<str>",
-  "itens": [ { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number> } ],
-  "habilitacao": [ { "categoria": "<str>", "documentos": [ { "nome": "<str>", "obrigatorio": <bool> } ] } ],
-  "riscos": [ { "risco": "<str>", "nivel": "<Alto|Médio|Baixo>", "recomendacao": "<str>" } ],
-  "checklist": { "antes": ["<str>"], "durante": ["<str>"] },
-  "tipo_fornecimento": "<produto|servico>",
-  "entrega_tipo": "<integral|parcelada|null>",
-  "julgamento_tipo": "<por_item|por_lote|global>",
-  "locais_entrega": "<string com locais ou null>",
-  "prazo_entrega": "<string com prazo ou null>",
-  "habilitacao_juridica": ["<doc 1>", "<doc 2>"],
-  "habilitacao_economica": { "exige_balanco": <bool>, "capital_minimo": "<valor ou null>", "detalhes": "<string>" },
-  "capacidade_tecnica": { "exige_atestado": <bool>, "descricao": "<string>" }
-}
+${INSTRUCOES_ANALISE}
 
 ${RUBRICA_INSTRUCAO}
 
-REFERÊNCIA: ${referencia || '—'}
+Responda APENAS com o JSON abaixo, preenchido com a análise da licitação:
+${JSON_SCHEMA}
+
+=== DADOS DA LICITAÇÃO ===
+Referência: ${referencia || '—'}
 ${numero_controle_pncp ? `Nº Controle PNCP: ${numero_controle_pncp}` : ''}
-${clienteNome ? `CLIENTE: ${clienteNome} (${clienteUF || '—'}) — Palavras-chave: ${palavrasChave || '—'}` : ''}
+${clienteNome ? `Cliente: ${clienteNome} (${clienteUF || '—'})` : ''}
+${palavrasChave ? `Segmento/palavras-chave: ${palavrasChave}` : ''}
 
 ${itensStr}
 
-Responda APENAS com o JSON, nenhum texto adicional.`;
+Analise todos os dados acima aplicando as 5 regras. Responda APENAS com o JSON.`;
 }
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
-async function callClaude(prompt, maxTokens = 8192, extraContent = []) {
+async function callClaude(prompt, maxTokens = 16000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const content = extraContent.length > 0
     ? [{ type: 'text', text: prompt }, ...extraContent]
@@ -340,9 +457,13 @@ function parsearRespostaEdson(raw) {
   if (!parsed.itens) parsed.itens = [];
   if (!parsed.habilitacao) parsed.habilitacao = [];
   if (!parsed.riscos) parsed.riscos = [];
-  if (!parsed.checklist) parsed.checklist = { antes: [], durante: [] };
+  if (!parsed.checklist) parsed.checklist = { antes: [], durante: [], apos: [] };
   if (!parsed.checklist.antes) parsed.checklist.antes = [];
   if (!parsed.checklist.durante) parsed.checklist.durante = [];
+  if (!parsed.checklist.apos) parsed.checklist.apos = [];
+  if (!parsed.clausulas_restritivas) parsed.clausulas_restritivas = [];
+  if (!parsed.prazos_legais) parsed.prazos_legais = {};
+  if (!parsed.beneficios_me_epp) parsed.beneficios_me_epp = {};
   if (!parsed.criterios_score) parsed.criterios_score = {};
   if (!parsed.resumo_executivo) parsed.resumo_executivo = 'Análise não disponível.';
 
@@ -395,6 +516,20 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
       JSON.stringify(parsed.capacidade_tecnica ?? {}),
     ],
   );
+
+  await db.query(
+    `UPDATE analises_edson SET
+       clausulas_restritivas = $2,
+       prazos_legais         = $3,
+       beneficios_me_epp     = $4
+     WHERE id = $1`,
+    [
+      analiseId,
+      JSON.stringify(parsed.clausulas_restritivas ?? []),
+      JSON.stringify(parsed.prazos_legais ?? {}),
+      JSON.stringify(parsed.beneficios_me_epp ?? {}),
+    ],
+  ).catch(e => console.warn('[Edson] Campos extras não salvos (migração pendente):', e.message));
 }
 
 async function salvarErro(analiseId, msg) {
@@ -441,7 +576,7 @@ async function analisarPregao(analiseId, pregaoId) {
 async function analisarPDF(analiseId, pregaoId, pdfBuffer) {
   try {
     const pdfData = await pdfParse(pdfBuffer);
-    const pdfText = pdfData.text.trim().slice(0, 60000);
+    const pdfText = pdfData.text.trim().slice(0, 80000);
     if (!pdfText) throw new Error('Não foi possível extrair texto do PDF');
 
     console.log(`[Edson] PDF analise ${analiseId}: ${pdfText.length} chars extraídos`);
@@ -474,7 +609,7 @@ async function analisarAvulso(analiseId, opts) {
 
     if (pdfBuffer) {
       const pdfData = await pdfParse(pdfBuffer);
-      pdfText = pdfData.text.trim().slice(0, 30000);
+      pdfText = pdfData.text.trim().slice(0, 80000);
       console.log(`[Edson] Avulso PDF ${analiseId}: ${pdfText?.length || 0} chars`);
     } else if (numero_controle_pncp) {
       try {
@@ -611,7 +746,7 @@ async function reanalisarComSuplementos(analiseId) {
     }
 
     const prompt = buildPromptReanalise(analise, complementarNote);
-    const raw = await callClaude(prompt, 8192, extraContent);
+    const raw = await callClaude(prompt, 16000, extraContent);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
