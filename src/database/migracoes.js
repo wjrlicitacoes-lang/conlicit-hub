@@ -313,6 +313,34 @@ async function executarMigracoes() {
     )
   `);
 
+  // Controle granular de acesso por módulo
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS usuario_permissoes (
+      id           SERIAL PRIMARY KEY,
+      usuario_id   INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+      modulo       VARCHAR(50) NOT NULL,
+      liberado     BOOLEAN DEFAULT TRUE,
+      alterado_por INTEGER REFERENCES usuarios(id),
+      alterado_em  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(usuario_id, modulo)
+    )
+  `);
+
+  // Expandir roles para incluir assistente_junior
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
+      ) THEN
+        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
+      END IF;
+      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'));
+    END $$
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

@@ -1,6 +1,44 @@
 const jwt = require('jsonwebtoken');
 const db  = require('../database/db');
 
+const TODOS_MODULOS = [
+  'dashboard','clientes','editais','boletins','edson',
+  'calendario','monitor','prospects','usuarios','financeiro',
+  'gerador_proposta','relatorios',
+];
+
+const PERMISSOES_ROLE = {
+  socio_fundador:    [...TODOS_MODULOS],
+  admin:             [...TODOS_MODULOS],
+  assistente:        ['dashboard','clientes','editais','boletins','calendario','edson','monitor'],
+  assistente_junior: ['dashboard','clientes','editais','boletins','calendario'],
+  diretor_comercial: ['dashboard','editais','calendario','prospects','edson','gerador_proposta'],
+  cliente:           ['minha_area','meus_pregoes','edson'],
+};
+
+function verificarPermissao(modulo) {
+  return async (req, res, next) => {
+    const { id: userId, role } = req.usuario;
+    if (['socio_fundador', 'admin'].includes(role)) return next();
+    try {
+      const { rows } = await db.query(
+        'SELECT liberado FROM usuario_permissoes WHERE usuario_id=$1 AND modulo=$2',
+        [userId, modulo],
+      );
+      if (rows.length > 0) {
+        return rows[0].liberado
+          ? next()
+          : res.status(403).json({ erro: 'Acesso bloqueado pelo administrador' });
+      }
+      const permitido = (PERMISSOES_ROLE[role] || []).includes(modulo);
+      return permitido ? next() : res.status(403).json({ erro: 'Sem permissão para este módulo' });
+    } catch (e) {
+      console.error('[verificarPermissao] Erro:', e.message);
+      return res.status(500).json({ erro: 'Erro ao verificar permissões' });
+    }
+  };
+}
+
 async function autenticar(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -38,3 +76,6 @@ async function autenticar(req, res, next) {
 }
 
 module.exports = autenticar;
+module.exports.verificarPermissao = verificarPermissao;
+module.exports.PERMISSOES_ROLE    = PERMISSOES_ROLE;
+module.exports.TODOS_MODULOS      = TODOS_MODULOS;

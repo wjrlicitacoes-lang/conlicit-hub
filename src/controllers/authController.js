@@ -1,6 +1,21 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database/db');
+const { PERMISSOES_ROLE, TODOS_MODULOS } = require('../middleware/autenticar');
+
+const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'];
+const ROLES_GESTORES = ['admin','socio_fundador'];
+
+async function getPermissoesEfetivas(userId, role) {
+  const padroes = PERMISSOES_ROLE[role] || [];
+  const base = Object.fromEntries(TODOS_MODULOS.map(m => [m, padroes.includes(m)]));
+  const { rows } = await db.query(
+    'SELECT modulo, liberado FROM usuario_permissoes WHERE usuario_id = $1',
+    [userId],
+  );
+  rows.forEach(r => { base[r.modulo] = r.liberado; });
+  return base;
+}
 
 async function registrar(req, res) {
   const { email, senha } = req.body ?? {};
@@ -56,19 +71,20 @@ async function login(req, res) {
   }
 }
 
-function me(req, res) {
-  return res.json({
-    id: req.usuario.id,
-    email: req.usuario.email,
-    role: req.usuario.role,
-    cliente_id: req.usuario.cliente_id ?? null,
-  });
+async function me(req, res) {
+  const { id, email, role, cliente_id } = req.usuario;
+  try {
+    const permissoes = await getPermissoesEfetivas(id, role);
+    return res.json({ id, email, role, cliente_id: cliente_id ?? null, permissoes });
+  } catch {
+    return res.json({ id, email, role, cliente_id: cliente_id ?? null, permissoes: {} });
+  }
 }
 
 const SENHA_PADRAO = 'Conlicit@2024';
 
 async function criarUsuario(req, res) {
-  if (req.usuario.role !== 'admin')
+  if (!ROLES_GESTORES.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { nome, email, role, cliente_id } = req.body ?? {};
@@ -76,8 +92,8 @@ async function criarUsuario(req, res) {
 
   if (!email)
     return res.status(400).json({ erro: 'Email é obrigatório' });
-  if (!['admin', 'assistente', 'cliente'].includes(role))
-    return res.status(400).json({ erro: 'Role inválido (use admin, assistente ou cliente)' });
+  if (!ROLES_VALIDOS.includes(role))
+    return res.status(400).json({ erro: `Role inválido. Valores aceitos: ${ROLES_VALIDOS.join(', ')}` });
   if (role === 'cliente' && !cliente_id)
     return res.status(400).json({ erro: 'cliente_id é obrigatório para o role cliente' });
 
@@ -107,7 +123,7 @@ async function criarUsuario(req, res) {
 }
 
 async function listarUsuarios(req, res) {
-  if (req.usuario.role !== 'admin')
+  if (!ROLES_GESTORES.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   try {
@@ -126,14 +142,14 @@ async function listarUsuarios(req, res) {
 }
 
 async function editarUsuario(req, res) {
-  if (req.usuario.role !== 'admin')
+  if (!ROLES_GESTORES.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
   const { nome, email, role, cliente_id } = req.body ?? {};
 
-  if (role && !['admin', 'assistente', 'cliente'].includes(role))
-    return res.status(400).json({ erro: 'Role inválido' });
+  if (role && !ROLES_VALIDOS.includes(role))
+    return res.status(400).json({ erro: `Role inválido. Valores aceitos: ${ROLES_VALIDOS.join(', ')}` });
 
   try {
     const campos = [];
@@ -159,7 +175,7 @@ async function editarUsuario(req, res) {
 }
 
 async function excluirUsuario(req, res) {
-  if (req.usuario.role !== 'admin')
+  if (!ROLES_GESTORES.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
@@ -176,4 +192,83 @@ async function excluirUsuario(req, res) {
   }
 }
 
-module.exports = { registrar, login, me, criarUsuario, listarUsuarios, editarUsuario, excluirUsuario };
+// GET /auth/usuarios/:id/permissoes
+async function getPermissoes(req, res) {
+  if (!ROLES_GESTORES.includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Acesso negado' });
+
+  const { id } = req.params;
+  try {
+    const { rows: [usuario] } = await db.query(
+      'SELECT id, nome, email, role FROM usuarios WHERE id = $1', [id],
+    );
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const permissoes = await getPermissoesEfetivas(usuario.id, usuario.role);
+    const padrao = PERMISSOES_ROLE[usuario.role] || [];
+
+    const { rows: overrides } = await db.query(
+      'SELECT modulo, liberado FROM usuario_permissoes WHERE usuario_id = $1', [id],
+    );
+    const overrideMap = Object.fromEntries(overrides.map(r => [r.modulo, r.liberado]));
+
+    const detalhes = Object.entries(permissoes).map(([modulo, liberado]) => ({
+      modulo,
+      liberado,
+      padrao_role: padrao.includes(modulo),
+      personalizado: overrideMap[modulo] !== undefined,
+    }));
+
+    return res.json({ usuario, permissoes: detalhes });
+  } catch (e) {
+    console.error('Erro ao buscar permissões:', e);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// PATCH /auth/usuarios/:id/permissoes
+async function patchPermissao(req, res) {
+  if (!ROLES_GESTORES.includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Acesso negado' });
+
+  const { id } = req.params;
+  const { modulo, liberado } = req.body ?? {};
+
+  if (!modulo || typeof liberado !== 'boolean')
+    return res.status(400).json({ erro: 'Campos obrigatórios: modulo (string), liberado (boolean)' });
+  if (!TODOS_MODULOS.includes(modulo))
+    return res.status(400).json({ erro: `Módulo inválido. Valores aceitos: ${TODOS_MODULOS.join(', ')}` });
+
+  try {
+    await db.query(
+      `INSERT INTO usuario_permissoes (usuario_id, modulo, liberado, alterado_por, alterado_em)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (usuario_id, modulo)
+       DO UPDATE SET liberado=$3, alterado_por=$4, alterado_em=NOW()`,
+      [id, modulo, liberado, req.usuario.id],
+    );
+    return res.json({ mensagem: 'Permissão atualizada', modulo, liberado });
+  } catch (e) {
+    console.error('Erro ao atualizar permissão:', e);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// DELETE /auth/usuarios/:id/permissoes
+async function deletePermissoes(req, res) {
+  if (!ROLES_GESTORES.includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Acesso negado' });
+
+  const { id } = req.params;
+  try {
+    const { rowCount } = await db.query(
+      'DELETE FROM usuario_permissoes WHERE usuario_id = $1', [id],
+    );
+    return res.json({ mensagem: `${rowCount} override(s) removido(s) — permissões resetadas para o padrão do cargo` });
+  } catch (e) {
+    console.error('Erro ao resetar permissões:', e);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { registrar, login, me, criarUsuario, listarUsuarios, editarUsuario, excluirUsuario, getPermissoes, patchPermissao, deletePermissoes };

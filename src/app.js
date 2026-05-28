@@ -26,6 +26,7 @@ const edsonRoutes = require('./routes/edson');
 const prospectsRoutes = require('./routes/prospects');
 const propostasRoutes = require('./routes/propostas');
 const autenticar = require('./middleware/autenticar');
+const { verificarPermissao } = require('./middleware/autenticar');
 const { executarMigracoes } = require('./database/migracoes');
 const { iniciarAgendador } = require('./cron/agendador');
 
@@ -56,12 +57,12 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/auth', authRoutes);
 app.use('/health', healthRoutes);
-app.use('/editais', autenticar, editaisRoutes);
-app.use('/clientes', autenticar, clientesRoutes);
-app.use('/boletim', autenticar, boletimRoutes);
-app.use('/calendario', autenticar, calendarioRoutes);
-app.use('/edson', autenticar, edsonRoutes);
-app.use('/prospects', autenticar, prospectsRoutes);
+app.use('/editais',   autenticar, verificarPermissao('editais'),   editaisRoutes);
+app.use('/clientes',  autenticar, verificarPermissao('clientes'),  clientesRoutes);
+app.use('/boletim',   autenticar, verificarPermissao('boletins'),  boletimRoutes);
+app.use('/calendario',autenticar, verificarPermissao('calendario'),calendarioRoutes);
+app.use('/edson',     autenticar, verificarPermissao('edson'),     edsonRoutes);
+app.use('/prospects', autenticar, verificarPermissao('prospects'), prospectsRoutes);
 app.use('/propostas', autenticar, propostasRoutes);
 
 app.get('/proposta', (req, res) => {

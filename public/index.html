@@ -1117,6 +1117,28 @@
     /* ── USUÁRIOS ─────────────────────────────────────────────────── */
     #section-usuarios .table-container { overflow-x: auto; width: 100%; }
     #modal-editar-usuario .modal { max-height: 90vh; overflow-y: auto; }
+
+    /* ── TOGGLE SWITCH ── */
+    .toggle-switch { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:22px; transition:.25s; }
+    .toggle-slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.25s; }
+    .toggle-switch input:checked + .toggle-slider { background:var(--primary); }
+    .toggle-switch input:checked + .toggle-slider::before { transform:translateX(18px); }
+
+    /* ── PAINEL DE PERMISSÕES ── */
+    .perms-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .perms-user-info { display:flex; align-items:center; gap:.6rem; }
+    .perms-user-name { font-weight:700; font-size:1rem; }
+    .perms-grid { display:flex; flex-direction:column; gap:6px; }
+    .perm-item { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; background:var(--bg-2,rgba(255,255,255,.04)); border:1px solid var(--sec-border); gap:1rem; }
+    .perm-info { display:flex; align-items:center; gap:.6rem; min-width:0; }
+    .perm-icon { font-size:1rem; width:22px; text-align:center; flex-shrink:0; }
+    .perm-nome { font-size:.88rem; font-weight:500; }
+    .perm-badge { font-size:.68rem; padding:.1rem .45rem; border-radius:99px; white-space:nowrap; flex-shrink:0; }
+    .perm-badge-padrao { background:rgba(76,197,215,.12); color:var(--primary); border:1px solid rgba(76,197,215,.25); }
+    .perm-badge-custom { background:rgba(255,193,7,.12); color:#f0a500; border:1px solid rgba(255,193,7,.3); }
+    .perms-footer { margin-top:1rem; padding-top:.75rem; border-top:1px solid var(--sec-border); font-size:.8rem; color:var(--text-muted); }
     .modal-box { background:var(--card-bg); border:1px solid var(--bd); border-radius:12px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); animation:modalIn .2s ease; }
 
     /* ── PROPOSTA COMERCIAL ─────────────────────────────────────── */
@@ -2239,17 +2261,25 @@
   let activeSection = 'dashboard';
   let userRole = null;
   let userClienteId = null;
+  let userPermissoes = {};
 
-  function isAdmin()    { return userRole === 'admin'; }
-  function isCliente()  { return userRole === 'cliente'; }
+  function isAdmin()         { return ['admin','socio_fundador'].includes(userRole); }
+  function isCliente()       { return userRole === 'cliente'; }
+  function isSocioFundador() { return userRole === 'socio_fundador'; }
+  function permiteModulo(m)  {
+    if (isCliente()) return false;
+    if (Object.keys(userPermissoes).length === 0) return !isCliente();
+    return userPermissoes[m] !== false;
+  }
 
   async function fetchRoleAndShowApp() {
     try {
       const r = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) {
         const me = await r.json();
-        userRole = me.role;
-        userClienteId = me.cliente_id ?? null;
+        userRole       = me.role;
+        userClienteId  = me.cliente_id ?? null;
+        userPermissoes = me.permissoes  ?? {};
       }
     } catch { /* token válido mas /me falhou — continua sem role */ }
     showApp();
@@ -2329,7 +2359,7 @@
   function logout() {
     localStorage.removeItem('ch_token');
     localStorage.removeItem('ch_email');
-    token = null; currentEmail = null; userRole = null; userClienteId = null;
+    token = null; currentEmail = null; userRole = null; userClienteId = null; userPermissoes = {};
     document.getElementById('app-section').classList.remove('visible');
     document.getElementById('auth-section').style.display = 'flex';
     document.getElementById('btn-logout').style.display = 'none';
@@ -2346,22 +2376,39 @@
     badge.textContent = currentEmail || '';
     badge.classList.add('visible');
 
-    // Aplicar classes de role no body
     document.body.classList.toggle('role-assistente', userRole === 'assistente');
     document.body.classList.toggle('role-cliente',    userRole === 'cliente');
 
-    const admin    = isAdmin();
-    const cliente  = isCliente();
-    const podeVerProposta = ['socio_fundador','diretor_comercial'].includes(userRole);
+    const admin   = isAdmin();
+    const cliente = isCliente();
 
-    document.getElementById('nav-usuarios').hidden       = !admin;
-    document.getElementById('nav-pregoes-todos').hidden  = !admin;
-    document.getElementById('nav-prospects').hidden      = !admin;
-    document.getElementById('nav-proposta').hidden       = !podeVerProposta;
-    document.getElementById('nav-label-admin').hidden    = !admin && !podeVerProposta;
-    document.getElementById('nav-minha-area').hidden      = !cliente;
-    document.getElementById('nav-meus-pregoes').hidden    = !cliente;
-    document.getElementById('nav-label-cliente').hidden   = !cliente;
+    // Itens staff com controle de módulo
+    const navModulos = {
+      'editais':   'editais',   'clientes': 'clientes',
+      'boletins':  'boletins',  'monitor':  'monitor',
+      'calendario':'calendario','edson':    'edson',
+    };
+    Object.entries(navModulos).forEach(([nav, mod]) => {
+      const el = document.querySelector(`[data-nav="${nav}"]`);
+      if (el) el.hidden = cliente || !permiteModulo(mod);
+    });
+    document.querySelector('[data-nav="dashboard"]').hidden = cliente;
+
+    // Seção Admin
+    document.getElementById('nav-usuarios').hidden      = !permiteModulo('usuarios') || cliente;
+    document.getElementById('nav-pregoes-todos').hidden = !admin || cliente;
+    document.getElementById('nav-prospects').hidden     = !permiteModulo('prospects') || cliente;
+    document.getElementById('nav-proposta').hidden      = !permiteModulo('gerador_proposta') || cliente;
+    document.getElementById('nav-label-admin').hidden   =
+      (document.getElementById('nav-usuarios').hidden &&
+       document.getElementById('nav-pregoes-todos').hidden &&
+       document.getElementById('nav-prospects').hidden &&
+       document.getElementById('nav-proposta').hidden);
+
+    // Seção Cliente
+    document.getElementById('nav-minha-area').hidden     = !cliente;
+    document.getElementById('nav-meus-pregoes').hidden   = !cliente;
+    document.getElementById('nav-label-cliente').hidden  = !cliente;
 
     setDefaultDates();
     navTo(cliente ? 'minha-area' : 'dashboard');
@@ -3364,6 +3411,94 @@
   // ─────────────────────────────────────────
   // USUÁRIOS (admin only)
   // ─────────────────────────────────────────
+  const MODULOS_INFO = {
+    dashboard:        { icon:'📊', nome:'Dashboard' },
+    clientes:         { icon:'👥', nome:'Clientes' },
+    editais:          { icon:'🔍', nome:'Buscar Editais' },
+    boletins:         { icon:'📬', nome:'Boletins' },
+    edson:            { icon:'🤖', nome:'Edson IA' },
+    calendario:       { icon:'📅', nome:'Calendário' },
+    monitor:          { icon:'💬', nome:'Monitor de Chat' },
+    prospects:        { icon:'🎯', nome:'Prospects' },
+    usuarios:         { icon:'👤', nome:'Usuários' },
+    financeiro:       { icon:'💰', nome:'Financeiro' },
+    gerador_proposta: { icon:'📄', nome:'Gerador de Proposta' },
+    relatorios:       { icon:'📈', nome:'Relatórios' },
+  };
+
+  let _permModalUsuario = null;
+
+  async function abrirModalPermissoes(u) {
+    _permModalUsuario = u;
+    document.getElementById('perm-modal-nome').textContent = u.nome || u.email;
+    document.getElementById('perm-modal-role').textContent = u.role;
+    document.getElementById('perm-modal-grid').innerHTML =
+      '<div class="state-box" style="padding:1.5rem"><div class="spinner"></div></div>';
+    document.getElementById('modal-permissoes').classList.add('visible');
+    await carregarPermissoesModal(u.id);
+  }
+
+  function fecharModalPermissoes() {
+    document.getElementById('modal-permissoes').classList.remove('visible');
+    _permModalUsuario = null;
+  }
+
+  async function carregarPermissoesModal(userId) {
+    try {
+      const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      const { permissoes } = await r.json();
+      document.getElementById('perm-modal-grid').innerHTML = permissoes.map(p => {
+        const info = MODULOS_INFO[p.modulo] || { icon:'⚙️', nome: p.modulo };
+        const badgeClass = p.personalizado ? 'perm-badge-custom' : 'perm-badge-padrao';
+        const badgeText  = p.personalizado ? '⚠️ Personalizado' : `padrão: ${p.padrao_role ? '✅' : '❌'}`;
+        return `
+          <div class="perm-item" id="perm-item-${p.modulo}">
+            <div class="perm-info">
+              <span class="perm-icon">${info.icon}</span>
+              <span class="perm-nome">${info.nome}</span>
+              <span class="perm-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <label class="toggle-switch" title="${p.liberado ? 'Liberado' : 'Bloqueado'}">
+              <input type="checkbox" ${p.liberado ? 'checked' : ''}
+                     onchange="alterarPermissao(${userId},'${p.modulo}',this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      document.getElementById('perm-modal-grid').innerHTML =
+        `<p style="color:var(--danger);padding:1rem">${e.message}</p>`;
+    }
+  }
+
+  async function alterarPermissao(userId, modulo, liberado) {
+    try {
+      const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ modulo, liberado }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      // Recarrega só o item alterado para atualizar o badge de "personalizado"
+      await carregarPermissoesModal(userId);
+    } catch (e) { toast(e.message || 'Erro ao alterar permissão', 'error'); }
+  }
+
+  async function resetarPermissoes(userId) {
+    if (!confirm('Resetar todas as permissões para o padrão do cargo? Os overrides individuais serão removidos.')) return;
+    try {
+      const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Permissões resetadas para o padrão do cargo', 'success');
+      await carregarPermissoesModal(userId);
+    } catch (e) { toast(e.message || 'Erro ao resetar', 'error'); }
+  }
+
   function abrirModalNovoUsuario() {
     document.getElementById('form-novo-usuario').reset();
     document.getElementById('nu-cliente-field').style.display = 'none';
@@ -3390,11 +3525,19 @@
         lista.innerHTML = '<p style="color:var(--text-muted)">Nenhum usuário cadastrado.</p>';
         return;
       }
-      const roleBadge = r => r === 'admin'
-        ? '<span class="s-badge s-vencido">Admin</span>'
-        : r === 'cliente'
-        ? '<span class="s-badge s-oferta">Cliente</span>'
-        : '<span class="s-badge s-pendente">Assistente</span>';
+      const roleBadge = role => {
+        const m = {
+          admin: ['s-vencido','Admin'],
+          socio_fundador: ['s-vencido','Sócio Fundador'],
+          diretor_comercial: ['s-oferta','Dir. Comercial'],
+          assistente: ['s-pendente','Assistente'],
+          assistente_junior: ['s-pendente','Assist. Júnior'],
+          cliente: ['s-oferta','Cliente'],
+        };
+        const [cls, label] = m[role] || ['s-pendente', role];
+        return `<span class="s-badge ${cls}">${label}</span>`;
+      };
+      const sf = isSocioFundador();
       lista.innerHTML = `
         <div class="table-wrap">
           <table class="data-table">
@@ -3406,6 +3549,7 @@
               <td class="td-muted">${u.cliente_nome ? esc(u.cliente_nome) : '—'}</td>
               <td class="td-muted">${u.criado_em ? new Date(u.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
               <td><div class="td-actions">
+                ${sf ? `<button class="btn-icon" title="Gerenciar acessos" onclick='abrirModalPermissoes(${JSON.stringify(u)})'>⚙️</button>` : ''}
                 <button class="btn-icon" title="Editar" onclick='abrirEditarUsuario(${JSON.stringify(u)})'>✏️</button>
                 <button class="btn-icon btn-danger" title="Excluir" onclick="excluirUsuario(${u.id},'${esc(u.email)}')">🗑️</button>
               </div></td>
@@ -6474,6 +6618,28 @@
   </div>
 </div>
 
+<!-- MODAL: Gerenciar Permissões -->
+<div class="modal-overlay" id="modal-permissoes" onclick="fecharModalPermissoes()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:600px">
+    <div class="modal-header">
+      <h3>⚙️ Gerenciar Acessos</h3>
+      <button class="modal-close" onclick="fecharModalPermissoes()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="perms-header">
+        <div class="perms-user-info">
+          <span class="perm-icon">👤</span>
+          <span class="perms-user-name" id="perm-modal-nome"></span>
+          <span class="s-badge s-pendente" id="perm-modal-role" style="font-size:.72rem"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="resetarPermissoes(_permModalUsuario?.id)">↺ Resetar para padrão</button>
+      </div>
+      <div class="perms-grid" id="perm-modal-grid"></div>
+      <div class="perms-footer">⚡ Alterações aplicadas imediatamente — o usuário verá o efeito no próximo login.</div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Novo usuário -->
 <div class="modal-overlay" id="modal-novo-usuario" onclick="fecharModalNovoUsuario()">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -6502,7 +6668,10 @@
             <label for="nu-role">Nível de acesso *</label>
             <select id="nu-role" onchange="toggleClienteField()">
               <option value="assistente">Assistente</option>
+              <option value="assistente_junior">Assistente Júnior</option>
               <option value="admin">Admin</option>
+              <option value="socio_fundador">Sócio Fundador</option>
+              <option value="diretor_comercial">Diretor Comercial</option>
               <option value="cliente">Cliente (acesso restrito)</option>
             </select>
           </div>
@@ -6539,7 +6708,10 @@
           <label>Nível</label>
           <select id="eu-role" onchange="toggleEuClienteField()">
             <option value="assistente">Assistente</option>
+            <option value="assistente_junior">Assistente Júnior</option>
             <option value="admin">Admin</option>
+            <option value="socio_fundador">Sócio Fundador</option>
+            <option value="diretor_comercial">Diretor Comercial</option>
             <option value="cliente">Cliente</option>
           </select>
         </div>
