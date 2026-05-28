@@ -1232,10 +1232,10 @@
     #section-proposta .p-check-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); margin-bottom:6px; cursor:pointer; transition:background .15s; }
     #section-proposta .p-check-item:hover { background:rgba(76,197,215,0.06); }
     #section-proposta .p-check-item input[type="checkbox"] { display:none; }
-    #section-proposta .p-check-item label { cursor:pointer; font-size:12px; font-weight:500; color:rgba(255,255,255,0.6); flex:1; display:flex; align-items:center; gap:10px; margin:0; pointer-events:none; }
-    #section-proposta .p-check-item label::before { content:''; width:18px; height:18px; border-radius:4px; border:1.5px solid rgba(255,255,255,0.2); flex-shrink:0; transition:all .15s; background:transparent; }
+    #section-proposta .p-check-item label { cursor:pointer; font-size:12px; font-weight:500; color:rgba(255,255,255,0.75); flex:1; display:flex; align-items:center; gap:10px; margin:0; pointer-events:none; }
+    #section-proposta .p-check-item label::before { content:''; width:18px; height:18px; border-radius:4px; border:1.5px solid rgba(255,255,255,0.25); flex-shrink:0; transition:all .15s; background:transparent; }
     #section-proposta .p-check-item.selecionado { background:rgba(76,197,215,0.1); border-color:rgba(76,197,215,0.3); }
-    #section-proposta .p-check-item.selecionado label { color:#fff; }
+    #section-proposta .p-check-item.selecionado label { color:#ffffff; font-weight:600; }
     #section-proposta .p-check-item.selecionado label::before { background:#4CC5D7; border-color:#4CC5D7; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 12 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23182A39' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); background-size:11px 9px; background-repeat:no-repeat; background-position:center; }
     #section-proposta .p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
     #section-proposta .p-frente-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
@@ -4430,13 +4430,15 @@
   }
   function hideAlert(id) { document.getElementById(id).className = 'alert'; }
 
-  let toastTimer;
-  function toast(msg, type = 'success') {
+  function toast(msg, tipo = 'info') {
     const el = document.getElementById('toast');
+    if (!el) return;
     el.textContent = msg;
-    el.className = `show toast-${type}`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+    el.className = 'show' + (tipo === 'error' ? ' toast-error' : tipo === 'success' ? ' toast-success' : '');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+      el.className = el.className.replace('show', '').trim();
+    }, 3500);
   }
 
   // Enter key in search fields
