@@ -91,67 +91,18 @@ NÃO inclua campo "score" — o sistema calcula a soma automaticamente.`;
 
 // ── Base de conhecimento Lei 14.133/2021 ──────────────────────────────────────
 
-const BASE_LEGAL_14133 = `
-=== BASE LEGAL — LEI 14.133/2021 (Nova Lei de Licitações) ===
-
-MODALIDADES E LIMITES (art. 28 e 75):
-- Pregão Eletrônico: obrigatório para bens e serviços comuns (art. 176). Modo padrão.
-- Concorrência: obras >R$ 3,3M ou serviços especiais >R$ 1,76M (Decreto 11.871/2023).
-- Concurso: seleção de trabalho técnico, científico ou artístico.
-- Leilão: alienação de bens ou concessões.
-- Diálogo Competitivo: soluções inovadoras de alta complexidade.
-- Dispensa Eletrônica (art. 75, II): até R$ 57.208,33 para bens/serviços comuns (2024).
-- Dispensa (art. 75, I): obras até R$ 114.416,66.
-- Inexigibilidade (art. 74): fornecedor exclusivo, serviço técnico especializado ou artista consagrado.
-
-HABILITAÇÃO — DOCUMENTOS LEGAIS (art. 62-70):
-Jurídica (art. 66): ato constitutivo, CNPJ, identificação dos administradores, autorização para a atividade.
-Fiscal/Trabalhista (art. 68): CND Federal+PGFN, CND Estadual, CND Municipal, CRF/FGTS, CNDT (TST), prova de inscrição CNPJ/CPF.
-Econômico-financeira (art. 69): balanço patrimonial, certidão negativa de falência/recuperação judicial, capital social ou patrimônio líquido mínimo (se exigido — limitado a 10% do valor estimado pelo art. 69, §2°).
-Técnica (art. 67): atestado de desempenho anterior emitido por pessoa jurídica de direito público ou privado. PROIBIDO exigir: (a) mais de 3 atestados para o mesmo serviço; (b) quantitativo superior a 50% do objeto (Súmula 272 TCU); (c) execução anterior junto ao mesmo órgão; (d) prazo mínimo de funcionamento da empresa superior a 1 ano (art. 67, §1°).
-Qualificação Técnica — CUIDADO: exigência de certificação ou registro em conselho profissional é válida apenas quando a lei específica exige (ex: CREA para obras, CRF para farmacêuticos). Fora dessas hipóteses, é cláusula restritiva ilegal (art. 9°, III).
-
-PRAZOS LEGAIS CRÍTICOS:
-- Publicação → Apresentação de propostas: mínimo 8 dias úteis para Pregão (art. 55, I).
-- Impugnação ao edital: até 3 dias úteis antes da abertura (art. 164).
-- Pedido de esclarecimento: até 3 dias úteis antes da abertura (art. 164, §1°).
-- Resposta da Administração a impugnação/esclarecimento: 3 dias úteis (art. 164, §2°).
-- Recurso pós-habilitação/desclassificação: 3 dias úteis (art. 165).
-- Contrarrazões ao recurso: 3 dias úteis após intimação (art. 165, §2°).
-- Assinatura do contrato após convocação: 5 dias úteis (art. 90, prorrogável por igual período).
-- Publicação do extrato do contrato: 20 dias após assinatura (art. 94).
-
-BENEFÍCIOS ME/EPP — LC 123/2006 + Lei 14.133/2021 (art. 4°):
-- Exclusividade ME/EPP OBRIGATÓRIA: itens ou lotes com valor até R$ 80.000,00 (art. 48, I, LC 123).
-- Cota reservada 25% OBRIGATÓRIA: quando a licitação admite cota reservada para ME/EPP.
-- Empate ficto (art. 44 LC 123): ME/EPP pode cobrir proposta de grande empresa com diferença de até 5%.
-- Regularização fiscal posterior: ME/EPP com restrição fiscal tem 5 dias úteis após declaração de vencedor para regularizar (art. 43, §1°, LC 123).
-- ATENÇÃO: licitação acima de R$ 80.000,00 SEM cota reservada, sendo divisível por itens, pode configurar irregularidade.
-
-CLÁUSULAS RESTRITIVAS ILEGAIS (art. 9°):
-São NULAS e impugnáveis as cláusulas que:
-1. Exijam atestado com quantidade superior a 50% do objeto (viola Súmula 272 TCU).
-2. Exijam que o atestado seja de execução junto ao mesmo órgão contratante.
-3. Exijam tempo mínimo de existência da empresa superior a 1 ano (art. 67, §1°).
-4. Exijam capital social mínimo superior a 10% do valor estimado (art. 69, §2°).
-5. Contenham critérios não previstos no edital que direcionem o resultado.
-6. Exijam registro em entidade profissional quando a lei não prevê para o objeto.
-7. Estabeleçam restrição de participação por UF, localização ou proximidade sem justificativa técnica.
-8. Exijam amostra ou protótipo em fase de habilitação (permitido apenas na fase de julgamento).
-
-IRREGULARIDADES RECORRENTES — JURISPRUDÊNCIA TCU:
-- Acórdão 2.637/2015: vedada a exigência de atestado com quantitativo mínimo superior a 50%.
-- Acórdão 1.102/2021: obrigatoriedade de cota reservada ME/EPP para itens divisíveis ≤R$ 80k.
-- Súmula 247 TCU: obrigatória a ampla pesquisa de mercado para formação do preço de referência.
-- Acórdão 1.793/2011: vedado exigir exclusividade de propriedade de equipamentos — admitida locação/arrendamento.
-- Orientação Normativa AGU 58/2014: capital social mínimo limitado a 10% do valor estimado.
-
-FRAUDES E RISCOS A IDENTIFICAR:
-- Valor estimado sigiloso sem justificativa: dificulta formação de proposta competitiva, pode ser impugnado.
-- Prazo de entrega/execução incompatível com o mercado: risco de desclassificação por inexequibilidade.
-- Objeto superficialmente descrito: risco de glosa no recebimento ou conflito na execução contratual.
-- Licitação dividida para fugir de limites de modalidade (fracionamento ilegal — art. 8°, §1°).
-- Dispensa/Inexigibilidade sem processo formal completo: nulidade do contrato e responsabilidade do gestor.
+const BASE_LEGAL_RESUMO = `
+LEGISLAÇÃO APLICÁVEL — Lei 14.133/2021:
+- Pregão Eletrônico obrigatório para bens/serviços comuns (art.176)
+- Dispensa eletrônica até R$57.208,33 (art.75,II)
+- Habilitação: Jurídica(art.66), Fiscal(art.68), Econômica(art.69), Técnica(art.67)
+- Atestado técnico: PROIBIDO exigir >50% do objeto (Súmula 272 TCU) ou >3 atestados
+- Capital social mínimo: limitado a 10% do valor estimado (art.69,§2°)
+- Empresa: PROIBIDO exigir existência >1 ano (art.67,§1°)
+- Prazos: impugnação até 3 dias úteis antes (art.164); recurso 3 dias úteis após habilitação (art.165)
+- ME/EPP: exclusividade obrigatória ≤R$80.000 (art.48 LC123); empate ficto até 5% (art.44 LC123)
+- Cláusulas restritivas ilegais: art.9° — direcionamento, restrição geográfica sem justificativa técnica
+- Fracionamento ilegal: art.8°,§1°
 `;
 
 // ── Estrutura JSON de saída — única fonte da verdade ─────────────────────────
@@ -303,7 +254,7 @@ function buildPrompt(pregao, itensPNCP, dataSessao) {
 Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
 Sua função é analisar pregões com rigor técnico-jurídico e proteger os interesses do cliente.
 
-${BASE_LEGAL_14133}
+${BASE_LEGAL_RESUMO}
 
 ${INSTRUCOES_ANALISE}
 
@@ -341,7 +292,7 @@ function buildPromptPDF(pregao, pdfText, dataSessao) {
 Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
 Sua função é analisar editais com rigor técnico-jurídico e proteger os interesses do cliente.
 
-${BASE_LEGAL_14133}
+${BASE_LEGAL_RESUMO}
 
 ${INSTRUCOES_ANALISE}
 
@@ -389,7 +340,7 @@ function buildPromptAvulso(opts, itensPNCP, pdfText) {
 Domina a Lei 14.133/2021, LC 123/2006, jurisprudência do TCU e orientações da AGU.
 Sua função é analisar licitações com rigor técnico-jurídico e proteger os interesses do cliente.
 
-${BASE_LEGAL_14133}
+${BASE_LEGAL_RESUMO}
 
 ${INSTRUCOES_ANALISE}
 
@@ -490,6 +441,8 @@ function buildPromptReuniao(dados, pdfText, itensPNCP, dataSessao) {
   return `Você é o Edson, especialista em licitações públicas (Lei 14.133/2021).
 Faça uma análise objetiva e direta para uso em reunião comercial com o cliente.
 
+${BASE_LEGAL_RESUMO}
+
 REGRAS CRÍTICAS:
 - Identifique cláusulas restritivas ilegais (atestado >50% objeto: Súmula 272 TCU; capital >10% valor: art.69§2°; tempo empresa >1 ano: art.67§1°)
 - Calcule prazo de impugnação (sessão − 3 dias úteis, art.164)
@@ -513,7 +466,7 @@ ${JSON_SCHEMA_REUNIAO}`;
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
-async function callClaude(prompt, maxTokens = 16000, extraContent = []) {
+async function callClaude(prompt, maxTokens = 12000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const content = extraContent.length > 0
     ? [{ type: 'text', text: prompt }, ...extraContent]
@@ -671,7 +624,7 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
       maxTok = 6000;
     } else {
       prompt = buildPrompt(pregao, itensPNCP, dataSessao);
-      maxTok = 16000;
+      maxTok = 12000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -706,7 +659,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'completo') {
       maxTok = 6000;
     } else {
       prompt = buildPromptPDF(pregao, pdfText, dataSessao);
-      maxTok = 16000;
+      maxTok = 12000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -746,7 +699,7 @@ async function analisarAvulso(analiseId, opts) {
       maxTok = 6000;
     } else {
       prompt = buildPromptAvulso(opts, itensPNCP, pdfText);
-      maxTok = 16000;
+      maxTok = 12000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -873,7 +826,7 @@ async function reanalisarComSuplementos(analiseId) {
     }
 
     const prompt = buildPromptReanalise(analise, complementarNote);
-    const raw = await callClaude(prompt, 16000, extraContent);
+    const raw = await callClaude(prompt, 12000, extraContent);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
