@@ -1241,6 +1241,17 @@
       #section-proposta .panel-preview { background:#fff; overflow:visible; padding:0; }
       .preview-page { box-shadow:none; page-break-after:always; }
     }
+    /* Filtros multi-checkbox (editais) */
+    .check-filtros { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+    .check-tag {
+      display:flex; align-items:center; gap:4px;
+      padding:3px 9px; border-radius:20px;
+      border:1px solid var(--sec-border); background:var(--card-bg);
+      font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap;
+      color:var(--text-muted);
+    }
+    .check-tag:has(input:checked) { background:rgba(76,197,215,.15); border-color:#4CC5D7; color:#4CC5D7; }
+    .check-tag input[type="checkbox"] { display:none; }
     /* PWA / Mobile */
     .menu-toggle {
       display: none;
@@ -1488,41 +1499,35 @@
             </div>
             <div class="form-group" style="margin:0">
               <label for="raio_km">Raio de cobertura</label>
-              <select id="raio_km">
-                <option value="0">Cidade exata</option>
-                <option value="50">Até 50 km</option>
-                <option value="100">Até 100 km</option>
-                <option value="150">Até 150 km</option>
-                <option value="200">Estado inteiro</option>
-                <option value="999">Todo o Brasil</option>
-              </select>
+              <div style="position:relative">
+                <input type="number" id="raio_km" placeholder="Raio em km (ex: 50)" min="0" max="5000" step="10" style="padding-right:36px">
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none">km</span>
+              </div>
             </div>
             <div class="form-group" style="margin:0">
-              <label for="filtro-modalidade">Modalidade</label>
-              <select id="filtro-modalidade">
-                <option value="">Todas as modalidades</option>
-                <option value="Pregão Eletrônico">Pregão Eletrônico</option>
-                <option value="Dispensa Eletrônica">Dispensa Eletrônica</option>
-                <option value="Concorrência">Concorrência</option>
-                <option value="Credenciamento">Credenciamento</option>
-                <option value="Diálogo Competitivo">Diálogo Competitivo</option>
-                <option value="Inexigibilidade">Inexigibilidade</option>
-                <option value="Leilão">Leilão</option>
-              </select>
+              <label>Modalidade</label>
+              <div class="check-filtros" id="filtro-modalidades">
+                <label class="check-tag"><input type="checkbox" value="Pregão - Eletrônico"> Pregão Eletrônico</label>
+                <label class="check-tag"><input type="checkbox" value="Dispensa"> Dispensa</label>
+                <label class="check-tag"><input type="checkbox" value="Concorrência"> Concorrência</label>
+                <label class="check-tag"><input type="checkbox" value="Credenciamento"> Credenciamento</label>
+                <label class="check-tag"><input type="checkbox" value="Diálogo Competitivo"> Diálogo Competitivo</label>
+                <label class="check-tag"><input type="checkbox" value="Inexigibilidade"> Inexigibilidade</label>
+                <label class="check-tag"><input type="checkbox" value="Leilão"> Leilão</label>
+              </div>
             </div>
             <div class="form-group" style="margin:0">
-              <label for="filtro-portal">Portal de disputa</label>
-              <select id="filtro-portal">
-                <option value="">Todos os portais</option>
-                <option value="pncp">PNCP</option>
-                <option value="comprasnet">ComprasNet / Compras.gov.br</option>
-                <option value="bec/sp">BEC/SP</option>
-                <option value="licitacoes-e">Licitações-e</option>
-                <option value="comprasbr">ComprasBR</option>
-                <option value="bbmnet">BBMNET</option>
-                <option value="banrisul">Banrisul</option>
-                <option value="caixa">Caixa</option>
-              </select>
+              <label>Plataforma</label>
+              <div class="check-filtros" id="filtro-portais">
+                <label class="check-tag"><input type="checkbox" value="Licitar Digital"> Licitar Digital</label>
+                <label class="check-tag"><input type="checkbox" value="Compras.gov"> Compras.gov</label>
+                <label class="check-tag"><input type="checkbox" value="BLL Compras"> BLL Compras</label>
+                <label class="check-tag"><input type="checkbox" value="BBMNET"> BBMNET</label>
+                <label class="check-tag"><input type="checkbox" value="Portal de Compras Públicas"> PCP</label>
+                <label class="check-tag"><input type="checkbox" value="Sigmix"> Sigmix</label>
+                <label class="check-tag"><input type="checkbox" value="Licitações-e"> Licitações-e</label>
+                <label class="check-tag"><input type="checkbox" value="Portal MG"> Portal MG</label>
+              </div>
             </div>
             <div class="form-group" style="margin:0">
               <label for="filtro-valor-min">Valor estimado mínimo (R$)</label>
@@ -3887,11 +3892,12 @@
     const cidadeEl = document.getElementById('cidade');
     const raioEl   = document.getElementById('raio_km');
     if (cidadeEl) cidadeEl.value = '';
-    if (raioEl)   raioEl.value  = '0';
+    if (raioEl)   raioEl.value  = '';
     const vMinEl = document.getElementById('filtro-valor-min');
     const vMaxEl = document.getElementById('filtro-valor-max');
     if (vMinEl) vMinEl.value = '';
     if (vMaxEl) vMaxEl.value = '';
+    document.querySelectorAll('#filtro-modalidades input, #filtro-portais input').forEach(el => { el.checked = false; });
     setDefaultDates();
     document.getElementById('results-area').innerHTML = '';
     lastParams = null;
@@ -4017,9 +4023,9 @@
     const di     = document.getElementById('dataInicial').value;
     const df     = document.getElementById('dataFinal').value;
     const cidade  = document.getElementById('cidade')?.value.trim() || '';
-    const raio    = document.getElementById('raio_km')?.value || '0';
-    const portal     = document.getElementById('filtro-portal')?.value || '';
-    const modalidade = document.getElementById('filtro-modalidade')?.value || '';
+    const raio    = document.getElementById('raio_km')?.value || '';
+    const modalidades = Array.from(document.querySelectorAll('#filtro-modalidades input:checked')).map(el => el.value);
+    const portais     = Array.from(document.querySelectorAll('#filtro-portais input:checked')).map(el => el.value);
     const valorMin   = document.getElementById('filtro-valor-min')?.value || '';
     const valorMax   = document.getElementById('filtro-valor-max')?.value || '';
 
@@ -4031,7 +4037,7 @@
 
     const dataInicial = di.replace(/-/g, '');
     const dataFinal   = df.replace(/-/g, '');
-    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portal, modalidade, valorMin, valorMax };
+    lastParams = { q, uf, dataInicial, dataFinal, cidade, raio, portais, modalidades, valorMin, valorMax };
     currentPage = pagina;
 
     const btn = document.getElementById('btn-buscar');
@@ -4044,9 +4050,10 @@
     const params = new URLSearchParams({ dataInicial, dataFinal, pagina, tamanhoPagina: 12 });
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
-    if (cidade && parseInt(raio) < 999) { params.set('cidade', cidade); params.set('raio_km', raio); }
-    if (portal) params.set('portal', portal);
-    if (modalidade) params.set('modalidade', modalidade);
+    const raioNum = parseInt(raio) || 0;
+    if (cidade && raioNum < 5000) { params.set('cidade', cidade); params.set('raio_km', raioNum || 0); }
+    if (portais.length > 0) params.set('portais', portais.join(','));
+    if (modalidades.length > 0) params.set('modalidades', modalidades.join(','));
     if (valorMin) params.set('valorMin', valorMin);
     if (valorMax) params.set('valorMax', valorMax);
 
@@ -6377,14 +6384,20 @@
     const footerBase = `CONLICIT · ASSESSORIA EM COMPRAS PÚBLICAS · CNPJ ${cnpj} · CONTATO@CONLICIT.COM.BR`;
     pS('p-pv_footer1', footerBase); pS('p-pv_footer2', footerBase);
 
-    const incluso = _propostaInclusoState.filter(it => it.on).map(it => it.label);
+    // Ler estado dos checkboxes diretamente do DOM (fonte de verdade)
+    const incluso = _propostaInclusoState
+      .filter(it => { const el = document.getElementById(it.id); return el ? el.checked : it.on; })
+      .map(it => it.label);
     const extra = pG('pf_extra').trim();
     if (extra) incluso.push(extra);
     pS('p-pv_incluso', incluso.map(i => `
       <div class="pv-incluso-item"><div class="pv-dot"></div><span>${i}</span></div>
     `).join(''));
 
-    pS('p-pv_frentes', _propostaFrentesState.filter(f => f.on).map(f => {
+    pS('p-pv_frentes', _propostaFrentesState.filter(f => {
+      const toggle = document.getElementById('pft_' + f.id);
+      return toggle ? toggle.checked : f.on;
+    }).map(f => {
       const desc = f.desc || '';
       return `
         <div class="pv-frente">

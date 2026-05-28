@@ -84,7 +84,7 @@ function formatarEdital(item) {
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal, valorMin, valorMax, pagina, tamanhoPagina }) {
+async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais, valorMin, valorMax, pagina, tamanhoPagina }) {
   const condicoes = [`data_encerramento >= NOW()`];
   const params = [];
   let idx = 1;
@@ -103,7 +103,12 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade
     params.push(uf.toUpperCase());
   }
 
-  if (modalidade) {
+  // Multi-modalidade (array) tem prioridade sobre modalidade singular
+  if (modalidades && modalidades.length > 0) {
+    const placeholders = modalidades.map(() => `$${idx++}`).join(',');
+    condicoes.push(`modalidade_nome ILIKE ANY(ARRAY[${placeholders}])`);
+    modalidades.forEach(m => params.push(`%${m}%`));
+  } else if (modalidade) {
     condicoes.push(`modalidade_nome ILIKE $${idx++}`);
     params.push(`%${modalidade}%`);
   }
@@ -152,19 +157,38 @@ async function buscarNaCache({ q, uf, modalidade, dataInicial, dataFinal, cidade
     params.push(Number(valorMax));
   }
 
-  if (portal) {
-    // Filtra pelo portal detectado no campo raw->linkSistemaOrigem
-    const portalMap = {
-      pncp:           '%pncp.gov.br%',
-      comprasnet:     '%comprasnet.gov.br%',
-      'bec/sp':       '%bec.sp.gov.br%',
-      'licitacoes-e': '%licitacoes-e.com.br%',
-      comprasbr:      '%comprasbr.gov.br%',
-      bbmnet:         '%bbmnet.com.br%',
-      banrisul:       '%banrisul.com.br%',
-      caixa:          '%caixa.gov.br%',
-    };
-    const pattern = portalMap[portal.toLowerCase()];
+  // Mapa de nome de portal → padrão de URL para filtrar no campo raw
+  const PORTAL_URL_MAP = {
+    'licitar digital':              '%licitardigital%',
+    'compras.gov':                  '%comprasnet.gov.br%',
+    'portal mg':                    '%mg.gov.br%',
+    'bll compras':                  '%bll%',
+    'bbmnet':                       '%bbmnet%',
+    'portal de compras públicas':   '%portaldecompraspublicas%',
+    'pcp':                          '%portaldecompraspublicas%',
+    'sigmix':                       '%sigmix%',
+    'licitações-e':                 '%licitacoes-e%',
+    // valores legados (single-select antigo)
+    pncp:           '%pncp.gov.br%',
+    comprasnet:     '%comprasnet.gov.br%',
+    'bec/sp':       '%bec.sp.gov.br%',
+    'licitacoes-e': '%licitacoes-e.com.br%',
+    comprasbr:      '%comprasbr.gov.br%',
+    bbmnet:         '%bbmnet.com.br%',
+    banrisul:       '%banrisul.com.br%',
+    caixa:          '%caixa.gov.br%',
+  };
+
+  // Multi-portal (array) tem prioridade sobre portal singular
+  if (portais && portais.length > 0) {
+    const patterns = portais.map(p => PORTAL_URL_MAP[p.toLowerCase()]).filter(Boolean);
+    if (patterns.length > 0) {
+      const placeholders = patterns.map(() => `$${idx++}`).join(',');
+      condicoes.push(`raw->>'linkSistemaOrigem' ILIKE ANY(ARRAY[${placeholders}])`);
+      patterns.forEach(p => params.push(p));
+    }
+  } else if (portal) {
+    const pattern = PORTAL_URL_MAP[portal.toLowerCase()];
     if (pattern) {
       condicoes.push(`raw->>'linkSistemaOrigem' ILIKE $${idx++}`);
       params.push(pattern);
@@ -201,9 +225,11 @@ async function listarEditais(req, res) {
     q,
     uf,
     modalidade,
+    modalidades: modalidadesRaw,
     cidade,
     raio_km,
     portal,
+    portais: portaisRaw,
     valorMin,
     valorMax,
   } = req.query;
@@ -214,8 +240,12 @@ async function listarEditais(req, res) {
     });
   }
 
+  // Arrays de modalidade e portal (multi-select)
+  const modalidades = modalidadesRaw ? modalidadesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const portais     = portaisRaw     ? portaisRaw.split(',').map(s => s.trim()).filter(Boolean)     : [];
+
   let codigoModalidade;
-  if (modalidade) {
+  if (modalidade && modalidades.length === 0) {
     codigoModalidade = MODALIDADES[modalidade.toLowerCase().trim()];
     if (!codigoModalidade) {
       return res.status(400).json({
@@ -228,7 +258,7 @@ async function listarEditais(req, res) {
   const paginaSolicitada  = Math.max(Number(pagina), 1);
   const vMin = valorMin != null && valorMin !== '' ? Number(valorMin) : null;
   const vMax = valorMax != null && valorMax !== '' ? Number(valorMax) : null;
-  const filtraLocal = !!(q || uf || cidade || portal || vMin != null || vMax != null);
+  const filtraLocal = !!(q || uf || cidade || portal || portais.length > 0 || modalidades.length > 0 || vMin != null || vMax != null);
 
   try {
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
@@ -263,7 +293,7 @@ async function listarEditais(req, res) {
     if (totalCache >= 100) {
       // Cache populado → busca no banco (cobertura 100% dos editais sincronizados)
       const { total, dados } = await buscarNaCache({
-        q, uf, modalidade, dataInicial, dataFinal, cidade, raio_km, portal,
+        q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais,
         valorMin: vMin, valorMax: vMax,
         pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado,
       });
