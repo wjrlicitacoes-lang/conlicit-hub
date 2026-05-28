@@ -1,0 +1,43 @@
+{
+  "name": "Conlicit Hub",
+  "short_name": "Conlicit",
+  "description": "Ecossistema de automação para consultoria de licitações",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#182A39",
+  "theme_color": "#182A39",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/assets/images/simbolo-branco.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/simbolo-branco.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Edson IA",
+      "short_name": "Edson",
+      "description": "Analisar edital com IA",
+      "url": "/?section=edson",
+      "icons": [{ "src": "/assets/images/simbolo-branco.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Buscar Editais",
+      "short_name": "Buscar",
+      "description": "Buscar editais no PNCP",
+      "url": "/?section=editais",
+      "icons": [{ "src": "/assets/images/simbolo-branco.png", "sizes": "192x192" }]
+    }
+  ]
+}

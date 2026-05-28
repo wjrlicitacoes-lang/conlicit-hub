@@ -2,8 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Conlicit Hub — Painel</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#182A39" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Conlicit Hub" />
+  <link rel="apple-touch-icon" href="/assets/images/simbolo-branco.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
@@ -1234,12 +1241,74 @@
       #section-proposta .panel-preview { background:#fff; overflow:visible; padding:0; }
       .preview-page { box-shadow:none; page-break-after:always; }
     }
+    /* PWA / Mobile */
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: .4rem .5rem;
+      color: var(--text);
+      font-size: 1.4rem;
+      line-height: 1;
+      margin-right: .5rem;
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 199;
+    }
+    .sidebar-overlay.visible { display: block; }
+    @media (max-width: 768px) {
+      .menu-toggle { display: flex; align-items: center; }
+      .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        z-index: 200;
+        width: 220px !important;
+        transition: left .25s ease;
+      }
+      .sidebar.open { left: 0; }
+      .main-content { margin-left: 0 !important; }
+    }
+    /* Safe area para notch / home indicator */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .topbar { padding-top: env(safe-area-inset-top); }
+      body { padding-bottom: env(safe-area-inset-bottom); }
+    }
+    /* Banner de instalação PWA */
+    #pwa-install-banner {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card-bg);
+      border: 1px solid var(--sec-border);
+      border-radius: var(--radius);
+      padding: .9rem 1.2rem;
+      box-shadow: var(--shadow);
+      z-index: 9999;
+      align-items: center;
+      gap: 1rem;
+      max-width: 420px;
+      width: calc(100% - 2rem);
+    }
+    #pwa-install-banner.visible { display: flex; }
+    #pwa-install-banner img { width: 36px; height: 36px; border-radius: 8px; }
+    #pwa-install-banner p { flex: 1; font-size: .85rem; color: var(--text-muted); margin: 0; }
+    #pwa-install-banner p strong { color: var(--text); display: block; }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu" id="btn-menu-toggle">☰</button>
     <a class="logo" href="#">
       <img src="/assets/images/logo-branco.png" alt="Conlicit Hub" style="height:26px;object-fit:contain;display:block">
     </a>
@@ -6768,6 +6837,74 @@
     </div>
   </div>
 </div>
+
+<!-- Sidebar overlay para mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Banner de instalação PWA -->
+<div id="pwa-install-banner">
+  <img src="/assets/images/simbolo-branco.png" alt="Conlicit Hub" />
+  <p><strong>Instalar Conlicit Hub</strong>Adicione à tela inicial para acesso rápido</p>
+  <button class="btn btn-primary btn-sm" id="btn-instalar-pwa">Instalar</button>
+  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pwa-install-banner').classList.remove('visible')">✕</button>
+</div>
+
+<script>
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
+
+// ── Sidebar mobile toggle ──
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar) return;
+  const open = sidebar.classList.toggle('open');
+  overlay.classList.toggle('visible', open);
+}
+
+// ── Fechar sidebar ao navegar (mobile) ──
+const _origNavTo = typeof navTo === 'function' ? navTo : null;
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('.nav-item');
+  if (link && window.innerWidth <= 768) {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('visible');
+  }
+});
+
+// ── Install prompt PWA ──
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) setTimeout(() => banner.classList.add('visible'), 3000);
+});
+const btnInstalar = document.getElementById('btn-instalar-pwa');
+if (btnInstalar) {
+  btnInstalar.addEventListener('click', async () => {
+    if (!_pwaPrompt) return;
+    _pwaPrompt.prompt();
+    const { outcome } = await _pwaPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('pwa-install-banner').classList.remove('visible');
+    }
+    _pwaPrompt = null;
+  });
+}
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwa-install-banner')?.classList.remove('visible');
+  _pwaPrompt = null;
+});
+</script>
 
 </body>
 </html>
