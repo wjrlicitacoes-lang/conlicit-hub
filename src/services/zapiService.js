@@ -9,11 +9,20 @@ if (!INST || !TOKEN) {
   console.warn('[Z-API] ZAPI_INSTANCE ou ZAPI_TOKEN não configurados');
 }
 
+const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN;
+
 const client = axios.create({
   baseURL: `${BASE}/instances/${INST}/token/${TOKEN}`,
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    ...(CLIENT_TOKEN ? { 'client-token': CLIENT_TOKEN } : {}),
+  },
 });
+
+if (!CLIENT_TOKEN) {
+  console.warn('[Z-API] ZAPI_CLIENT_TOKEN não configurado — algumas requisições podem falhar');
+}
 
 async function enviarTexto(telefone, mensagem) {
   const numero = telefone.replace(/\D/g, '');
