@@ -721,6 +721,8 @@
     #toast.show { transform: translateY(0); }
     #toast.toast-error { border-color: rgba(224,92,92,.5); color: #f08080; }
     #toast.toast-success { border-color: rgba(76,197,215,.4); color: var(--primary-l); }
+    #toast { transition: transform 0.3s ease, opacity 0.3s ease; }
+    #toast:not(.show) { opacity: 0; pointer-events: none; }
 
     /* ── MODAL ── */
     .modal-overlay {
@@ -4539,10 +4541,13 @@
     const el = document.getElementById('toast');
     if (!el) return;
     el.textContent = msg;
+    el.className = '';
+    void el.offsetWidth;
     el.className = 'show' + (tipo === 'error' ? ' toast-error' : tipo === 'success' ? ' toast-success' : '');
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(() => {
       el.className = el.className.replace('show', '').trim();
+      setTimeout(() => { if (el.className.trim() === '') el.className = ''; }, 400);
     }, 3500);
   }
 
@@ -7416,13 +7421,68 @@ function renderCardOportunidade(op) {
     <div class="edital-acoes">
       ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${op.id},this)">🤖 Gerar resumo Edson</button>`:''}
       ${op.status==='aguardando_disparo'&&(isSocioAdmin||isAssist)?`
-        ${resumo.resumo_whatsapp?`<button class="btn-ver-itens" onclick="verResumoOportunidade(${op.id})">👁 Ver resumo</button>`:''}
+        <button class="btn-ver-itens" onclick="verResumoOportunidade(${op.id}, ${JSON.stringify(op.resumo_edson||{}).replace(/"/g,'&quot;')})">👁 Ver resumo</button>
         <button class="btn-edson" onclick="dispararOportunidade(${op.id},this)">📱 Disparar para cliente</button>`:''}
       ${op.status==='disparado'&&isSocioAdmin?`
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'sim')">✅ Marcar interesse</button>
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'nao')">❌ Sem interesse</button>`:''}
     </div>
   </div>`;
+}
+
+function verResumoOportunidade(id, resumoJson) {
+  let resumo = resumoJson;
+  if (typeof resumo === 'string') {
+    try { resumo = JSON.parse(resumo); } catch { resumo = {}; }
+  }
+  if (!resumo) { toast('Resumo não disponível', 'error'); return; }
+
+  const body = document.getElementById('modal-resumo-body');
+  body.innerHTML = `
+    <div style="background:rgba(76,197,215,0.08);border:1px solid rgba(76,197,215,0.2);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4CC5D7;margin-bottom:8px">
+        Mensagem que será enviada ao cliente
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85);white-space:pre-wrap;line-height:1.6">
+        ${esc(resumo.resumo_whatsapp || 'Sem resumo gerado')}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Valor</div>
+        <div style="font-size:13px;color:#4CC5D7;font-weight:600">${esc(resumo.valor_formatado || '—')}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Data da sessão</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(resumo.data_formatada || '—')}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Plataforma</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.8)">${esc(resumo.plataforma || '—')}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Recomendação</div>
+        <div style="font-size:13px;font-weight:600;color:${resumo.recomendacao==='PARTICIPAR'?'#4ade80':resumo.recomendacao==='NÃO PARTICIPAR'?'#f87171':'#facc15'}">${esc(resumo.recomendacao || '—')}</div>
+      </div>
+    </div>
+    ${resumo.documentos_principais?.length ? `
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:14px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Documentos principais</div>
+        ${resumo.documentos_principais.map(d => `
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);padding:3px 0;display:flex;gap:6px;align-items:flex-start">
+            <span style="color:#4CC5D7;flex-shrink:0">•</span>${esc(d)}
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    ${resumo.forma_entrega ? `
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Forma de entrega</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7)">${esc(resumo.forma_entrega)}</div>
+      </div>
+    ` : ''}
+  `;
+  document.getElementById('modal-resumo-oportunidade').classList.add('visible');
 }
 
 function filtrarOportunidades(status, evt) {
@@ -7566,6 +7626,16 @@ async function salvarOportunidade() {
         <button class="btn btn-primary" onclick="trocarSenha()">Salvar nova senha</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-resumo-oportunidade" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <h3>Resumo Edson — Preview do disparo</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-resumo-oportunidade').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-resumo-body"></div>
   </div>
 </div>
 
