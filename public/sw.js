@@ -24,6 +24,25 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const { request } = e;
+
+  // Nunca interceptar chamadas de API ou qualquer método não-GET
+  if (
+    request.method !== 'GET' ||
+    request.url.includes('/oportunidades') ||
+    request.url.includes('/editais') ||
+    request.url.includes('/clientes') ||
+    request.url.includes('/edson') ||
+    request.url.includes('/auth') ||
+    request.url.includes('/calendario') ||
+    request.url.includes('/boletim') ||
+    request.url.includes('/prospects') ||
+    request.url.includes('/propostas') ||
+    request.url.includes('railway.app')
+  ) {
+    e.respondWith(fetch(request));
+    return;
+  }
+
   const url = new URL(request.url);
 
   // Ignora requests não-HTTP e chrome-extension
@@ -41,12 +60,6 @@ self.addEventListener('fetch', (e) => {
     url.pathname.startsWith('/oportunidades') ||
     url.pathname.startsWith('/health');
   const isHtml = request.headers.get('accept')?.includes('text/html');
-
-  // Nunca cachear métodos não-GET
-  if (request.method !== 'GET') {
-    e.respondWith(fetch(request));
-    return;
-  }
 
   if (isApi || isHtml) {
     e.respondWith(
