@@ -38,8 +38,15 @@ self.addEventListener('fetch', (e) => {
     url.pathname.startsWith('/edson') ||
     url.pathname.startsWith('/prospects') ||
     url.pathname.startsWith('/propostas') ||
+    url.pathname.startsWith('/oportunidades') ||
     url.pathname.startsWith('/health');
   const isHtml = request.headers.get('accept')?.includes('text/html');
+
+  // Nunca cachear métodos não-GET
+  if (request.method !== 'GET') {
+    e.respondWith(fetch(request));
+    return;
+  }
 
   if (isApi || isHtml) {
     e.respondWith(
