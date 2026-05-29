@@ -7279,6 +7279,7 @@
             <select id="nu-role" onchange="toggleClienteField()">
               <option value="assistente">Assistente</option>
               <option value="assistente_junior">Assistente Júnior</option>
+              <option value="operador">Operador</option>
               <option value="admin">Admin</option>
               <option value="socio_fundador">Sócio Fundador</option>
               <option value="diretor_comercial">Diretor Comercial</option>
@@ -7319,6 +7320,7 @@
           <select id="eu-role" onchange="toggleEuClienteField()">
             <option value="assistente">Assistente</option>
             <option value="assistente_junior">Assistente Júnior</option>
+            <option value="operador">Operador</option>
             <option value="admin">Admin</option>
             <option value="socio_fundador">Sócio Fundador</option>
             <option value="diretor_comercial">Diretor Comercial</option>
@@ -7502,6 +7504,11 @@ function renderCardOportunidade(op) {
       <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(op.portal||'—')}</span></div>
       <div class="edital-meta-item"><span class="edital-meta-label">Local</span><span class="edital-meta-value">${esc(op.municipio?`${op.municipio}/${op.uf}`:op.uf||'—')}</span></div>
     </div>
+    ${op.operador_id ? `
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+        👤 Operador: <strong style="color:var(--text)">${esc(op.operador_nome || 'Designado')}</strong>
+      </div>
+    ` : ''}
     <div class="edital-acoes">
       ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${parseInt(op.id)},this)">🤖 Gerar resumo Edson</button>`:''}
       ${op.status==='aguardando_disparo'&&(isSocioAdmin||isAssist)?`
@@ -7708,7 +7715,7 @@ async function encaminharOperador(opId) {
   try {
     const r = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
     const users = await r.json();
-    const operadores = users.filter(u => ['assistente','assistente_junior','admin','socio_fundador'].includes(u.role));
+    const operadores = users.filter(u => ['assistente','assistente_junior','admin','socio_fundador','operador'].includes(u.role));
     sel.innerHTML = '<option value="">Selecione o operador...</option>' +
       operadores.map(u => `<option value="${u.id}">${esc(u.nome || u.email)} (${u.role})</option>`).join('');
   } catch(e) { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }

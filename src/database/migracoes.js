@@ -398,7 +398,7 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_id INTEGER REFERENCES usuarios(id)`);
   await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
 
-  // Garantir constraint de roles atualizada (idempotente)
+  // Garantir constraint de roles atualizada (inclui operador)
   await db.query(`
     DO $$
     BEGIN
@@ -408,11 +408,16 @@ async function executarMigracoes() {
       END;
       BEGIN
         ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-          CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'));
+          CHECK (role IN ('admin','assistente','assistente_junior','cliente',
+                          'socio_fundador','diretor_comercial','operador'));
       EXCEPTION WHEN duplicate_object THEN NULL;
       END;
     END $$;
   `);
+
+  // Colunas de operador nos pregões
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_pregoes_operador ON pregoes(operador_id)`);
 
   console.log('Migrações executadas com sucesso');
 }

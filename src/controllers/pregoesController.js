@@ -113,12 +113,19 @@ async function remover(req, res) {
 async function listarTodos(req, res) {
   if (req.usuario?.role === 'cliente') return res.status(403).json({ erro: 'Acesso negado' });
   const { status, cliente_id } = req.query;
+  const { role, id: userId } = req.usuario;
   try {
     const conds = [];
     const vals = [];
     let idx = 1;
     if (status)     { conds.push(`p.status = $${idx++}`);     vals.push(status); }
     if (cliente_id) { conds.push(`p.cliente_id = $${idx++}`); vals.push(parseInt(cliente_id, 10)); }
+
+    if (!['admin', 'socio_fundador', 'diretor_comercial'].includes(role)) {
+      conds.push(`p.operador_id = $${idx++}`);
+      vals.push(userId);
+    }
+
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const { rows } = await db.query(
       `SELECT p.*, c.nome AS cliente_nome

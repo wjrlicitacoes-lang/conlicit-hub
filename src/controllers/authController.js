@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../database/db');
 const { PERMISSOES_ROLE, TODOS_MODULOS } = require('../middleware/autenticar');
 
-const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'];
+const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'];
 const ROLES_GESTORES = ['admin','socio_fundador'];
 
 async function getPermissoesEfetivas(userId, role) {

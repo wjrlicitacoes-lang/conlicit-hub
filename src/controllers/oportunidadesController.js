@@ -26,10 +26,12 @@ async function listar(req, res) {
              c.nome AS cliente_nome,
              c.contato_whatsapp,
              c.whatsapp_grupo,
-             u.nome AS criado_por_nome
+             u.nome AS criado_por_nome,
+             u2.nome AS operador_nome
       FROM oportunidades_fila o
       LEFT JOIN clientes c ON c.id = o.cliente_id
       LEFT JOIN usuarios u ON u.id = o.criado_por
+      LEFT JOIN usuarios u2 ON u2.id = o.operador_id
       ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
       ORDER BY o.created_at DESC
       LIMIT 100
@@ -265,21 +267,54 @@ async function registrarResposta(req, res) {
     if (!op) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
 
     if (resposta === 'sim') {
-      const { rows: [pregao] } = await db.query(
-        `INSERT INTO pregoes (cliente_id, numero, orgao, objeto, valor_estimado,
-                              data_hora_abertura, link_pncp, status, numero_controle_pncp)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'a_disputar',$8)
-         ON CONFLICT DO NOTHING
-         RETURNING id`,
-        [op.cliente_id, op.edital_ref, op.orgao, op.objeto, op.valor_estimado,
-         op.data_abertura, op.link_pncp, op.numero_controle_pncp],
+      const { rows: [opFull] } = await db.query(
+        `SELECT o.*, c.nome AS cliente_nome
+         FROM oportunidades_fila o
+         LEFT JOIN clientes c ON c.id = o.cliente_id
+         WHERE o.id = $1`, [id],
       );
-      if (pregao) {
-        await db.query(
-          `UPDATE oportunidades_fila SET pregao_id=$1 WHERE id=$2`,
-          [pregao.id, id],
-        ).catch(() => {});
-        console.log(`[Oportunidades] Interesse confirmado — cliente ${op.cliente_nome}, pregão ${op.edital_ref}, criado pregao.id=${pregao.id}`);
+
+      if (opFull) {
+        const { rows: [existente] } = await db.query(
+          `SELECT id FROM pregoes WHERE cliente_id=$1 AND numero_controle_pncp=$2`,
+          [opFull.cliente_id, opFull.numero_controle_pncp || opFull.edital_ref],
+        );
+
+        if (!existente) {
+          const { rows: [pregao] } = await db.query(
+            `INSERT INTO pregoes
+               (cliente_id, numero, orgao, objeto, valor_estimado,
+                data_abertura, data_hora_abertura, link_pncp,
+                status, numero_controle_pncp)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'a_disputar',$9)
+             RETURNING id`,
+            [
+              opFull.cliente_id,
+              opFull.edital_ref || opFull.numero_controle_pncp,
+              opFull.orgao,
+              opFull.objeto,
+              opFull.valor_estimado,
+              opFull.data_abertura ? new Date(opFull.data_abertura).toISOString().split('T')[0] : null,
+              opFull.data_abertura || null,
+              opFull.link_pncp || opFull.link_edital,
+              opFull.numero_controle_pncp || opFull.edital_ref,
+            ],
+          );
+
+          if (pregao) {
+            await db.query(
+              `UPDATE oportunidades_fila SET pregao_id=$1 WHERE id=$2`,
+              [pregao.id, id],
+            ).catch(e => console.warn('[Oportunidades] Não foi possível vincular pregão:', e.message));
+            console.log(`[Oportunidades] Pregão criado id=${pregao.id} para cliente ${opFull.cliente_nome} — ${opFull.objeto?.slice(0, 50)}`);
+          }
+        } else {
+          console.log(`[Oportunidades] Pregão já existe id=${existente.id} para este edital`);
+          await db.query(
+            `UPDATE oportunidades_fila SET pregao_id=$1 WHERE id=$2`,
+            [existente.id, id],
+          ).catch(() => {});
+        }
       }
     }
 
@@ -381,18 +416,31 @@ async function encaminhar(req, res) {
     return res.status(403).json({ erro: 'Sem permissão' });
   const { id } = req.params;
   const { operador_id, observacoes } = req.body;
+  if (!operador_id) return res.status(400).json({ erro: 'operador_id obrigatório' });
   try {
-    await db.query(`UPDATE oportunidades_fila SET operador_id=$1, operador_obs=$2 WHERE id=$3`,
-      [operador_id, observacoes || null, id]);
+    await db.query(
+      `UPDATE oportunidades_fila SET operador_id=$1, operador_obs=$2 WHERE id=$3`,
+      [operador_id, observacoes || null, id],
+    );
+
     const { rows: [op] } = await db.query(
-      `SELECT o.objeto, o.orgao, c.nome AS cliente_nome, u.nome AS op_nome, u.email AS op_email
-       FROM oportunidades_fila o
-       LEFT JOIN clientes c ON c.id = o.cliente_id
-       LEFT JOIN usuarios u ON u.id = $1
-       WHERE o.id = $2`, [operador_id, id]);
-    console.log(`[Encaminhar] op=${id} → operador=${op?.op_nome || operador_id} — ${op?.objeto?.slice(0, 50)}`);
+      `SELECT pregao_id, objeto, orgao FROM oportunidades_fila WHERE id=$1`, [id],
+    );
+
+    if (op?.pregao_id) {
+      await db.query(
+        `UPDATE pregoes SET operador_id=$1, operador_obs=$2 WHERE id=$3`,
+        [operador_id, observacoes || null, op.pregao_id],
+      );
+    }
+
+    const { rows: [usr] } = await db.query(
+      `SELECT nome, email FROM usuarios WHERE id=$1`, [operador_id],
+    );
+    console.log(`[Encaminhar] op=${id} → ${usr?.nome || usr?.email} — ${op?.objeto?.slice(0, 40)}`);
     return res.json({ ok: true });
   } catch (e) {
+    console.error('[Encaminhar]', e.message);
     return res.status(500).json({ erro: e.message });
   }
 }
