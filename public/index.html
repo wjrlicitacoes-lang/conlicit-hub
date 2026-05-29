@@ -525,19 +525,42 @@
       text-transform: uppercase; color: var(--text-muted);
     }
     .busca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip { cursor: pointer; }
-    .chip input[type="checkbox"] { display: none; }
-
-    .chip span {
-      display: inline-block; padding: 4px 11px; border-radius: 20px;
-      border: 1px solid var(--bd); background: transparent;
-      font-size: 12px; color: var(--text-muted); transition: all .15s;
-      white-space: nowrap; cursor: pointer;
+    /* ── UF multi-checkbox ── */
+    #uf-checkboxes label {
+      display: flex; align-items: center; gap: 5px; font-size: 12px;
+      color: var(--text-secondary, rgba(255,255,255,0.6));
+      cursor: pointer; padding: 4px 6px; border-radius: 6px;
+      transition: background .12s; user-select: none;
     }
+    #uf-checkboxes label:hover { background: rgba(76,197,215,0.08); }
+    #uf-checkboxes input[type="checkbox"] { display: none; }
+    #uf-checkboxes label::before {
+      content: ''; width: 16px; height: 16px; border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.2); background: transparent;
+      flex-shrink: 0; transition: all .12s;
+    }
+    #uf-checkboxes label:has(input:checked) { color: #4CC5D7; font-weight: 600; }
+    #uf-checkboxes label:has(input:checked)::before {
+      background: #4CC5D7; border-color: #4CC5D7;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23182A39' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+      background-size: 10px 8px; background-repeat: no-repeat; background-position: center;
+    }
+
+    /* ── Chips de modalidade/plataforma ── */
+    .chip { cursor: pointer; user-select: none; }
+    .chip input[type="checkbox"] { display: none; }
+    .chip span {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px;
+      border: 1px solid var(--border, rgba(255,255,255,0.1)); background: transparent;
+      font-size: 12px; color: var(--text-secondary, rgba(255,255,255,0.55));
+      transition: all .12s; white-space: nowrap; cursor: pointer;
+    }
+    .chip span::before { content: ''; display: none; }
     .chip:hover span { border-color: rgba(76,197,215,0.4); color: rgba(255,255,255,0.85); }
     .chip input:checked + span {
-      background: rgba(76,197,215,0.15); border-color: #4CC5D7;
-      color: #4CC5D7; font-weight: 500;
+      background: #4CC5D7; border-color: #4CC5D7;
+      color: #182A39; font-weight: 600;
     }
     .busca-linha-chips + .busca-linha-chips {
       padding-top: 10px; border-top: 1px solid var(--sec-border);
@@ -1324,16 +1347,22 @@
       .preview-page { box-shadow:none; page-break-after:always; }
     }
     /* Filtros multi-checkbox (editais) */
-    .check-filtros { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
-    .check-tag {
-      display:flex; align-items:center; gap:4px;
-      padding:3px 9px; border-radius:20px;
-      border:1px solid var(--sec-border); background:var(--card-bg);
-      font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap;
-      color:var(--text-muted);
+    .check-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .check-tag { cursor: pointer; user-select: none; }
+    .check-tag input[type="checkbox"] { display: none; }
+    .check-tag span,
+    .check-tag:not(:has(input)) {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: 20px; border: 1px solid var(--border, rgba(255,255,255,0.1));
+      background: transparent; font-size: 12px;
+      color: var(--text-muted, rgba(255,255,255,0.5));
+      transition: all .12s; cursor: pointer;
     }
-    .check-tag:has(input:checked) { background:rgba(76,197,215,.15); border-color:#4CC5D7; color:#4CC5D7; }
-    .check-tag input[type="checkbox"] { display:none; }
+    .check-tag:has(input:checked) span,
+    .check-tag:has(input:checked) {
+      background: #4CC5D7; border-color: #4CC5D7;
+      color: #182A39; font-weight: 600;
+    }
     /* PWA / Mobile */
     .menu-toggle {
       display: none;
@@ -4113,10 +4142,9 @@
     const c = document.getElementById('uf-checkboxes');
     if (!c) return;
     c.innerHTML = UFS.map(uf => `
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 4px;border-radius:4px">
-        <input type="checkbox" value="${uf}" onchange="atualizarLabelUF()"
-               style="accent-color:#4CC5D7;width:13px;height:13px;cursor:pointer">
-        ${uf}
+      <label>
+        <input type="checkbox" value="${uf}" onchange="atualizarLabelUF()">
+        <span>${uf}</span>
       </label>
     `).join('');
   }
