@@ -1,37 +1,32 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const express  = require('express');
+const cors     = require('cors');
+const path     = require('path');
 
-if (!process.env.JWT_SECRET) {
-  console.warn('AVISO: JWT_SECRET não definida — logins falharão até que a variável seja configurada.');
-}
-if (!process.env.DATABASE_URL) {
-  console.warn('AVISO: DATABASE_URL não definida — operações de usuário falharão.');
-}
+if (!process.env.JWT_SECRET)   console.warn('AVISO: JWT_SECRET não definida.');
+if (!process.env.DATABASE_URL) console.warn('AVISO: DATABASE_URL não definida.');
 
 console.log('Diagnóstico de inicialização:', {
   node: process.version,
   jwt_secret_ok: !!process.env.JWT_SECRET,
-  database_ok: !!process.env.DATABASE_URL,
-  bcryptjs: require('bcryptjs/package.json').version,
+  database_ok:   !!process.env.DATABASE_URL,
 });
 
-const authRoutes = require('./routes/auth');
-const editaisRoutes = require('./routes/editais');
-const healthRoutes = require('./routes/health');
-const clientesRoutes = require('./routes/clientes');
-const boletimRoutes = require('./routes/boletim');
-const calendarioRoutes = require('./routes/calendario');
-const edsonRoutes = require('./routes/edson');
-const prospectsRoutes = require('./routes/prospects');
-const propostasRoutes     = require('./routes/propostas');
+const authRoutes         = require('./routes/auth');
+const editaisRoutes      = require('./routes/editais');
+const healthRoutes       = require('./routes/health');
+const clientesRoutes     = require('./routes/clientes');
+const boletimRoutes      = require('./routes/boletim');
+const calendarioRoutes   = require('./routes/calendario');
+const edsonRoutes        = require('./routes/edson');
+const prospectsRoutes    = require('./routes/prospects');
+const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
-const autenticar = require('./middleware/autenticar');
-const { verificarPermissao } = require('./middleware/autenticar');
-const { executarMigracoes } = require('./database/migracoes');
-const { iniciarAgendador } = require('./cron/agendador');
 
-const path = require('path');
+const autenticar              = require('./middleware/autenticar');
+const { verificarPermissao }  = require('./middleware/autenticar');
+const { executarMigracoes }   = require('./database/migracoes');
+const { iniciarAgendador }    = require('./cron/agendador');
 
 const app = express();
 
@@ -43,27 +38,28 @@ const origensPermitidas = [
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || origensPermitidas.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Origem não permitida pelo CORS'));
-    }
+  origin: (origin, cb) => {
+    if (!origin || origensPermitidas.includes(origin)) cb(null, true);
+    else cb(new Error('Origem não permitida pelo CORS'));
   },
   credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
 }));
 
-app.use(express.json());
+app.options('*', cors());
+
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.use('/auth', authRoutes);
-app.use('/health', healthRoutes);
-app.use('/editais',   autenticar, verificarPermissao('editais'),   editaisRoutes);
-app.use('/clientes',  autenticar, verificarPermissao('clientes'),  clientesRoutes);
-app.use('/boletim',   autenticar, verificarPermissao('boletins'),  boletimRoutes);
-app.use('/calendario',autenticar, verificarPermissao('calendario'),calendarioRoutes);
-app.use('/edson',     autenticar, verificarPermissao('edson'),     edsonRoutes);
-app.use('/prospects', autenticar, verificarPermissao('prospects'), prospectsRoutes);
+app.use('/auth',          authRoutes);
+app.use('/health',        healthRoutes);
+app.use('/editais',       autenticar, verificarPermissao('editais'),    editaisRoutes);
+app.use('/clientes',      autenticar, verificarPermissao('clientes'),   clientesRoutes);
+app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimRoutes);
+app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
+app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);
+app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
 
@@ -71,33 +67,21 @@ app.get('/proposta', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'proposta.html'));
 });
 
-// Captura erros lançados por route handlers async que não têm try/catch próprio
 app.use((err, req, res, next) => {
-  console.error('Erro não tratado na rota:', err);
+  console.error('Erro não tratado na rota:', err.message);
+  if (err.message?.includes('CORS')) return res.status(403).json({ erro: err.message });
   res.status(500).json({ erro: 'Erro interno do servidor' });
 });
 
-// Impede que rejeições e exceções não capturadas derrubem o processo
-process.on('unhandledRejection', (reason) => {
-  console.error('unhandledRejection:', reason);
-});
+process.on('unhandledRejection', (reason) => console.error('unhandledRejection:', reason));
+process.on('uncaughtException',  (err)    => console.error('uncaughtException:', err));
 
-process.on('uncaughtException', (err) => {
-  console.error('uncaughtException:', err);
-});
-
-const PORT = process.env.PORT || 3000;
-
-// Sobe imediatamente para o healthcheck do Railway passar; migrações rodam em background
+const PORT   = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   console.log(`ConlicitHub API rodando na porta ${PORT}`);
-
-  executarMigracoes().catch((err) => {
-    console.error('Falha nas migrações:', err.message);
-  });
-
+  executarMigracoes().catch(err => console.error('Falha nas migrações:', err.message));
   iniciarAgendador();
 });
-server.timeout = 300000; // 5 minutos para análises longas do Edson
+server.timeout = 300000;
 
 module.exports = app;
