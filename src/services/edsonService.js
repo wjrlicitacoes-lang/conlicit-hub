@@ -855,4 +855,4 @@ async function chamarClaude(systemPrompt, messages) {
   return data.content[0].text;
 }
 
-module.exports = { analisarPregao, analisarPDF, analisarAvulso, reanalisarComSuplementos, chamarClaude };
+module.exports = { analisarPregao, analisarPDF, analisarAvulso, reanalisarComSuplementos, chamarClaude, callClaude };
