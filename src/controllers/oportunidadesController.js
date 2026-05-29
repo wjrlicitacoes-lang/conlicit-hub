@@ -294,4 +294,18 @@ async function webhookZapi(req, res) {
   }
 }
 
-module.exports = { listar, criar, gerarResumo, disparar, registrarResposta, webhookZapi };
+// ── TEMPORÁRIO — listar grupos Z-API para obter IDs ──
+async function listarGrupos(req, res) {
+  try {
+    const r = await require('axios').get(
+      `${process.env.ZAPI_BASE_URL || 'https://api.z-api.io'}/instances/${process.env.ZAPI_INSTANCE}/token/${process.env.ZAPI_TOKEN}/chats`,
+      { timeout: 15000 },
+    );
+    const grupos = (r.data || []).filter(c => c.isGroup);
+    return res.json(grupos.map(g => ({ id: g.id, nome: g.name })));
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+}
+
+module.exports = { listar, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos };
