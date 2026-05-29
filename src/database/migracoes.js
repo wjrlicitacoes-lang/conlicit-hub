@@ -352,6 +352,49 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ALTER COLUMN tipo_julgamento TYPE TEXT`);
   await db.query(`ALTER TABLE analises_edson ALTER COLUMN status TYPE TEXT`);
 
+  // WhatsApp grupo nos clientes (para disparo de oportunidades)
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS whatsapp_grupo VARCHAR(50)`);
+
+  // ── Fila de oportunidades ────────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS oportunidades_fila (
+      id                   SERIAL PRIMARY KEY,
+      edital_ref           VARCHAR(255),
+      numero_controle_pncp VARCHAR(100),
+      orgao                TEXT,
+      objeto               TEXT,
+      valor_estimado       NUMERIC,
+      data_abertura        TIMESTAMPTZ,
+      link_pncp            TEXT,
+      link_edital          TEXT,
+      portal               VARCHAR(100),
+      municipio            VARCHAR(100),
+      uf                   CHAR(2),
+      cliente_id           INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      criado_por           INTEGER REFERENCES usuarios(id),
+      status               VARCHAR(30) NOT NULL DEFAULT 'aguardando_analise'
+                           CHECK (status IN (
+                             'aguardando_analise',
+                             'aguardando_disparo',
+                             'disparado',
+                             'interesse_confirmado',
+                             'sem_interesse',
+                             'expirado'
+                           )),
+      resumo_edson         JSONB,
+      resumo_gerado_em     TIMESTAMPTZ,
+      disparado_em         TIMESTAMPTZ,
+      resposta_cliente     VARCHAR(20),
+      resposta_em          TIMESTAMPTZ,
+      cobranca_1_em        TIMESTAMPTZ,
+      cobranca_2_em        TIMESTAMPTZ,
+      pregao_id            INTEGER REFERENCES pregoes(id) ON DELETE SET NULL,
+      created_at           TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_cliente ON oportunidades_fila(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_status ON oportunidades_fila(status)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

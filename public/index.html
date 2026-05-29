@@ -106,6 +106,10 @@
     .section { overflow-x: hidden; min-width: 0; }
     .cards-grid, .table-wrap, .results-area { max-width: 100%; overflow-x: hidden; }
 
+    /* ── OPORTUNIDADES — chip de status ── */
+    .chip-status { padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:rgba(255,255,255,0.5); font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .chip-status.ativo, .chip-status:hover { border-color:#4CC5D7; color:#4CC5D7; background:rgba(76,197,215,0.08); }
+
     /* ── HEADER ── */
     header {
       background: var(--topbar-bg, #182A39);
@@ -1455,6 +1459,10 @@
           <span class="nav-icon">🔍</span>
           <span class="nav-label">Buscar Editais</span>
         </button>
+        <button class="nav-item" data-nav="oportunidades" onclick="navTo('oportunidades')" data-staff-only id="nav-oportunidades">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Oportunidades</span>
+        </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>Gestão</div>
         <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
@@ -2176,7 +2184,60 @@
         </div>
       </section>
 
+      <!-- SEÇÃO OPORTUNIDADES -->
+      <section id="section-oportunidades" class="section">
+        <div class="section-header">
+          <h1>Oportunidades</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarOportunidades()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" id="btn-nova-oportunidade" onclick="abrirNovaOportunidade()" style="display:none">+ Nova oportunidade</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="chip-status ativo" onclick="filtrarOportunidades('todos',event)"><span>Todas</span></button>
+          <button class="chip-status" onclick="filtrarOportunidades('aguardando_analise',event)"><span>Aguardando análise</span></button>
+          <button class="chip-status" onclick="filtrarOportunidades('aguardando_disparo',event)"><span>Aguardando disparo</span></button>
+          <button class="chip-status" onclick="filtrarOportunidades('disparado',event)"><span>Disparadas</span></button>
+          <button class="chip-status" onclick="filtrarOportunidades('interesse_confirmado',event)"><span>Com interesse</span></button>
+          <button class="chip-status" onclick="filtrarOportunidades('sem_interesse',event)"><span>Sem interesse</span></button>
+        </div>
+        <div id="oportunidades-area">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
     </main>
+  </div>
+</div>
+
+<!-- MODAL: Nova Oportunidade -->
+<div class="modal-overlay" id="modal-nova-oportunidade" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <h3>Adicionar oportunidade à fila</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-nova-oportunidade').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group" style="margin:0"><label>Cliente *</label><select id="op-cliente-id"></select></div>
+      <div class="form-group" style="margin:0"><label>Objeto / Descrição *</label><textarea id="op-objeto" rows="2" placeholder="Ex: Aquisição de material de limpeza..."></textarea></div>
+      <div class="row2">
+        <div class="form-group" style="margin:0"><label>Nº Controle PNCP</label><input type="text" id="op-pncp" placeholder="Ex: 12345678-1-000001/2026"></div>
+        <div class="form-group" style="margin:0"><label>Órgão</label><input type="text" id="op-orgao" placeholder="Nome do órgão"></div>
+      </div>
+      <div class="row2">
+        <div class="form-group" style="margin:0"><label>Valor estimado (R$)</label><input type="number" id="op-valor" placeholder="Ex: 50000"></div>
+        <div class="form-group" style="margin:0"><label>Data da sessão</label><input type="datetime-local" id="op-data"></div>
+      </div>
+      <div class="row2">
+        <div class="form-group" style="margin:0"><label>Plataforma</label><input type="text" id="op-portal" placeholder="Ex: PNCP, ComprasNet..."></div>
+        <div class="form-group" style="margin:0"><label>Cidade/UF</label><input type="text" id="op-cidade" placeholder="Ex: Belo Horizonte/MG"></div>
+      </div>
+      <div class="form-group" style="margin:0"><label>Link do edital</label><input type="url" id="op-link" placeholder="https://..."></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-nova-oportunidade').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarOportunidade()">Adicionar à fila</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2622,9 +2683,10 @@
     else if (section === 'edson')          carregarEdson();
     else if (section === 'minha-area')     carregarMinhaArea();
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
-    else if (section === 'prospects')      carregarProspects();
-    else if (section === 'proposta')       propostaCarregarHistorico();
-    else if (section === 'meus-pregoes')   { carregarMinhaArea(); switchMaTab('pregoes'); }
+    else if (section === 'prospects')       carregarProspects();
+    else if (section === 'proposta')        propostaCarregarHistorico();
+    else if (section === 'oportunidades')   carregarOportunidades();
+    else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
   // ─────────────────────────────────────────
@@ -7251,6 +7313,159 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.classList.remove('visible');
   _pwaPrompt = null;
 });
+
+// ── OPORTUNIDADES ─────────────────────────────────────────────────────────────
+
+let _opFiltroAtual = 'todos';
+
+async function carregarOportunidades() {
+  const area = document.getElementById('oportunidades-area');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  const btnNova = document.getElementById('btn-nova-oportunidade');
+  if (btnNova) btnNova.style.display = ['socio_fundador','admin'].includes(userRole) ? '' : 'none';
+  try {
+    const params = new URLSearchParams();
+    if (_opFiltroAtual !== 'todos') params.set('status', _opFiltroAtual);
+    const r = await fetch(`${API}/oportunidades?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.status === 401) { logout(); return; }
+    const ops = await r.json();
+    if (!Array.isArray(ops) || !ops.length) {
+      area.innerHTML = `<div class="state-box"><span class="icon">🎯</span><h3>Nenhuma oportunidade</h3><p>A fila está vazia.</p></div>`;
+      return;
+    }
+    area.innerHTML = ops.map(op => renderCardOportunidade(op)).join('');
+  } catch(e) {
+    area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderCardOportunidade(op) {
+  const statusCores = {
+    aguardando_analise:  ['#fb923c','Aguardando análise'],
+    aguardando_disparo:  ['#facc15','Aguardando disparo'],
+    disparado:           ['#4CC5D7','Disparado'],
+    interesse_confirmado:['#4ade80','Interesse confirmado'],
+    sem_interesse:       ['#f87171','Sem interesse'],
+    expirado:            ['#6b7280','Expirado'],
+  };
+  const [cor, label] = statusCores[op.status] || ['#aaa', op.status];
+  const resumo = op.resumo_edson || {};
+  const isSocioAdmin = ['socio_fundador','admin'].includes(userRole);
+  const isAssist     = userRole === 'assistente';
+
+  return `<div class="edital-card" style="margin-bottom:10px">
+    <div class="edital-card-top">
+      <div class="edital-badges">
+        <span class="edital-numero">${esc(op.cliente_nome||'—')}</span>
+        <span class="edital-badge-modal" style="color:${cor};border-color:${cor}40;background:${cor}15">${label}</span>
+      </div>
+      <span style="font-size:11px;color:var(--text-muted)">${new Date(op.created_at).toLocaleDateString('pt-BR')}</span>
+    </div>
+    <div class="edital-orgao">${esc(op.orgao||'—')}</div>
+    <div class="edital-objeto">${esc(op.objeto||'—')}</div>
+    <div class="edital-meta">
+      <div class="edital-meta-item"><span class="edital-meta-label">Valor</span><span class="edital-meta-value valor">${op.valor_estimado?`R$ ${Number(op.valor_estimado).toLocaleString('pt-BR')}`:'—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Sessão</span><span class="edital-meta-value">${op.data_abertura?new Date(op.data_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(op.portal||'—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Local</span><span class="edital-meta-value">${esc(op.municipio?`${op.municipio}/${op.uf}`:op.uf||'—')}</span></div>
+    </div>
+    <div class="edital-acoes">
+      ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${op.id},this)">🤖 Gerar resumo Edson</button>`:''}
+      ${op.status==='aguardando_disparo'&&(isSocioAdmin||isAssist)?`
+        ${resumo.resumo_whatsapp?`<button class="btn-ver-itens" onclick="verResumoOportunidade(${op.id})">👁 Ver resumo</button>`:''}
+        <button class="btn-edson" onclick="dispararOportunidade(${op.id},this)">📱 Disparar para cliente</button>`:''}
+      ${op.status==='disparado'&&isSocioAdmin?`
+        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'sim')">✅ Marcar interesse</button>
+        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'nao')">❌ Sem interesse</button>`:''}
+    </div>
+  </div>`;
+}
+
+function filtrarOportunidades(status, evt) {
+  _opFiltroAtual = status;
+  document.querySelectorAll('.chip-status').forEach(el => el.classList.remove('ativo'));
+  (evt?.currentTarget || evt?.target)?.classList.add('ativo');
+  carregarOportunidades();
+}
+
+async function gerarResumoOportunidade(id, btn) {
+  btn.disabled = true; btn.textContent = '⏳ Gerando...';
+  try {
+    const r = await fetch(`${API}/oportunidades/${id}/resumo`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Resumo gerado! Pronto para disparar.', 'success');
+    carregarOportunidades();
+  } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='🤖 Gerar resumo Edson'; }
+}
+
+async function dispararOportunidade(id, btn) {
+  if (!confirm('Disparar esta oportunidade para o cliente via WhatsApp?')) return;
+  btn.disabled = true; btn.textContent = '📤 Enviando...';
+  try {
+    const r = await fetch(`${API}/oportunidades/${id}/disparar`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    toast('Oportunidade disparada com sucesso! ✅','success');
+    carregarOportunidades();
+  } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='📱 Disparar para cliente'; }
+}
+
+async function registrarRespostaManual(id, resposta) {
+  const label = resposta==='sim'?'interesse confirmado':'sem interesse';
+  if (!confirm(`Registrar manualmente como "${label}"?`)) return;
+  try {
+    await fetch(`${API}/oportunidades/${id}/resposta`, {
+      method:'PATCH',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ resposta }),
+    });
+    toast('Resposta registrada','success');
+    carregarOportunidades();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function abrirNovaOportunidade() {
+  const sel = document.getElementById('op-cliente-id');
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  try {
+    const r = await fetch(`${API}/clientes`, { headers:{ Authorization:`Bearer ${token}` } });
+    const { dados=[] } = await r.json();
+    sel.innerHTML = dados.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+  document.getElementById('modal-nova-oportunidade').classList.add('visible');
+}
+
+async function salvarOportunidade() {
+  const clienteId = document.getElementById('op-cliente-id').value;
+  const objeto    = document.getElementById('op-objeto').value.trim();
+  if (!clienteId||!objeto) { toast('Cliente e objeto são obrigatórios','error'); return; }
+  const cidade = document.getElementById('op-cidade').value.trim();
+  const [municipio, uf] = cidade.includes('/')? cidade.split('/') : [cidade,''];
+  try {
+    const r = await fetch(`${API}/oportunidades`, {
+      method:'POST',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        cliente_id:           parseInt(clienteId,10),
+        objeto,
+        numero_controle_pncp: document.getElementById('op-pncp').value.trim(),
+        orgao:                document.getElementById('op-orgao').value.trim(),
+        valor_estimado:       document.getElementById('op-valor').value||null,
+        data_abertura:        document.getElementById('op-data').value||null,
+        portal:               document.getElementById('op-portal').value.trim(),
+        municipio:            municipio.trim(),
+        uf:                   uf.trim().toUpperCase().slice(0,2),
+        link_edital:          document.getElementById('op-link').value.trim(),
+      }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Oportunidade adicionada à fila','success');
+    document.getElementById('modal-nova-oportunidade').classList.remove('visible');
+    carregarOportunidades();
+  } catch(e) { toast(e.message,'error'); }
+}
+
 </script>
 
 <!-- MODAL: Alterar senha -->

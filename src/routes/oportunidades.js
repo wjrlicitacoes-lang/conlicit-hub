@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const auth   = require('../middleware/autenticar');
+const ctrl   = require('../controllers/oportunidadesController');
+
+router.get   ('/',                auth, ctrl.listar);
+router.post  ('/',                auth, ctrl.criar);
+router.post  ('/:id/resumo',      auth, ctrl.gerarResumo);
+router.post  ('/:id/disparar',    auth, ctrl.disparar);
+router.patch ('/:id/resposta',    auth, ctrl.registrarResposta);
+router.post  ('/webhook/zapi',         ctrl.webhookZapi); // sem auth — Z-API chama direto
+
+module.exports = router;

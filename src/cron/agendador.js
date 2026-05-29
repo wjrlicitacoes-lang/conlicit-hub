@@ -1,9 +1,11 @@
-const cron = require('node-cron');
-const axios = require('axios');
+const cron    = require('node-cron');
+const axios   = require('axios');
 const { Resend } = require('resend');
 const { dispararBoletim } = require('../services/boletimService');
 const { sincronizarPNCP } = require('../services/pncpSyncService');
 const { processarAlertas } = require('../services/alertasService');
+const zapiSvc = require('../services/zapiService');
+const db      = require('../database/db');
 
 const ALERTA_EMAIL = 'wjrlicitacoes@gmail.com';
 const LIMITE_SALDO_USD = 3;
@@ -98,10 +100,65 @@ function iniciarAgendador() {
     { timezone: 'America/Sao_Paulo' },
   );
 
+  // Cobrança automática de resposta de oportunidades — a cada hora
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Verificando cobranças de oportunidades...');
+    try {
+      const agora = new Date();
+      const { rows } = await db.query(
+        `SELECT o.*, c.contato_whatsapp, c.nome AS cliente_nome
+         FROM oportunidades_fila o
+         LEFT JOIN clientes c ON c.id = o.cliente_id
+         WHERE o.status = 'disparado' AND o.disparado_em IS NOT NULL`,
+      );
+
+      for (const op of rows) {
+        const horasDesde = (agora - new Date(op.disparado_em)) / 3600000;
+        if (!op.contato_whatsapp) continue;
+
+        if (horasDesde >= 24 && !op.cobranca_1_em) {
+          try {
+            await zapiSvc.enviarTexto(op.contato_whatsapp,
+              `Olá! 👋 Passando para lembrar sobre a oportunidade de licitação que enviamos ontem.\n\n` +
+              `*${op.objeto}*\n\n` +
+              `O prazo está se aproximando. Você tem interesse em participar?\n\n` +
+              `Responda *SIM* para participar ou *NÃO* para recusar.`,
+            );
+            await db.query(`UPDATE oportunidades_fila SET cobranca_1_em=NOW() WHERE id=$1`, [op.id]);
+            console.log(`[Cron] Cobrança 1 enviada — oportunidade ${op.id}`);
+          } catch (e) { console.error(`[Cron] Erro cobrança 1 op ${op.id}:`, e.message); }
+        }
+
+        if (horasDesde >= 48 && !op.cobranca_2_em) {
+          try {
+            await zapiSvc.enviarTexto(op.contato_whatsapp,
+              `⚠️ Último aviso sobre a oportunidade:\n\n*${op.objeto}*\n\n` +
+              `O prazo para decisão está encerrando. Nossa equipe entrará em contato.\n\n` +
+              `Responda *SIM* para participar ou *NÃO* para recusar.`,
+            );
+            await db.query(`UPDATE oportunidades_fila SET cobranca_2_em=NOW() WHERE id=$1`, [op.id]);
+            const { rows: admins } = await db.query(
+              `SELECT nome FROM usuarios WHERE role IN ('socio_fundador','admin') LIMIT 3`,
+            );
+            console.warn(`[ALERTA] Oportunidade ${op.id} sem resposta há 48h — cliente ${op.cliente_nome}. Admins: ${admins.map(a => a.nome).join(', ')}`);
+          } catch (e) { console.error(`[Cron] Erro cobrança 2 op ${op.id}:`, e.message); }
+        }
+
+        if (horasDesde >= 72 && !op.resposta_em) {
+          await db.query(`UPDATE oportunidades_fila SET status='expirado' WHERE id=$1`, [op.id]);
+          console.log(`[Cron] Oportunidade ${op.id} expirada após 72h`);
+        }
+      }
+    } catch (e) {
+      console.error('[Cron] Erro no job de cobranças:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
   console.log(`[Cron] Sync PNCP agendado: "${cronSync}" (America/Sao_Paulo)`);
   console.log(`[Cron] Boletim agendado: "${cronBoletim}" (America/Sao_Paulo)`);
   console.log('[Cron] Alertas de pregão agendados: */30 * * * * (America/Sao_Paulo)');
   console.log('[Cron] Verificação saldo Anthropic agendada: 0 */6 * * * (America/Sao_Paulo)');
+  console.log('[Cron] Cobranças de oportunidades agendadas: 0 * * * * (America/Sao_Paulo)');
 }
 
 module.exports = { iniciarAgendador };
