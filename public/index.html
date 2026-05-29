@@ -2390,6 +2390,17 @@
             <input type="text" id="cliente-contato-whatsapp" placeholder="5531999999999" />
           </div>
           <div class="form-group">
+            <label>Grupo do WhatsApp</label>
+            <div style="display:flex;gap:8px">
+              <select id="cliente-whatsapp-grupo" style="flex:1">
+                <option value="">Clique em "Buscar grupos"</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" type="button" onclick="buscarGruposZapi()" style="white-space:nowrap">📱 Buscar grupos</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label for="cliente-origem">Origem</label>
             <select id="cliente-origem" onchange="toggleSdrFields()">
               <option value="direto">Contrato direto</option>
@@ -3578,6 +3589,13 @@
     document.getElementById('cliente-contato-nome').value = cliente ? (cliente.contato_nome || '') : '';
     document.getElementById('cliente-contato-cargo').value = cliente ? (cliente.contato_cargo || '') : '';
     document.getElementById('cliente-contato-whatsapp').value = cliente ? (cliente.contato_whatsapp || '') : '';
+    const _grupoSel = document.getElementById('cliente-whatsapp-grupo');
+    if (cliente?.whatsapp_grupo) {
+      _grupoSel.innerHTML = `<option value="${esc(cliente.whatsapp_grupo)}">${esc(cliente.whatsapp_grupo)}</option>`;
+      _grupoSel.value = cliente.whatsapp_grupo;
+    } else {
+      _grupoSel.innerHTML = '<option value="">Clique em "Buscar grupos"</option>';
+    }
     const _rv = cliente?.responsavel_conlicit || '';
     const _fixedOpts = ['', 'Sabrine Pessoa', 'Gabriel Assis'];
     if (_rv && !_fixedOpts.includes(_rv)) {
@@ -3597,6 +3615,30 @@
   function fecharModalCliente(e) {
     if (e && e.target !== document.getElementById('modal-cliente')) return;
     document.getElementById('modal-cliente').classList.remove('visible');
+  }
+
+  async function buscarGruposZapi() {
+    const sel = document.getElementById('cliente-whatsapp-grupo');
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option>Buscando...</option>';
+    try {
+      const r = await fetch(`${API}/oportunidades/grupos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const grupos = await r.json();
+      if (!Array.isArray(grupos) || !grupos.length) {
+        sel.innerHTML = '<option value="">Nenhum grupo encontrado</option>';
+        toast('Nenhum grupo encontrado. Verifique se o WhatsApp está conectado na Z-API.', 'error');
+        return;
+      }
+      sel.innerHTML = '<option value="">Selecione o grupo...</option>' +
+        grupos.map(g => `<option value="${esc(g.id)}">${esc(g.nome)}</option>`).join('');
+      if (valorAtual) sel.value = valorAtual;
+      toast(`${grupos.length} grupo(s) encontrado(s)`, 'success');
+    } catch(e) {
+      sel.innerHTML = '<option value="">Erro ao buscar</option>';
+      toast('Erro ao buscar grupos: ' + e.message, 'error');
+    }
   }
 
   async function salvarCliente(e) {
@@ -3639,7 +3681,8 @@
         body: JSON.stringify({ nome, email, whatsapp: whatsapp || null, uf: uf || null,
           palavras_chave, ativo, valor_contrato, percentual_comissao, dia_vencimento,
           origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit }),
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit,
+          whatsapp_grupo: document.getElementById('cliente-whatsapp-grupo').value || null }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
