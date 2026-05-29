@@ -291,11 +291,13 @@ async function registrarResposta(req, res) {
 
 // ── Excluir oportunidade da fila (sócio/admin) ──
 async function excluir(req, res) {
+  console.log('[Excluir] id:', req.params.id, 'role:', req.usuario?.role);
   if (!['socio_fundador', 'admin'].includes(req.usuario.role))
     return res.status(403).json({ erro: 'Sem permissão' });
   const { id } = req.params;
   try {
-    const { rowCount } = await db.query(`DELETE FROM oportunidades_fila WHERE id=$1`, [id]);
+    const { rowCount } = await db.query('DELETE FROM oportunidades_fila WHERE id=$1', [id]);
+    console.log('[Excluir] rowCount:', rowCount, 'id:', id);
     if (!rowCount) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
     return res.json({ ok: true });
   } catch (e) {
