@@ -4391,7 +4391,7 @@
           PNCP <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>` : ''}
         ${btnItens}
-        <button class="btn-oferecer" onclick="abrirModalOferecer(${idx})">+ Oferecer</button>
+        <button class="btn-oferecer" onclick="adicionarOportunidadeDaBusca(${idx})">+ Fila de oportunidades</button>
         <button class="btn-edson" onclick="analisarComEdson(${idx})">🤖 Edson</button>
       </div>
     </div>`;
@@ -7477,6 +7477,36 @@ async function abrirNovaOportunidade() {
     sel.innerHTML = dados.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
   } catch { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
   document.getElementById('modal-nova-oportunidade').classList.add('visible');
+}
+
+async function adicionarOportunidadeDaBusca(idx) {
+  const e = editaisResultados[idx];
+  if (!e) return;
+
+  await abrirNovaOportunidade();
+
+  document.getElementById('op-objeto').value  = e.objeto || '';
+  document.getElementById('op-orgao').value   = e.orgao  || '';
+  document.getElementById('op-pncp').value    = e.numeroControlePNCP || e.numero_controle_pncp || '';
+  document.getElementById('op-link').value    = e.link   || e.linkSistemaOrigem || '';
+  document.getElementById('op-portal').value  = e.portal_disputa || detectarPortal(e.linkSistemaOrigem) || '';
+
+  const cidade = [e.municipio, e.uf || e.estado].filter(Boolean).join('/');
+  document.getElementById('op-cidade').value  = cidade;
+
+  if (e.valorEstimado) {
+    document.getElementById('op-valor').value = typeof e.valorEstimado === 'number'
+      ? e.valorEstimado
+      : String(e.valorEstimado).replace(/[^0-9,.]/g,'').replace(',','.');
+  }
+
+  if (e.dataAberturaProposta || e.dataEncerramentoProposta) {
+    const data = e.dataAberturaProposta || e.dataEncerramentoProposta;
+    try {
+      const d = new Date(data);
+      if (!isNaN(d)) document.getElementById('op-data').value = d.toISOString().slice(0,16);
+    } catch {}
+  }
 }
 
 async function salvarOportunidade() {
