@@ -7436,15 +7436,14 @@ function renderCardOportunidade(op) {
     <div class="edital-acoes">
       ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${op.id},this)">🤖 Gerar resumo Edson</button>`:''}
       ${op.status==='aguardando_disparo'&&(isSocioAdmin||isAssist)?`
-        <button class="btn-ver-itens" onclick="verResumoOportunidade(${op.id}, ${JSON.stringify(op.resumo_edson||{}).replace(/"/g,'&quot;')})">👁 Ver resumo</button>
+        <button class="btn-ver-itens" onclick="verResumoById(${op.id})">👁 Ver resumo</button>
         <button class="btn-edson" onclick="dispararOportunidade(${op.id},this)">📱 Disparar para cliente</button>`:''}
       ${op.status==='disparado'&&isSocioAdmin?`
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'sim')">✅ Marcar interesse</button>
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'nao')">❌ Sem interesse</button>`:''}
-      ${isSocioAdmin ? `
-        <button class="btn-ver-pncp" style="color:#f87171;border-color:rgba(248,113,113,0.25);margin-left:auto"
-                onclick="excluirOportunidade(${op.id})">🗑 Excluir</button>
-      ` : ''}
+      ${isSocioAdmin?`
+        <button style="margin-left:auto;padding:5px 11px;border-radius:6px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:#f87171;font-size:11px;cursor:pointer;font-family:inherit"
+                onclick="excluirOportunidade(${op.id})">🗑 Excluir</button>`:''}
     </div>
   </div>`;
 }
@@ -7512,6 +7511,20 @@ function verResumoOportunidade(id, resumoJson) {
     ` : ''}
   `;
   document.getElementById('modal-resumo-oportunidade').classList.add('visible');
+}
+
+async function verResumoById(id) {
+  try {
+    const r = await fetch(`${API}/oportunidades/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const op = await r.json();
+    if (!r.ok) throw new Error(op.erro || 'Erro ao carregar');
+    let resumo = op.resumo_edson;
+    if (typeof resumo === 'string') { try { resumo = JSON.parse(resumo); } catch { resumo = {}; } }
+    if (!resumo || !resumo.resumo_whatsapp) { toast('Resumo ainda não gerado', 'error'); return; }
+    verResumoOportunidade(id, resumo);
+  } catch(e) { toast('Erro ao carregar resumo: ' + e.message, 'error'); }
 }
 
 function filtrarOportunidades(status, evt) {

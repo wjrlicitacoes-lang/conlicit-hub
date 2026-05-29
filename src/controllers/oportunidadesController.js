@@ -42,6 +42,25 @@ async function listar(req, res) {
   }
 }
 
+// ── Buscar oportunidade por ID ──
+async function buscarPorId(req, res) {
+  const { id } = req.params;
+  try {
+    const { rows: [op] } = await db.query(
+      `SELECT o.*, c.nome AS cliente_nome, c.contato_whatsapp, c.whatsapp_grupo,
+              u.nome AS criado_por_nome
+       FROM oportunidades_fila o
+       LEFT JOIN clientes c ON c.id = o.cliente_id
+       LEFT JOIN usuarios u ON u.id = o.criado_por
+       WHERE o.id = $1`, [id],
+    );
+    if (!op) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
+    return res.json(op);
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+}
+
 // ── Criar oportunidade na fila (sócio/admin) ──
 async function criar(req, res) {
   if (!['socio_fundador', 'admin'].includes(req.usuario.role))
@@ -356,4 +375,4 @@ async function listarGrupos(req, res) {
   }
 }
 
-module.exports = { listar, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos, excluir };
+module.exports = { listar, buscarPorId, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos, excluir };
