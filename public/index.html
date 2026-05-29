@@ -609,7 +609,7 @@
       justify-content: space-between; gap: 8px;
     }
     .edital-badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-    .edital-numero { font-size: 11px; font-weight: 600; color: #4CC5D7; font-family: monospace; letter-spacing: 0.03em; }
+    .edital-numero { font-size: 12px; font-weight: 600; color: #4CC5D7; font-family: monospace; letter-spacing: 0.02em; }
     .edital-badge-modal {
       font-size: 10px; padding: 2px 7px; border-radius: 4px;
       background: var(--card-bg, rgba(0,0,0,0.04)); color: var(--text-muted); font-weight: 500;
@@ -618,11 +618,13 @@
     .urgencia-hoje { background: rgba(239,68,68,0.15); color: #f87171; }
     .urgencia-semana { background: rgba(251,146,60,0.15); color: #fb923c; }
     .urgencia-normal { background: rgba(76,197,215,0.1); color: #4CC5D7; }
-    .edital-orgao { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .edital-orgao { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
     .edital-objeto {
       font-size: 12px; color: var(--text-muted); line-height: 1.5;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+      margin-bottom: 6px; cursor: pointer;
     }
+    .edital-objeto:hover { color: var(--text); }
     .edital-meta {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
       padding: 10px 0;
@@ -631,10 +633,10 @@
     }
     .edital-meta-item { display: flex; flex-direction: column; gap: 2px; }
     .edital-meta-label {
-      font-size: 9px; font-weight: 600; letter-spacing: 0.07em;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
       text-transform: uppercase; color: var(--text-muted);
     }
-    .edital-meta-value { font-size: 12px; color: var(--text); font-weight: 500; }
+    .edital-meta-value { font-size: 13px; color: var(--text); font-weight: 500; }
     .edital-meta-value.valor { color: #4CC5D7; }
     .edital-acoes { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .btn-ver-pncp {
@@ -2248,7 +2250,9 @@
       <button class="modal-close" onclick="document.getElementById('modal-nova-oportunidade').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
-      <div class="form-group" style="margin:0"><label>Cliente *</label><select id="op-cliente-id"></select></div>
+      <div class="form-group" style="margin:0"><label>Cliente *</label><select id="op-cliente-id"></select>
+        <div id="op-filtro-compativel" style="font-size:11px;color:#4CC5D7;padding:4px 0;min-height:16px"></div>
+      </div>
       <div class="form-group" style="margin:0"><label>Objeto / Descrição *</label><textarea id="op-objeto" rows="2" placeholder="Ex: Aquisição de material de limpeza..."></textarea></div>
       <div class="row2">
         <div class="form-group" style="margin:0"><label>Nº Controle PNCP</label><input type="text" id="op-pncp" placeholder="Ex: 12345678-1-000001/2026"></div>
@@ -4442,8 +4446,8 @@
         </div>
         ${urgBadge}
       </div>
-      <div class="edital-orgao">${esc(orgao)}</div>
-      <div class="edital-objeto" title="${esc(objeto)}">${esc(objeto)}</div>
+      <div class="edital-orgao" onclick="expandirEdital(${idx})" style="cursor:pointer">${esc(orgao)}</div>
+      <div class="edital-objeto" title="${esc(objeto)}" onclick="expandirEdital(${idx})" style="cursor:pointer">${esc(objeto)}</div>
       <div class="edital-meta">
         <div class="edital-meta-item">
           <span class="edital-meta-label">Valor estimado</span>
@@ -7650,14 +7654,52 @@ async function registrarRespostaManual(id, resposta) {
   } catch(e) { toast(e.message,'error'); }
 }
 
-async function abrirNovaOportunidade() {
+async function abrirNovaOportunidade(objetoFiltro) {
   const sel = document.getElementById('op-cliente-id');
-  sel.innerHTML = '<option value="">Carregando...</option>';
+  sel.innerHTML = '<option value="">Carregando clientes...</option>';
+
+  const filtroEl = document.getElementById('op-filtro-compativel');
+  if (filtroEl) {
+    filtroEl.textContent = objetoFiltro
+      ? `Mostrando clientes compatíveis com: "${objetoFiltro.slice(0,50)}..."`
+      : '';
+  }
+
   try {
-    const r = await fetch(`${API}/clientes`, { headers:{ Authorization:`Bearer ${token}` } });
-    const { dados=[] } = await r.json();
-    sel.innerHTML = dados.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
-  } catch { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+    const r = await fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } });
+    const clientes = await r.json();
+    const lista = Array.isArray(clientes) ? clientes : (clientes.dados || []);
+
+    let compativeis = lista;
+    let outros = [];
+
+    if (objetoFiltro && objetoFiltro.length > 3) {
+      const palavras = objetoFiltro.toLowerCase().split(/[\s,;]+/).filter(p => p.length > 3);
+      compativeis = lista.filter(c => {
+        const kw = Array.isArray(c.palavras_chave) ? c.palavras_chave.join(' ').toLowerCase() : (c.palavras_chave || '').toLowerCase();
+        const seg = (c.segmento || '').toLowerCase();
+        return palavras.some(p => kw.includes(p) || seg.includes(p));
+      });
+      outros = lista.filter(c => !compativeis.includes(c));
+    }
+
+    let html = '<option value="">Selecione o cliente...</option>';
+    if (compativeis.length && objetoFiltro) {
+      html += `<optgroup label="✅ Compatíveis com o objeto (${compativeis.length})">`;
+      html += compativeis.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      html += '</optgroup>';
+    }
+    if (outros.length && objetoFiltro) {
+      html += `<optgroup label="— Outros clientes (${outros.length})">`;
+      html += outros.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      html += '</optgroup>';
+    }
+    if (!objetoFiltro) {
+      html += lista.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+    }
+    sel.innerHTML = html;
+  } catch { sel.innerHTML = '<option value="">Erro ao carregar clientes</option>'; }
+
   document.getElementById('modal-nova-oportunidade').classList.add('visible');
 }
 
@@ -7665,7 +7707,7 @@ async function adicionarOportunidadeDaBusca(idx) {
   const e = editaisResultados[idx];
   if (!e) return;
 
-  await abrirNovaOportunidade();
+  await abrirNovaOportunidade(e.objeto || '');
 
   document.getElementById('op-objeto').value = e.objeto || '';
   document.getElementById('op-orgao').value  = e.orgao  || '';
@@ -7702,6 +7744,85 @@ async function adicionarOportunidadeDaBusca(idx) {
       }
     } catch {}
   }
+}
+
+let _editalExpandidoIdx = null;
+
+function expandirEdital(idx) {
+  const e = editaisResultados[idx];
+  if (!e) return;
+  _editalExpandidoIdx = idx;
+
+  const objeto = e.objeto || '—';
+  const orgao  = e.orgao  || '—';
+  const nPNCP  = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || '';
+  const link   = e.link || e.linkSistemaOrigem || '';
+  const valor  = e.valorEstimado
+    ? (typeof e.valorEstimado === 'number'
+        ? e.valorEstimado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+        : e.valorEstimado)
+    : '—';
+  const local  = [e.municipio, e.uf||e.estado].filter(Boolean).join(' · ') || '—';
+  const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem) || '—';
+
+  document.getElementById('exp-numero').textContent = nPNCP;
+  document.getElementById('exp-orgao').textContent  = orgao;
+  document.getElementById('exp-objeto').textContent = objeto;
+
+  const metaItems = [
+    ['Valor estimado', valor],
+    ['Local', local],
+    ['Plataforma', portal],
+    ['Publicação', e.dataPublicacao || '—'],
+    ['Abertura', e.dataAberturaProposta
+      ? new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+      : '—'],
+    ['Encerramento', e.dataEncerramentoProposta
+      ? new Date(e.dataEncerramentoProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+      : '—'],
+  ];
+  document.getElementById('exp-meta').innerHTML = metaItems.map(([l,v]) => `
+    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+      <div style="font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px">${l}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(String(v))}</div>
+    </div>
+  `).join('');
+
+  const badges = [e.modalidade, portal].filter(Boolean);
+  document.getElementById('exp-badges').innerHTML = badges.map(b =>
+    `<span style="padding:4px 10px;border-radius:20px;background:rgba(76,197,215,0.1);border:1px solid rgba(76,197,215,0.2);font-size:11px;color:#4CC5D7">${esc(b)}</span>`
+  ).join('');
+
+  const linkEl = document.getElementById('exp-link-pncp');
+  if (link) { linkEl.href = link; linkEl.style.display = ''; }
+  else linkEl.style.display = 'none';
+
+  const btnItens = document.getElementById('exp-btn-itens');
+  const m = nPNCP.match(/^(\d{14}|\d+)-\d+-0*(\d+)\/(\d{4})$/);
+  if (m) {
+    btnItens.style.display = '';
+    btnItens._cnpj = m[1]; btnItens._ano = m[3]; btnItens._seq = m[2];
+  } else {
+    btnItens.style.display = 'none';
+  }
+
+  document.getElementById('modal-edital-expandido').classList.add('visible');
+}
+
+function expandirVerItens() {
+  const btn = document.getElementById('exp-btn-itens');
+  const e = editaisResultados[_editalExpandidoIdx];
+  if (btn._cnpj) previewItens(btn._cnpj, btn._ano, btn._seq, e?.orgao || '', _editalExpandidoIdx);
+}
+
+function expandirAdicionarFila() {
+  document.getElementById('modal-edital-expandido').classList.remove('visible');
+  setTimeout(() => adicionarOportunidadeDaBusca(_editalExpandidoIdx), 150);
+}
+
+function expandirEdson() {
+  document.getElementById('modal-edital-expandido').classList.remove('visible');
+  setTimeout(() => analisarComEdson(_editalExpandidoIdx), 150);
 }
 
 let _encaminharOpId = null;
@@ -7806,6 +7927,33 @@ async function salvarOportunidade() {
       <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px">
         <button class="btn btn-ghost" onclick="document.getElementById('modal-trocar-senha').classList.remove('visible')">Cancelar</button>
         <button class="btn btn-primary" onclick="trocarSenha()">Salvar nova senha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edital-expandido" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()"
+       style="max-width:720px;width:95vw;max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <div id="exp-numero" style="font-size:11px;color:#4CC5D7;font-family:monospace;margin-bottom:4px"></div>
+        <h3 id="exp-orgao" style="font-size:15px;line-height:1.3"></h3>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-edital-expandido').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:rgba(76,197,215,0.06);border:1px solid rgba(76,197,215,0.15);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#4CC5D7;margin-bottom:6px">Objeto</div>
+        <div id="exp-objeto" style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85)"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="exp-meta"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="exp-badges"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border)">
+        <a id="exp-link-pncp" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">🔗 Ver no PNCP</a>
+        <button id="exp-btn-itens" class="btn-ver-itens" style="display:none" onclick="expandirVerItens()">📋 Ver itens</button>
+        <button id="exp-btn-fila" class="btn btn-primary btn-sm" onclick="expandirAdicionarFila()">+ Fila de oportunidades</button>
+        <button id="exp-btn-edson" class="btn-edson" onclick="expandirEdson()">🤖 Analisar com Edson</button>
       </div>
     </div>
   </div>
