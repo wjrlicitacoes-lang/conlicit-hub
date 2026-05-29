@@ -395,6 +395,22 @@ async function executarMigracoes() {
   await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_cliente ON oportunidades_fila(cliente_id)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_status ON oportunidades_fila(status)`);
 
+  // Garantir constraint de roles atualizada (idempotente)
+  await db.query(`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check;
+      EXCEPTION WHEN others THEN NULL;
+      END;
+      BEGIN
+        ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+          CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END;
+    END $$;
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 
