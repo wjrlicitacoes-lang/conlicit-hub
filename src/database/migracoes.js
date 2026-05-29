@@ -346,6 +346,12 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazos_legais JSONB DEFAULT '{}'`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS beneficios_me_epp JSONB DEFAULT '{}'`);
 
+  // Ampliar campos VARCHAR(100) que truncam respostas do Edson
+  await db.query(`ALTER TABLE analises_edson ALTER COLUMN modalidade TYPE TEXT`);
+  await db.query(`ALTER TABLE analises_edson ALTER COLUMN modo_disputa TYPE TEXT`);
+  await db.query(`ALTER TABLE analises_edson ALTER COLUMN tipo_julgamento TYPE TEXT`);
+  await db.query(`ALTER TABLE analises_edson ALTER COLUMN status TYPE TEXT`);
+
   console.log('Migrações executadas com sucesso');
 }
 
