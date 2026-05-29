@@ -7480,6 +7480,16 @@ function verResumoOportunidade(id, resumoJson) {
         <div style="font-size:13px;font-weight:600;color:${resumo.recomendacao==='PARTICIPAR'?'#4ade80':resumo.recomendacao==='NÃO PARTICIPAR'?'#f87171':'#facc15'}">${esc(resumo.recomendacao || '—')}</div>
       </div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Julgamento</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(resumo.tipo_julgamento || '—')}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Tipo de entrega</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(resumo.tipo_entrega || '—')}</div>
+      </div>
+    </div>
     ${resumo.documentos_principais?.length ? `
       <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:14px">
         <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Documentos principais</div>
@@ -7560,26 +7570,39 @@ async function adicionarOportunidadeDaBusca(idx) {
 
   await abrirNovaOportunidade();
 
-  document.getElementById('op-objeto').value  = e.objeto || '';
-  document.getElementById('op-orgao').value   = e.orgao  || '';
-  document.getElementById('op-pncp').value    = e.numeroControlePNCP || e.numero_controle_pncp || '';
-  document.getElementById('op-link').value    = e.link   || e.linkSistemaOrigem || '';
-  document.getElementById('op-portal').value  = e.portal_disputa || detectarPortal(e.linkSistemaOrigem) || '';
+  document.getElementById('op-objeto').value = e.objeto || '';
+  document.getElementById('op-orgao').value  = e.orgao  || '';
 
-  const cidade = [e.municipio, e.uf || e.estado].filter(Boolean).join('/');
-  document.getElementById('op-cidade').value  = cidade;
+  const pncp = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || '';
+  document.getElementById('op-pncp').value   = pncp;
+  document.getElementById('op-link').value   = e.link || e.linkSistemaOrigem || '';
+  document.getElementById('op-portal').value = e.portal_disputa || detectarPortal(e.linkSistemaOrigem) || '';
 
-  if (e.valorEstimado) {
-    document.getElementById('op-valor').value = typeof e.valorEstimado === 'number'
-      ? e.valorEstimado
-      : String(e.valorEstimado).replace(/[^0-9,.]/g,'').replace(',','.');
+  const partes = [e.municipio, e.uf || e.estado].filter(Boolean);
+  document.getElementById('op-cidade').value = partes.join('/');
+
+  const valorBruto = e.valorEstimado ?? e.valor_estimado ?? e.valorTotalEstimado ?? e.valor_total_estimado ?? null;
+  if (valorBruto !== null && valorBruto !== undefined && valorBruto !== '—' && valorBruto !== 0) {
+    let valorNum = null;
+    if (typeof valorBruto === 'number') {
+      valorNum = valorBruto;
+    } else {
+      const str = String(valorBruto).replace(/R\$\s*/g,'').replace(/\./g,'').replace(',','.').trim();
+      valorNum = parseFloat(str);
+    }
+    if (!isNaN(valorNum) && valorNum > 0) {
+      document.getElementById('op-valor').value = valorNum;
+    }
   }
 
-  if (e.dataAberturaProposta || e.dataEncerramentoProposta) {
-    const data = e.dataAberturaProposta || e.dataEncerramentoProposta;
+  const dataRaw = e.dataAberturaProposta ?? e.data_hora_abertura ?? e.dataEncerramentoProposta ?? e.data_encerramento ?? null;
+  if (dataRaw) {
     try {
-      const d = new Date(data);
-      if (!isNaN(d)) document.getElementById('op-data').value = d.toISOString().slice(0,16);
+      const d = new Date(dataRaw);
+      if (!isNaN(d.getTime())) {
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        document.getElementById('op-data').value = local.toISOString().slice(0, 16);
+      }
     } catch {}
   }
 }

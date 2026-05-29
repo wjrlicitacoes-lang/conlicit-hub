@@ -45,7 +45,14 @@ async function enviarBotoes(telefone, titulo, corpo, rodape, botoes) {
 }
 
 async function enviarGrupo(groupId, mensagem) {
-  const r = await client.post('/send-text', { phone: groupId, message: mensagem });
+  let id = String(groupId).trim();
+  if (id.includes('chat.whatsapp.com')) {
+    throw new Error('Use o ID do grupo, não o link de convite. Busque os grupos pelo Hub.');
+  }
+  if (!id.includes('@')) {
+    id = id + '@g.us';
+  }
+  const r = await client.post('/send-text', { phone: id, message: mensagem });
   return r.data;
 }
 

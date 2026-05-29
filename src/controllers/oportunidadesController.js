@@ -87,26 +87,29 @@ async function gerarResumo(req, res) {
 
     const prompt = `Você é o Edson, especialista em licitações da Conlicit.
 Gere um resumo OBJETIVO desta licitação para enviar ao cliente via WhatsApp.
-O resumo deve ser direto, sem jargão jurídico, com no máximo 250 palavras.
+Direto, sem jargão jurídico, máx 200 palavras no resumo_whatsapp.
 
-DADOS DA LICITAÇÃO:
+DADOS:
 Objeto: ${op.objeto || '—'}
 Órgão: ${op.orgao || '—'}
-Valor estimado: ${op.valor_estimado ? `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR', {minimumFractionDigits:2})}` : 'Sigiloso'}
-Data da sessão: ${op.data_abertura ? new Date(op.data_abertura).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'}) : '—'}
+Valor estimado: ${op.valor_estimado ? `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'Verificar no edital'}
+Data da sessão: ${op.data_abertura ? new Date(op.data_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '—'}
 Plataforma: ${op.portal || '—'}
-Cidade/UF: ${op.municipio ? `${op.municipio}/${op.uf}` : op.uf || '—'}
+Cidade/UF: ${op.municipio ? `${op.municipio}/${op.uf}` : '—'}
 Cliente: ${op.cliente_nome || '—'}
+Link PNCP: ${op.link_pncp || op.link_edital || '—'}
 
-Responda APENAS com este JSON:
+Responda APENAS com este JSON (sem markdown):
 {
-  "resumo_whatsapp": "<texto formatado para WhatsApp com emojis, máx 250 palavras>",
-  "valor_formatado": "<R$ X.XXX,XX ou Sigiloso>",
+  "resumo_whatsapp": "<texto para WhatsApp com emojis, máx 200 palavras>",
+  "valor_formatado": "<R$ X.XXX,XX — NUNCA use 'sigiloso' se houver valor nos dados acima>",
   "data_formatada": "<DD/MM/AAAA às HH:MM>",
   "plataforma": "<nome da plataforma>",
   "cidade_uf": "<Cidade/UF>",
+  "tipo_julgamento": "<Por Item|Por Lote|Global — inferir pelo objeto>",
+  "tipo_entrega": "<Integral|Parcelada|Imediata — inferir pelo objeto>",
   "documentos_principais": ["<doc 1>", "<doc 2>", "<doc 3>"],
-  "forma_entrega": "<descrição resumida>",
+  "forma_entrega": "<descrição resumida do local e prazo de entrega>",
   "score_rapido": <0-100>,
   "recomendacao": "<PARTICIPAR|AVALIAR|NÃO PARTICIPAR>"
 }`;
@@ -121,6 +124,13 @@ Responda APENAS com este JSON:
       const m = raw.match(/\{[\s\S]*\}/);
       resumo = m ? JSON.parse(m[0]) : { resumo_whatsapp: raw };
     }
+
+    if (resumo.valor_formatado && resumo.valor_formatado.toLowerCase().includes('sigiloso')) {
+      if (op.valor_estimado && Number(op.valor_estimado) > 0) {
+        resumo.valor_formatado = `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+      }
+    }
+    resumo.valor_db = op.valor_estimado;
 
     await db.query(
       `UPDATE oportunidades_fila SET resumo_edson=$1, resumo_gerado_em=NOW(), status='aguardando_disparo' WHERE id=$2`,
@@ -175,10 +185,16 @@ async function disparar(req, res) {
 
     const erros = [];
 
+    console.log(`[Disparo] op.id=${op.id} grupo="${op.whatsapp_grupo}" dm="${op.contato_whatsapp}"`);
+
     if (op.whatsapp_grupo) {
       try {
         await zapiSvc.enviarGrupo(op.whatsapp_grupo, msgGrupo);
-      } catch (e) { erros.push(`Grupo: ${e.message}`); }
+        console.log(`[Disparo] Grupo enviado OK`);
+      } catch (e) {
+        console.error(`[Disparo] Erro grupo:`, e.response?.data || e.message);
+        erros.push(`Grupo: ${e.message}`);
+      }
     }
 
     if (op.contato_whatsapp) {
