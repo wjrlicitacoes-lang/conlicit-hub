@@ -7441,6 +7441,10 @@ function renderCardOportunidade(op) {
       ${op.status==='disparado'&&isSocioAdmin?`
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'sim')">✅ Marcar interesse</button>
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'nao')">❌ Sem interesse</button>`:''}
+      ${isSocioAdmin ? `
+        <button class="btn-ver-pncp" style="color:#f87171;border-color:rgba(248,113,113,0.25);margin-left:auto"
+                onclick="excluirOportunidade(${op.id})">🗑 Excluir</button>
+      ` : ''}
     </div>
   </div>`;
 }
@@ -7607,6 +7611,19 @@ async function adicionarOportunidadeDaBusca(idx) {
   }
 }
 
+async function excluirOportunidade(id) {
+  if (!confirm('Excluir esta oportunidade da fila?')) return;
+  try {
+    const r = await fetch(`${API}/oportunidades/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao excluir');
+    toast('Oportunidade excluída', 'success');
+    carregarOportunidades();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 async function salvarOportunidade() {
   const clienteId = document.getElementById('op-cliente-id').value;
   const objeto    = document.getElementById('op-objeto').value.trim();
@@ -7631,9 +7648,9 @@ async function salvarOportunidade() {
       }),
     });
     if (!r.ok) throw new Error((await r.json()).erro);
-    toast('Oportunidade adicionada à fila','success');
+    toast('Oportunidade adicionada à fila ✅', 'success');
     document.getElementById('modal-nova-oportunidade').classList.remove('visible');
-    carregarOportunidades();
+    navTo('oportunidades');
   } catch(e) { toast(e.message,'error'); }
 }
 

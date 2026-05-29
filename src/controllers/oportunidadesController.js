@@ -270,6 +270,20 @@ async function registrarResposta(req, res) {
   }
 }
 
+// ── Excluir oportunidade da fila (sócio/admin) ──
+async function excluir(req, res) {
+  if (!['socio_fundador', 'admin'].includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Sem permissão' });
+  const { id } = req.params;
+  try {
+    const { rowCount } = await db.query(`DELETE FROM oportunidades_fila WHERE id=$1`, [id]);
+    if (!rowCount) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+}
+
 // ── Webhook Z-API — captura respostas automáticas ──
 async function webhookZapi(req, res) {
   try {
@@ -342,4 +356,4 @@ async function listarGrupos(req, res) {
   }
 }
 
-module.exports = { listar, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos };
+module.exports = { listar, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos, excluir };

@@ -8,6 +8,7 @@ router.post  ('/',                auth, ctrl.criar);
 router.post  ('/:id/resumo',      auth, ctrl.gerarResumo);
 router.post  ('/:id/disparar',    auth, ctrl.disparar);
 router.patch ('/:id/resposta',    auth, ctrl.registrarResposta);
+router.delete('/:id',                  auth, ctrl.excluir);
 router.post  ('/webhook/zapi',         ctrl.webhookZapi); // sem auth — Z-API chama direto
 
 module.exports = router;
