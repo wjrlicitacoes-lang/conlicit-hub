@@ -11,5 +11,6 @@ router.post  ('/:id/resumo',      auth, ctrl.gerarResumo);
 router.post  ('/:id/disparar',    auth, ctrl.disparar);
 router.patch ('/:id/resposta',    auth, ctrl.registrarResposta);
 router.delete('/:id',             auth, ctrl.excluir);
+router.post  ('/:id/encaminhar',  auth, ctrl.encaminhar);
 
 module.exports = router;

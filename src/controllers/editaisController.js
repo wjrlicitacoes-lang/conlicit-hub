@@ -99,8 +99,15 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
   }
 
   if (uf) {
-    condicoes.push(`uf = $${idx++}`);
-    params.push(uf.toUpperCase());
+    const ufs = uf.split(',').map(u => u.trim().toUpperCase()).filter(Boolean);
+    if (ufs.length === 1) {
+      condicoes.push(`uf = $${idx++}`);
+      params.push(ufs[0]);
+    } else if (ufs.length > 1) {
+      const placeholders = ufs.map(() => `$${idx++}`).join(',');
+      condicoes.push(`uf IN (${placeholders})`);
+      ufs.forEach(u => params.push(u));
+    }
   }
 
   // Multi-modalidade (array) tem prioridade sobre modalidade singular

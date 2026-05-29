@@ -1556,25 +1556,22 @@
                 <input type="text" id="q" placeholder="Ex: limpeza, TI, obras, alimentação…" />
               </div>
             </div>
-            <div class="busca-campo busca-campo-sm">
+            <div class="busca-campo" style="flex:2;min-width:200px">
               <label class="busca-label">Estado (UF)</label>
-              <select id="uf">
-                <option value="">Todos os estados</option>
-                <option value="AC">Acre</option><option value="AL">Alagoas</option>
-                <option value="AP">Amapá</option><option value="AM">Amazonas</option>
-                <option value="BA">Bahia</option><option value="CE">Ceará</option>
-                <option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option>
-                <option value="GO">Goiás</option><option value="MA">Maranhão</option>
-                <option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option>
-                <option value="MG">Minas Gerais</option><option value="PA">Pará</option>
-                <option value="PB">Paraíba</option><option value="PR">Paraná</option>
-                <option value="PE">Pernambuco</option><option value="PI">Piauí</option>
-                <option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option>
-                <option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option>
-                <option value="RR">Roraima</option><option value="SC">Santa Catarina</option>
-                <option value="SP">São Paulo</option><option value="SE">Sergipe</option>
-                <option value="TO">Tocantins</option>
-              </select>
+              <div style="position:relative">
+                <button type="button" id="btn-uf-toggle" onclick="toggleUFPanel()"
+                  style="width:100%;text-align:left;padding:8px 10px;border:1px solid var(--border-light,rgba(255,255,255,0.12));border-radius:8px;background:var(--bg-secondary,#1a2f3f);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;font-family:inherit;display:flex;justify-content:space-between;align-items:center">
+                  <span id="uf-label">Todos os estados</span>
+                  <span style="font-size:10px;opacity:0.5">▼</span>
+                </button>
+                <div id="uf-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1a2f3f;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;z-index:50;max-height:220px;overflow-y:auto">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                    <button onclick="selecionarTodosUF(false)" style="font-size:11px;background:none;border:none;color:#4CC5D7;cursor:pointer;padding:0">Limpar</button>
+                    <button onclick="selecionarTodosUF(true)" style="font-size:11px;background:none;border:none;color:#4CC5D7;cursor:pointer;padding:0">Todos</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px" id="uf-checkboxes"></div>
+                </div>
+              </div>
             </div>
             <div class="busca-campo busca-campo-sm">
               <label class="busca-label">Abertura de</label>
@@ -2673,6 +2670,7 @@
     document.getElementById('nav-label-cliente').hidden  = !cliente;
 
     setDefaultDates();
+    initUFCheckboxes();
     navTo(cliente ? 'minha-area' : 'dashboard');
   }
 
@@ -4107,9 +4105,49 @@
     document.getElementById('dataFinal').value = fim.toISOString().slice(0, 10);
   }
 
+  const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+  function initUFCheckboxes() {
+    const c = document.getElementById('uf-checkboxes');
+    if (!c) return;
+    c.innerHTML = UFS.map(uf => `
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,0.7);cursor:pointer;padding:3px 4px;border-radius:4px">
+        <input type="checkbox" value="${uf}" onchange="atualizarLabelUF()"
+               style="accent-color:#4CC5D7;width:13px;height:13px;cursor:pointer">
+        ${uf}
+      </label>
+    `).join('');
+  }
+
+  function toggleUFPanel() {
+    const p = document.getElementById('uf-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function atualizarLabelUF() {
+    const selecionados = Array.from(document.querySelectorAll('#uf-checkboxes input:checked')).map(cb => cb.value);
+    const label = document.getElementById('uf-label');
+    if (!selecionados.length) label.textContent = 'Todos os estados';
+    else if (selecionados.length <= 3) label.textContent = selecionados.join(', ');
+    else label.textContent = `${selecionados.length} estados selecionados`;
+  }
+
+  function selecionarTodosUF(sel) {
+    document.querySelectorAll('#uf-checkboxes input').forEach(cb => cb.checked = sel);
+    atualizarLabelUF();
+  }
+
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('uf-panel');
+    const btn = document.getElementById('btn-uf-toggle');
+    if (panel && !panel.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
+
   function limparBusca() {
     document.getElementById('q').value = '';
-    document.getElementById('uf').value = '';
+    selecionarTodosUF(false);
     const cidadeEl = document.getElementById('cidade');
     const raioEl   = document.getElementById('raio_km');
     if (cidadeEl) cidadeEl.value = '';
@@ -4240,7 +4278,8 @@
 
   async function buscar(pagina = 1) {
     const q      = document.getElementById('q').value.trim();
-    const uf     = document.getElementById('uf').value;
+    const ufsChecked = Array.from(document.querySelectorAll('#uf-checkboxes input:checked')).map(cb => cb.value);
+    const uf = ufsChecked.join(',');
     const di     = document.getElementById('dataInicial').value;
     const df     = document.getElementById('dataFinal').value;
     const cidade  = document.getElementById('cidade')?.value.trim() || '';
@@ -5006,7 +5045,7 @@
     const top3 = riscos.slice(0, 3);
     const valor = a.valor_estimado ? fmtBRL(parseFloat(a.valor_estimado)) : '—';
     const data  = a.data_hora_abertura
-      ? new Date(a.data_hora_abertura).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      ? new Date(a.data_hora_abertura).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
       : (a.data_abertura || '—');
     const portal = a.portal_disputa || '—';
     const riscoCls = n => n === 'Alto' ? 's-atrasado' : n === 'Médio' ? 's-pendente' : 's-recebido';
@@ -5757,7 +5796,7 @@
       ? dt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric' })
       : (p.data_abertura ? new Date(p.data_abertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—');
     const horaStr = dt && !isNaN(dt)
-      ? dt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' })
+      ? dt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour:'2-digit', minute:'2-digit', hour12: false })
       : '';
     const dataHora = horaStr ? `${dataStr} ${horaStr}` : dataStr;
 
@@ -6382,7 +6421,7 @@
     tab.innerHTML = '<div class="cal-list">' + proximos.map(p => {
       const dt = new Date(p.data_hora_abertura);
       const diff = Math.ceil((dt - new Date()) / 86400000);
-      const dtStr = dt.toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const dtStr = dt.toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12: false });
       return `<div class="cal-card" style="border-left:3px solid var(--primary)">
         <div class="cal-card-time">
           <div class="cal-time-date" style="font-size:.75rem">${dtStr.split(' ')[0]||'—'}</div>
@@ -6414,7 +6453,7 @@
     tab.innerHTML = `<div style="background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;font-size:.88rem;color:var(--primary);font-weight:600">📅 ${hoje.length} pregão(ões) com sessão hoje</div>
       <div class="cal-list">` + hoje.map(p => {
         const dt = new Date(p.data_hora_abertura);
-        const hr = dt.toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' });
+        const hr = dt.toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit', hour12: false });
         return `<div class="cal-card" style="border-left:3px solid var(--primary)">
           <div class="cal-card-time"><div class="cal-time-date">Hoje</div><div class="cal-time-hour">${hr}</div></div>
           <div class="cal-card-body" style="flex:1">
@@ -7429,7 +7468,7 @@ function renderCardOportunidade(op) {
     <div class="edital-objeto">${esc(op.objeto||'—')}</div>
     <div class="edital-meta">
       <div class="edital-meta-item"><span class="edital-meta-label">Valor</span><span class="edital-meta-value valor">${op.valor_estimado?`R$ ${Number(op.valor_estimado).toLocaleString('pt-BR')}`:'—'}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Sessão</span><span class="edital-meta-value">${op.data_abertura?new Date(op.data_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Sessão</span><span class="edital-meta-value">${op.data_abertura?new Date(op.data_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false}):'—'}</span></div>
       <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(op.portal||'—')}</span></div>
       <div class="edital-meta-item"><span class="edital-meta-label">Local</span><span class="edital-meta-value">${esc(op.municipio?`${op.municipio}/${op.uf}`:op.uf||'—')}</span></div>
     </div>
@@ -7441,6 +7480,10 @@ function renderCardOportunidade(op) {
       ${op.status==='disparado'&&isSocioAdmin?`
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${parseInt(op.id)},'sim')">✅ Marcar interesse</button>
         <button class="btn-ver-pncp" onclick="registrarRespostaManual(${parseInt(op.id)},'nao')">❌ Sem interesse</button>`:''}
+      ${op.status==='interesse_confirmado'&&isSocioAdmin?`
+        <button class="btn-edson" onclick="encaminharOperador(${parseInt(op.id)})">👤 Encaminhar para operador</button>
+        ${op.pregao_id?`<a class="btn-ver-pncp" href="#" onclick="navTo('meus-pregoes');return false">📋 Ver pregão</a>`:''}
+      `:''}
       ${isSocioAdmin?`
         <button style="margin-left:auto;padding:5px 11px;border-radius:6px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:#f87171;font-size:11px;cursor:pointer;font-family:inherit"
                 onclick="excluirOportunidade(${parseInt(op.id)})">🗑 Excluir</button>`:''}
@@ -7624,6 +7667,40 @@ async function adicionarOportunidadeDaBusca(idx) {
   }
 }
 
+let _encaminharOpId = null;
+
+async function encaminharOperador(opId) {
+  _encaminharOpId = opId;
+  const sel = document.getElementById('op-operador-id');
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  document.getElementById('op-operador-obs').value = '';
+  document.getElementById('modal-encaminhar-op').classList.add('visible');
+  try {
+    const r = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
+    const users = await r.json();
+    const operadores = users.filter(u => ['assistente','assistente_junior','admin','socio_fundador'].includes(u.role));
+    sel.innerHTML = '<option value="">Selecione o operador...</option>' +
+      operadores.map(u => `<option value="${u.id}">${esc(u.nome || u.email)} (${u.role})</option>`).join('');
+  } catch(e) { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+}
+
+async function confirmarEncaminharOperador() {
+  const operadorId = document.getElementById('op-operador-id').value;
+  const obs = document.getElementById('op-operador-obs').value.trim();
+  if (!operadorId) { toast('Selecione um operador', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/oportunidades/${_encaminharOpId}/encaminhar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operador_id: parseInt(operadorId), observacoes: obs })
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Operador encaminhado com sucesso ✅', 'success');
+    document.getElementById('modal-encaminhar-op').classList.remove('visible');
+    carregarOportunidades();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 async function excluirOportunidade(id) {
   if (!confirm('Excluir esta oportunidade da fila?')) return;
   try {
@@ -7692,6 +7769,31 @@ async function salvarOportunidade() {
       <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px">
         <button class="btn btn-ghost" onclick="document.getElementById('modal-trocar-senha').classList.remove('visible')">Cancelar</button>
         <button class="btn btn-primary" onclick="trocarSenha()">Salvar nova senha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-encaminhar-op" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px">
+    <div class="modal-header">
+      <h3>Encaminhar para operador</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-encaminhar-op').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="form-group" style="margin:0">
+        <label>Selecionar operador</label>
+        <select id="op-operador-id">
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Observações para o operador (opcional)</label>
+        <textarea id="op-operador-obs" rows="3" placeholder="Ex: Atenção ao item 3, concorrência acirrada..."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-encaminhar-op').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarEncaminharOperador()">Encaminhar</button>
       </div>
     </div>
   </div>

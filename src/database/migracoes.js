@@ -394,6 +394,9 @@ async function executarMigracoes() {
   `);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_cliente ON oportunidades_fila(cliente_id)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_status ON oportunidades_fila(status)`);
+  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS pregao_id INTEGER REFERENCES pregoes(id) ON DELETE SET NULL`);
+  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_id INTEGER REFERENCES usuarios(id)`);
+  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
 
   // Garantir constraint de roles atualizada (idempotente)
   await db.query(`

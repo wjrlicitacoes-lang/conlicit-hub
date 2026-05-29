@@ -279,6 +279,7 @@ async function registrarResposta(req, res) {
           `UPDATE oportunidades_fila SET pregao_id=$1 WHERE id=$2`,
           [pregao.id, id],
         ).catch(() => {});
+        console.log(`[Oportunidades] Interesse confirmado — cliente ${op.cliente_nome}, pregão ${op.edital_ref}, criado pregao.id=${pregao.id}`);
       }
     }
 
@@ -375,4 +376,25 @@ async function listarGrupos(req, res) {
   }
 }
 
-module.exports = { listar, buscarPorId, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos, excluir };
+async function encaminhar(req, res) {
+  if (!['socio_fundador', 'admin'].includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Sem permissão' });
+  const { id } = req.params;
+  const { operador_id, observacoes } = req.body;
+  try {
+    await db.query(`UPDATE oportunidades_fila SET operador_id=$1, operador_obs=$2 WHERE id=$3`,
+      [operador_id, observacoes || null, id]);
+    const { rows: [op] } = await db.query(
+      `SELECT o.objeto, o.orgao, c.nome AS cliente_nome, u.nome AS op_nome, u.email AS op_email
+       FROM oportunidades_fila o
+       LEFT JOIN clientes c ON c.id = o.cliente_id
+       LEFT JOIN usuarios u ON u.id = $1
+       WHERE o.id = $2`, [operador_id, id]);
+    console.log(`[Encaminhar] op=${id} → operador=${op?.op_nome || operador_id} — ${op?.objeto?.slice(0, 50)}`);
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+}
+
+module.exports = { listar, buscarPorId, criar, gerarResumo, disparar, registrarResposta, webhookZapi, listarGrupos, excluir, encaminhar };
