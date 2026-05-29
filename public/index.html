@@ -7417,6 +7417,8 @@ function renderCardOportunidade(op) {
   const isSocioAdmin = ['socio_fundador','admin'].includes(userRole);
   const isAssist     = userRole === 'assistente';
 
+  console.log('[Op]', op.id, op.status, op.objeto?.slice(0,30));
+
   return `<div class="edital-card" style="margin-bottom:10px">
     <div class="edital-card-top">
       <div class="edital-badges">
