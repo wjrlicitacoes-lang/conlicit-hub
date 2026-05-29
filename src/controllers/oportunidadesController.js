@@ -297,14 +297,32 @@ async function webhookZapi(req, res) {
 // ── TEMPORÁRIO — listar grupos Z-API para obter IDs ──
 async function listarGrupos(req, res) {
   try {
-    const r = await require('axios').get(
-      `${process.env.ZAPI_BASE_URL || 'https://api.z-api.io'}/instances/${process.env.ZAPI_INSTANCE}/token/${process.env.ZAPI_TOKEN}/chats`,
-      { timeout: 15000 },
+    const axios = require('axios');
+    const BASE  = process.env.ZAPI_BASE_URL || 'https://api.z-api.io';
+    const INST  = process.env.ZAPI_INSTANCE;
+    const TOKEN = process.env.ZAPI_TOKEN;
+    const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(CLIENT_TOKEN ? { 'client-token': CLIENT_TOKEN } : {}),
+    };
+
+    const r = await axios.get(
+      `${BASE}/instances/${INST}/token/${TOKEN}/groups`,
+      { headers, timeout: 15000 },
     );
-    const grupos = (r.data || []).filter(c => c.isGroup);
-    return res.json(grupos.map(g => ({ id: g.id, nome: g.name })));
+
+    const grupos = r.data ?? [];
+    return res.json(
+      grupos.map(g => ({
+        id:   g.phone || g.id || g.groupId,
+        nome: g.name  || g.subject || g.groupName || g.phone,
+      })),
+    );
   } catch (e) {
-    return res.status(500).json({ erro: e.message });
+    console.error('[Grupos Z-API]', e.response?.data || e.message);
+    return res.status(500).json({ erro: e.message, detalhes: e.response?.data });
   }
 }
 
