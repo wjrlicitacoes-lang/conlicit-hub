@@ -7418,6 +7418,7 @@ function renderCardOportunidade(op) {
   const isAssist     = userRole === 'assistente';
 
   console.log('[Op]', op.id, op.status, op.objeto?.slice(0,30));
+  console.log('[Op raw id]', JSON.stringify(op.id), typeof op.id);
 
   return `<div class="edital-card" style="margin-bottom:10px">
     <div class="edital-card-top">
@@ -7436,16 +7437,16 @@ function renderCardOportunidade(op) {
       <div class="edital-meta-item"><span class="edital-meta-label">Local</span><span class="edital-meta-value">${esc(op.municipio?`${op.municipio}/${op.uf}`:op.uf||'—')}</span></div>
     </div>
     <div class="edital-acoes">
-      ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${op.id},this)">🤖 Gerar resumo Edson</button>`:''}
+      ${op.status==='aguardando_analise'&&(isSocioAdmin||isAssist)?`<button class="btn-edson" onclick="gerarResumoOportunidade(${parseInt(op.id)},this)">🤖 Gerar resumo Edson</button>`:''}
       ${op.status==='aguardando_disparo'&&(isSocioAdmin||isAssist)?`
-        <button class="btn-ver-itens" onclick="verResumoById(${op.id})">👁 Ver resumo</button>
-        <button class="btn-edson" onclick="dispararOportunidade(${op.id},this)">📱 Disparar para cliente</button>`:''}
+        <button class="btn-ver-itens" onclick="verResumoById(${parseInt(op.id)})">👁 Ver resumo</button>
+        <button class="btn-edson" onclick="dispararOportunidade(${parseInt(op.id)},this)">📱 Disparar para cliente</button>`:''}
       ${op.status==='disparado'&&isSocioAdmin?`
-        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'sim')">✅ Marcar interesse</button>
-        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${op.id},'nao')">❌ Sem interesse</button>`:''}
+        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${parseInt(op.id)},'sim')">✅ Marcar interesse</button>
+        <button class="btn-ver-pncp" onclick="registrarRespostaManual(${parseInt(op.id)},'nao')">❌ Sem interesse</button>`:''}
       ${isSocioAdmin?`
         <button style="margin-left:auto;padding:5px 11px;border-radius:6px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:#f87171;font-size:11px;cursor:pointer;font-family:inherit"
-                onclick="excluirOportunidade(${op.id})">🗑 Excluir</button>`:''}
+                onclick="excluirOportunidade(${parseInt(op.id)})">🗑 Excluir</button>`:''}
     </div>
   </div>`;
 }
