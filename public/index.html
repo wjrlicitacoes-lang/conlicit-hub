@@ -4346,14 +4346,19 @@
     }
 
     // Botão de preview de itens via PNCP
-    const nPNCP = e.numeroControlePNCP || e.numero_controle_pncp || '';
+    const nPNCP = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || '';
     let btnItens = '';
     if (nPNCP) {
-      const m = nPNCP.match(/^(\d+)-\d+-(\d+)\/(\d+)$/);
+      const m = nPNCP.match(/^(\d{14}|\d+)-\d+-0*(\d+)\/(\d{4})$/);
       if (m) {
         const [, cnpj, seq, ano] = m;
         btnItens = `<button class="btn-ver-itens" onclick="previewItens('${cnpj}','${ano}','${seq}','${esc(orgao)}',${idx})">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Ver itens
+        </button>`;
+      } else {
+        btnItens = `<button class="btn-ver-itens" onclick="previewItensByLink('${esc(e.link || '')}','${esc(orgao)}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
           Ver itens
         </button>`;
       }
@@ -4397,6 +4402,16 @@
         <button class="btn-edson" onclick="analisarComEdson(${idx})">🤖 Edson</button>
       </div>
     </div>`;
+  }
+
+  async function previewItensByLink(linkPncp, orgaoNome) {
+    if (!linkPncp) { toast('Link PNCP não disponível para este edital', 'error'); return; }
+    const m = linkPncp.match(/orgaos\/(\d+)\/compras\/(\d+)\/(\d+)/);
+    if (m) {
+      const [, cnpj, ano, seq] = m;
+      return previewItens(cnpj, ano, seq, orgaoNome, -1);
+    }
+    toast('Não foi possível extrair dados do link PNCP', 'error');
   }
 
   async function previewItens(cnpj, ano, seq, orgaoNome, idx) {

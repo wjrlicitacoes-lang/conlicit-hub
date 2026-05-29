@@ -105,85 +105,28 @@ LEGISLAÇÃO APLICÁVEL — Lei 14.133/2021:
 - Fracionamento ilegal: art.8°,§1°
 `;
 
-// ── Estrutura JSON de saída — única fonte da verdade ─────────────────────────
+// ── Estrutura JSON de saída — instrução compacta ─────────────────────────────
 
-const JSON_SCHEMA = `{
-  "criterios_score": {
-    "alinhamento_objeto": <0-25>,
-    "complexidade_habilitacao": <0-20>,
-    "valor_viabilidade": <0-20>,
-    "modo_disputa": <0-15>,
-    "risco_juridico": <0-10>,
-    "prazo_adequado": <0-10>
-  },
-  "score_justificativa": "<2-3 frases citando artigos da Lei 14.133/2021 quando aplicável>",
-  "resumo_executivo": "<3-4 frases de análise executiva com embasamento legal>",
-  "modalidade": "<Pregão Eletrônico|Dispensa Eletrônica|Concorrência|Inexigibilidade|...>",
-  "modo_disputa": "<Aberto|Fechado|Aberto e Fechado|Disputa Final|não informado>",
-  "tipo_julgamento": "<Menor Preço|Melhor Técnica|Técnica e Preço|Maior Desconto|Maior Lance>",
-  "itens": [
-    { "numero": <int>, "descricao": "<str>", "unidade": "<str>", "quantidade": <number>, "valor_unitario_estimado": <number|null> }
-  ],
-  "habilitacao": [
-    {
-      "categoria": "<Jurídica|Fiscal e Trabalhista|Técnica|Econômico-financeira|Declarações>",
-      "documentos": [{ "nome": "<str>", "obrigatorio": <bool>, "base_legal": "<art. XX Lei 14.133/2021 ou LC 123/2006>" }]
-    }
-  ],
-  "clausulas_restritivas": [
-    {
-      "clausula": "<transcrição ou descrição da cláusula problemática>",
-      "violacao": "<artigo ou súmula violada>",
-      "recomendacao": "<impugnar até 3 dias úteis antes / solicitar esclarecimento / participar mesmo assim com ressalva>"
-    }
-  ],
-  "prazos_legais": {
-    "data_sessao": "<data e hora da sessão ou null>",
-    "prazo_impugnacao": "<data limite para impugnar — 3 dias úteis antes da sessão>",
-    "prazo_esclarecimento": "<data limite para pedir esclarecimento — 3 dias úteis antes>",
-    "dias_uteis_restantes": <int — dias úteis até a sessão, -1 se não calculável>,
-    "alerta_prazo": "<null | 'URGENTE: menos de 2 dias úteis' | 'ATENÇÃO: 2-3 dias úteis' | 'OK: prazo confortável'>"
-  },
-  "beneficios_me_epp": {
-    "exclusividade_obrigatoria": <bool — true se valor ≤ R$ 80.000>,
-    "exclusividade_prevista": <bool — se o edital prevê>,
-    "cota_reservada": <bool — se o edital prevê cota 25%>,
-    "empate_ficto_aplicavel": <bool>,
-    "alerta": "<null | descrição do benefício não aplicado que deveria ser>"
-  },
-  "riscos": [
-    {
-      "risco": "<descrição objetiva do risco>",
-      "nivel": "<Alto|Médio|Baixo>",
-      "base_legal": "<artigo da Lei 14.133/2021, LC 123/2006, Súmula TCU ou null>",
-      "recomendacao": "<ação específica com prazo quando aplicável>"
-    }
-  ],
-  "checklist": {
-    "antes": ["<ação específica com referência ao edital ou à lei quando aplicável>"],
-    "durante": ["<ação específica com referência ao edital ou à lei quando aplicável>"],
-    "apos": ["<ação pós-sessão: homologação, assinatura, publicação>"]
-  },
-  "tipo_fornecimento": "<produto|servico|obra>",
-  "entrega_tipo": "<integral|parcelada|null>",
-  "julgamento_tipo": "<por_item|por_lote|global>",
-  "locais_entrega": "<string com locais ou null>",
-  "prazo_entrega": "<string com prazo ou null>",
-  "habilitacao_juridica": ["<doc 1 — com base legal>"],
-  "habilitacao_economica": {
-    "exige_balanco": <bool>,
-    "capital_minimo": "<valor ou null>",
-    "percentual_valor_estimado": <number|null — capital mínimo como % do valor estimado>,
-    "legal": <bool — false se capital_minimo > 10% do valor estimado>,
-    "detalhes": "<string>"
-  },
-  "capacidade_tecnica": {
-    "exige_atestado": <bool>,
-    "quantitativo_exigido": "<percentual ou valor exigido no atestado ou null>",
-    "legal": <bool — false se quantitativo > 50% do objeto>,
-    "descricao": "<string>"
-  }
-}`;
+const JSON_SCHEMA_INSTRUCAO = `
+Responda APENAS com JSON válido contendo exatamente estes campos de nível raiz:
+criterios_score, score_justificativa, resumo_executivo, modalidade, modo_disputa,
+tipo_julgamento, itens, habilitacao, clausulas_restritivas, prazos_legais,
+beneficios_me_epp, riscos, checklist, tipo_fornecimento, entrega_tipo,
+julgamento_tipo, locais_entrega, prazo_entrega, habilitacao_juridica,
+habilitacao_economica, capacidade_tecnica.
+
+Tipos obrigatórios:
+- criterios_score: objeto com 6 números (alinhamento_objeto 0-25, complexidade_habilitacao 0-20, valor_viabilidade 0-20, modo_disputa 0-15, risco_juridico 0-10, prazo_adequado 0-10)
+- itens: array de {numero, descricao, unidade, quantidade, valor_unitario_estimado}
+- habilitacao: array de {categoria, documentos:[{nome, obrigatorio, base_legal}]}
+- clausulas_restritivas: array de {clausula, violacao, recomendacao} — vazio [] se não houver
+- prazos_legais: {data_sessao, prazo_impugnacao, prazo_esclarecimento, dias_uteis_restantes, alerta_prazo}
+- beneficios_me_epp: {exclusividade_obrigatoria, exclusividade_prevista, empate_ficto_aplicavel, alerta}
+- riscos: array de {risco, nivel, base_legal, recomendacao} — mínimo 4
+- checklist: {antes:[strings], durante:[strings], apos:[strings]}
+- habilitacao_economica: {exige_balanco, capital_minimo, detalhes}
+- capacidade_tecnica: {exige_atestado, descricao}
+Sem markdown, sem texto fora do JSON.`;
 
 const INSTRUCOES_ANALISE = `
 === INSTRUÇÕES DE ANÁLISE — APLIQUE SEMPRE ===
@@ -261,7 +204,7 @@ ${INSTRUCOES_ANALISE}
 ${RUBRICA_INSTRUCAO}
 
 Responda APENAS com o JSON abaixo, preenchido com a análise do pregão:
-${JSON_SCHEMA}
+${JSON_SCHEMA_INSTRUCAO}
 
 === DADOS DO PREGÃO ===
 Número: ${pregao.numero || '—'}
@@ -299,7 +242,7 @@ ${INSTRUCOES_ANALISE}
 ${RUBRICA_INSTRUCAO}
 
 Responda APENAS com o JSON abaixo, preenchido com a análise do edital:
-${JSON_SCHEMA}
+${JSON_SCHEMA_INSTRUCAO}
 
 === DADOS DO PREGÃO ===
 Número: ${pregao.numero || '—'}
@@ -347,7 +290,7 @@ ${INSTRUCOES_ANALISE}
 ${RUBRICA_INSTRUCAO}
 
 Responda APENAS com o JSON abaixo, preenchido com a análise da licitação:
-${JSON_SCHEMA}
+${JSON_SCHEMA_INSTRUCAO}
 
 === DADOS DA LICITAÇÃO ===
 Referência: ${referencia || '—'}
@@ -471,6 +414,7 @@ async function callClaude(prompt, maxTokens = 12000, extraContent = []) {
   const content = extraContent.length > 0
     ? [{ type: 'text', text: prompt }, ...extraContent]
     : prompt;
+  console.log(`[Edson] Prompt: ${typeof prompt === 'string' ? prompt.length : '(multipart)'} chars (~${Math.round((typeof prompt === 'string' ? prompt.length : JSON.stringify(content).length)/4)} tokens est.), maxTokens: ${maxTokens}`);
   const { data } = await axios.post(
     ANTHROPIC_URL,
     { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
@@ -486,46 +430,63 @@ async function callClaude(prompt, maxTokens = 12000, extraContent = []) {
   return data.content[0].text.trim();
 }
 
-function parsearRespostaEdson(raw) {
-  let parsed;
-  let limpo = raw.trim();
-  limpo = limpo.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
-  limpo = limpo.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
-
-  try {
-    parsed = JSON.parse(limpo);
-  } catch {
-    const match = limpo.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        parsed = JSON.parse(match[0]);
-      } catch (e2) {
-        console.error('[Edson] JSON inválido após extração:', limpo.slice(0, 500));
-        throw new Error('Resposta da IA não é JSON válido: ' + e2.message);
-      }
-    } else {
-      console.error('[Edson] Nenhum JSON na resposta:', limpo.slice(0, 500));
-      throw new Error('Resposta da IA não contém JSON');
-    }
-  }
-
+function finalizarParse(parsed) {
+  if (!parsed.criterios_score) parsed.criterios_score = {};
   if (!parsed.itens) parsed.itens = [];
   if (!parsed.habilitacao) parsed.habilitacao = [];
   if (!parsed.riscos) parsed.riscos = [];
+  if (!parsed.clausulas_restritivas) parsed.clausulas_restritivas = [];
   if (!parsed.checklist) parsed.checklist = { antes: [], durante: [], apos: [] };
   if (!parsed.checklist.antes) parsed.checklist.antes = [];
   if (!parsed.checklist.durante) parsed.checklist.durante = [];
   if (!parsed.checklist.apos) parsed.checklist.apos = [];
-  if (!parsed.clausulas_restritivas) parsed.clausulas_restritivas = [];
   if (!parsed.prazos_legais) parsed.prazos_legais = {};
   if (!parsed.beneficios_me_epp) parsed.beneficios_me_epp = {};
-  if (!parsed.criterios_score) parsed.criterios_score = {};
-  if (!parsed.resumo_executivo) parsed.resumo_executivo = 'Análise não disponível.';
+  if (!parsed.habilitacao_economica) parsed.habilitacao_economica = { exige_balanco: false, detalhes: '' };
+  if (!parsed.capacidade_tecnica) parsed.capacidade_tecnica = { exige_atestado: false, descricao: '' };
+  if (!parsed.resumo_executivo) parsed.resumo_executivo = 'Análise gerada com dados parciais.';
+  const score = calcularScore(parsed.criterios_score);
+  return { parsed, criterios: parsed.criterios_score, score };
+}
 
-  const criterios = parsed.criterios_score || {};
-  const score = calcularScore(criterios);
+function parsearRespostaEdson(raw) {
+  let limpo = raw.trim()
+    .replace(/^```json\s*/i, '').replace(/```\s*$/i, '')
+    .replace(/^```\s*/i, '').replace(/```\s*$/i, '');
 
-  return { parsed, criterios, score };
+  // Tentativa 1: parse direto
+  try { return finalizarParse(JSON.parse(limpo)); } catch {}
+
+  // Tentativa 2: extrair maior bloco JSON
+  const match = limpo.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return finalizarParse(JSON.parse(match[0])); } catch {}
+  }
+
+  // Tentativa 3: reparar JSON truncado adicionando fechamentos
+  let reparado = limpo;
+  let chaves = 0, colchetes = 0;
+  for (const c of reparado) {
+    if (c === '{') chaves++;
+    else if (c === '}') chaves--;
+    else if (c === '[') colchetes++;
+    else if (c === ']') colchetes--;
+  }
+  const ultimoChar = reparado.trimEnd().slice(-1);
+  if (ultimoChar !== '"' && ultimoChar !== '}' && ultimoChar !== ']') {
+    reparado = reparado.trimEnd();
+    const ultimaVirgula = reparado.lastIndexOf(',');
+    if (ultimaVirgula > reparado.length - 200) {
+      reparado = reparado.slice(0, ultimaVirgula);
+    }
+  }
+  reparado += ']'.repeat(Math.max(0, colchetes));
+  reparado += '}'.repeat(Math.max(0, chaves));
+
+  try { return finalizarParse(JSON.parse(reparado)); } catch {}
+
+  console.error('[Edson] JSON irrecuperável, usando defaults. Raw:', limpo.slice(0, 300));
+  return finalizarParse({});
 }
 
 async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []) {
@@ -621,10 +582,10 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
     let prompt, maxTok;
     if (modo === 'reuniao') {
       prompt = buildPromptReuniao(pregao, null, itensPNCP, dataSessao);
-      maxTok = 6000;
+      maxTok = 4000;
     } else {
       prompt = buildPrompt(pregao, itensPNCP, dataSessao);
-      maxTok = 12000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -656,10 +617,10 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'completo') {
     let prompt, maxTok;
     if (modo === 'reuniao') {
       prompt = buildPromptReuniao(pregao, pdfText, [], dataSessao);
-      maxTok = 6000;
+      maxTok = 4000;
     } else {
       prompt = buildPromptPDF(pregao, pdfText, dataSessao);
-      maxTok = 12000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -696,10 +657,10 @@ async function analisarAvulso(analiseId, opts) {
     let prompt, maxTok;
     if (modo === 'reuniao') {
       prompt = buildPromptReuniao(opts, pdfText, itensPNCP, null);
-      maxTok = 6000;
+      maxTok = 4000;
     } else {
       prompt = buildPromptAvulso(opts, itensPNCP, pdfText);
-      maxTok = 12000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
