@@ -1343,10 +1343,23 @@
     body:has(#section-proposta.active) .fab { display:none !important; }
     /* Print */
     @media print {
-      .sidebar, .topbar, #section-proposta .proposta-header, #section-proposta .panel-form, #proposta-historico { display:none !important; }
-      #section-proposta .proposta-layout { grid-template-columns:1fr; height:auto; }
-      #section-proposta .panel-preview { background:#fff; overflow:visible; padding:0; }
-      .preview-page { box-shadow:none; page-break-after:always; }
+      body > *:not(#section-proposta) { display: none !important; }
+      .sidebar, .topbar, #proposta-historico, .busca-painel,
+      .section-header, .panel-form, .btn-top, .modal-overlay { display: none !important; }
+      #section-proposta { display: block !important; padding: 0 !important; }
+      #section-proposta .layout { display: block !important; height: auto !important; }
+      #section-proposta .panel-preview {
+        display: block !important;
+        background: white !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .preview-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        page-break-after: always;
+      }
+      .preview-page:last-child { page-break-after: avoid; }
     }
     /* Filtros multi-checkbox (editais) */
     .check-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -1852,7 +1865,7 @@
           <div class="proposta-header-actions">
             <button class="btn btn-primary btn-sm" id="btn-nova-proposta" onclick="propostaNova()">+ Nova Proposta</button>
             <button class="btn btn-ghost btn-sm" id="btn-proposta-exportar" style="display:none" onclick="propostaExportarHTML()">↗ Exportar HTML</button>
-            <button class="btn btn-ghost btn-sm" id="btn-proposta-imprimir" style="display:none" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-ghost btn-sm" id="btn-proposta-imprimir" style="display:none" onclick="imprimirPropostaApenas()">🖨️ Imprimir</button>
             <button class="btn btn-ghost btn-sm" id="btn-proposta-salvar" style="display:none" onclick="propostaSalvar()">💾 Salvar</button>
             <button class="btn btn-ghost btn-sm" id="btn-proposta-voltar" style="display:none" onclick="propostaVoltar()">← Histórico</button>
           </div>
@@ -6946,36 +6959,65 @@
   }
 
   function exportHTML() {
-    const estilos = Array.from(document.styleSheets)
-      .map(sheet => {
-        try {
-          return Array.from(sheet.cssRules).map(r => r.cssText).join('\n');
-        } catch { return ''; }
-      }).join('\n');
-
     const preview = document.getElementById('preview-area') || document.getElementById('p-preview-area');
     if (!preview) { toast('Preview não encontrado', 'error'); return; }
 
     const numero = document.getElementById('f_num')?.value || pG('pf_num') || '001-2026';
     const cliente = document.getElementById('f_cliente')?.value || pG('pf_cliente') || 'cliente';
-    const nomeArq = `proposta-conlicit-${numero.replace(/[^a-zA-Z0-9]/g,'-')}.html`;
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proposta Conlicit — ${cliente}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', Arial, sans-serif; background: #eaecef; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; gap: 16px; }
-${estilos}
-.preview-page { box-shadow: 0 2px 16px rgba(0,0,0,0.12); }
-@media print {
-  body { background: white; padding: 0; }
-  .preview-page { box-shadow: none; margin: 0; }
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',Arial,sans-serif;background:#eaecef;display:flex;flex-direction:column;align-items:center;padding:32px 16px;gap:16px}
+.preview-page{background:white;width:595px;min-height:842px;padding:40px 44px 36px;position:relative;font-family:'Inter',sans-serif;color:#080808;font-size:10px;line-height:1.5;box-shadow:0 2px 16px rgba(0,0,0,0.12)}
+.pv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #e8ecef}
+.pv-logo{height:18px}
+.pv-num{text-align:right;font-size:8px;letter-spacing:.08em;color:#888;line-height:1.8}
+.pv-tag{display:inline-flex;align-items:center;gap:6px;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#4CC5D7;margin-bottom:10px}
+.pv-tag::before{content:'';width:16px;height:2px;background:#4CC5D7}
+.pv-title{font-size:22px;font-weight:700;color:#182A39;line-height:1.15;margin-bottom:18px;letter-spacing:-.3px}
+.pv-meta{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid #e8ecef;border-bottom:1px solid #e8ecef;padding:10px 0;margin-bottom:16px}
+.pv-meta-item .ml{font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:#aaa;margin-bottom:2px}
+.pv-meta-item .mv{font-size:10px;font-weight:600;color:#182A39}
+.pv-intro{font-size:9.5px;color:#444;line-height:1.65;margin-bottom:18px}
+.pv-pricing{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.pv-card-dark{background:#182A39;border-radius:10px;padding:14px 16px;color:white}
+.pv-card-light{background:#eef8fa;border-radius:10px;padding:14px 16px;border:1px solid rgba(76,197,215,.3)}
+.pv-card-label{font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:#4CC5D7;margin-bottom:6px}
+.pv-price{font-size:24px;font-weight:700;color:white;line-height:1}
+.pv-price-unit{font-size:12px;font-weight:400}
+.pv-price-sub{font-size:8px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.5}
+.pv-comissao{font-size:22px;font-weight:700;color:#182A39;line-height:1}
+.pv-comissao-unit{font-size:11px;font-weight:400;color:#555}
+.pv-comissao-sub{font-size:8px;color:#666;margin-top:6px;line-height:1.5}
+.pv-incluso-title{font-size:11px;font-weight:700;color:#182A39;margin-bottom:10px}
+.pv-incluso-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:20px}
+.pv-incluso-item{display:flex;align-items:flex-start;gap:5px;font-size:8.5px;color:#444}
+.pv-dot{width:5px;height:5px;border-radius:50%;background:#4CC5D7;flex-shrink:0;margin-top:2px}
+.pv-footer{position:absolute;bottom:24px;left:44px;right:44px;border-top:1px solid #e8ecef;padding-top:8px;font-size:7.5px;color:#aaa;letter-spacing:.04em;display:flex;justify-content:space-between}
+.pv-section-tag{font-size:7px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#4CC5D7;border-left:2px solid #4CC5D7;padding-left:6px;margin-bottom:6px}
+.pv-section-title{font-size:16px;font-weight:700;color:#182A39;margin-bottom:18px}
+.pv-frente{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.pv-frente:last-of-type{border-bottom:none}
+.pv-frente-num{width:24px;height:24px;background:#182A39;border-radius:5px;color:white;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pv-frente-label{font-size:7px;letter-spacing:.08em;text-transform:uppercase;color:#aaa}
+.pv-frente-name{font-size:9.5px;font-weight:700;color:#182A39;margin-bottom:2px}
+.pv-frente-desc{font-size:8.5px;color:#666;line-height:1.5}
+.pv-cond{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.pv-cond-item{background:#f4f6f8;border-radius:6px;padding:8px 10px}
+.pv-cond-label{font-size:6.5px;letter-spacing:.1em;text-transform:uppercase;color:#aaa;margin-bottom:3px}
+.pv-cond-val{font-size:8.5px;font-weight:600;color:#182A39;line-height:1.3}
+.pv-closing{margin-top:14px;font-size:8.5px;color:#555;line-height:1.6;border-top:1px solid #e8ecef;padding-top:12px;display:grid;grid-template-columns:1fr auto;gap:24px}
+.pv-closing-brand{font-size:9px;font-weight:700;color:#182A39}
+.pv-closing-email{font-size:8px;color:#4CC5D7}
+.preview-page::before{content:'';position:absolute;bottom:-40px;right:-60px;width:480px;height:480px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='%234CC5D7' opacity='0.07'%3E%3Crect x='80' y='40' width='240' height='44' rx='12'/%3E%3Crect x='80' y='40' width='44' height='280' rx='12'/%3E%3Cpath d='M210 84 A136 136 0 0 1 346 220 L346 268 A88 88 0 0 0 210 132 Z'/%3E%3Cpath d='M210 132 A88 88 0 0 1 298 220 L298 268 A40 40 0 0 0 210 180 Z'/%3E%3Crect x='80' y='276' width='240' height='44' rx='12'/%3E%3C/g%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:none;z-index:0}
+.preview-page > *{position:relative;z-index:1}
+@media print{body{background:white;padding:0}.preview-page{box-shadow:none;margin:0;page-break-after:always}.preview-page:last-child{page-break-after:avoid}}
 </style>
 </head>
 <body>
@@ -6983,15 +7025,32 @@ ${preview.innerHTML}
 </body>
 </html>`;
 
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = nomeArq;
+    a.download = `proposta-conlicit-${numero.replace(/[\s\/]/g,'-')}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast('Proposta exportada ✅', 'success');
+    toast('Proposta exportada ✅ — abra o arquivo e use Ctrl+P para salvar como PDF', 'success');
   }
   function propostaExportarHTML() { exportHTML(); }
+
+  function imprimirPropostaApenas() {
+    const preview = document.getElementById('preview-area') || document.getElementById('p-preview-area');
+    if (!preview) return;
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Inter', Arial, sans-serif; background: white; }
+      @media print { body { margin: 0; } }
+    </style>
+  </head><body>${preview.innerHTML}</body></html>`);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 800);
+  }
 
   async function propostaCarregarHistorico() {
     const area = document.getElementById('proposta-historico');
