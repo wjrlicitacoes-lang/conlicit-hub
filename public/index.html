@@ -6958,41 +6958,67 @@
     } catch (e) { toast(e.message || 'Erro ao salvar proposta', 'error'); }
   }
 
-  function exportHTML() {
-    imprimirPropostaApenas();
-    toast('Use "Salvar como PDF" na janela de impressão ✅', 'success');
-  }
-  function propostaExportarHTML() { exportHTML(); }
-
-  function imprimirPropostaApenas() {
+  function propostaGerarJanela() {
     const preview = document.getElementById('preview-area');
-    if (!preview) return;
+    if (!preview) return null;
 
-    const conteudo = preview.innerHTML;
-    const w = window.open('', '_blank', 'width=800,height=1000');
-    w.document.write(`<!DOCTYPE html>
+    // Coletar TODO o CSS do documento
+    let css = '';
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules).forEach(rule => { css += rule.cssText + '\n'; });
+      } catch(e) {}
+    });
+
+    // Garantir que imagens têm tamanho correto
+    const conteudo = preview.innerHTML
+      .replace(/<img /g, '<img style="max-height:22px;width:auto;display:block;" ');
+
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', Arial, sans-serif; background: #eaecef; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-img { max-height: 22px !important; width: auto !important; display: block; }
-.preview-page { background: white; width: 595px; min-height: 842px; padding: 40px 44px 36px; position: relative; font-size: 10px; line-height: 1.5; color: #080808; overflow: hidden; }
-.preview-page::before { display: none !important; }
+${css}
+* { box-sizing: border-box; }
+body { font-family: 'Inter', Arial, sans-serif !important; background: #eaecef; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0; }
+img { max-height: 22px !important; width: auto !important; }
 @media print {
-  body { background: white; padding: 0; }
-  .preview-page { box-shadow: none; page-break-after: always; width: 100%; min-height: auto; }
+  body { background: white !important; padding: 0 !important; }
+  .preview-page { box-shadow: none !important; page-break-after: always; }
   .preview-page:last-child { page-break-after: avoid; }
+  .topbar, .sidebar, .btn-top, .panel-form { display: none !important; }
 }
 </style>
 </head>
 <body>${conteudo}</body>
-</html>`);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 1200);
+</html>`;
   }
+
+  function imprimirPropostaApenas() {
+    const html = propostaGerarJanela();
+    if (!html) return;
+    const w = window.open('', '_blank', 'width=850,height=1100');
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 1500);
+  }
+
+  function exportHTML() {
+    const html = propostaGerarJanela();
+    if (!html) return;
+    const numero = document.getElementById('f_num')?.value || '001-2026';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `proposta-conlicit-${numero.replace(/[\s\/\\]/g,'-')}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Abra o arquivo e use Ctrl+P → Salvar como PDF ✅', 'success');
+  }
+  function propostaExportarHTML() { exportHTML(); }
 
   async function propostaCarregarHistorico() {
     const area = document.getElementById('proposta-historico');
