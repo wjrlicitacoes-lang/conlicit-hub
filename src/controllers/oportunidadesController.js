@@ -387,24 +387,40 @@ async function listarGrupos(req, res) {
     const INST  = process.env.ZAPI_INSTANCE;
     const TOKEN = process.env.ZAPI_TOKEN;
     const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN;
-
     const headers = {
       'Content-Type': 'application/json',
       ...(CLIENT_TOKEN ? { 'client-token': CLIENT_TOKEN } : {}),
     };
 
-    const r = await axios.get(
-      `${BASE}/instances/${INST}/token/${TOKEN}/groups`,
-      { headers, timeout: 15000 },
-    );
+    let todos = [];
+    let page = 0;
+    let temMais = true;
 
-    const grupos = r.data ?? [];
-    return res.json(
-      grupos.map(g => ({
-        id:   g.phone || g.id || g.groupId,
-        nome: g.name  || g.subject || g.groupName || g.phone,
-      })),
-    );
+    while (temMais) {
+      const r = await axios.get(
+        `${BASE}/instances/${INST}/token/${TOKEN}/groups`,
+        { headers, timeout: 15000, params: { page, pageSize: 100 } }
+      );
+      const grupos = r.data ?? [];
+      if (!Array.isArray(grupos) || grupos.length === 0) {
+        temMais = false;
+      } else {
+        todos = todos.concat(grupos);
+        if (grupos.length < 100) temMais = false;
+        else page++;
+      }
+    }
+
+    todos.sort((a, b) => {
+      const na = (a.name || a.subject || a.groupName || '').toLowerCase();
+      const nb = (b.name || b.subject || b.groupName || '').toLowerCase();
+      return na.localeCompare(nb);
+    });
+
+    return res.json(todos.map(g => ({
+      id:   g.phone || g.id || g.groupId,
+      nome: g.name  || g.subject || g.groupName || g.phone,
+    })));
   } catch (e) {
     console.error('[Grupos Z-API]', e.response?.data || e.message);
     return res.status(500).json({ erro: e.message, detalhes: e.response?.data });
