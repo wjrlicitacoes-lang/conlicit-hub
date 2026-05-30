@@ -409,7 +409,7 @@ ${JSON_SCHEMA_REUNIAO}`;
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
-async function callClaude(prompt, maxTokens = 12000, extraContent = []) {
+async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const content = extraContent.length > 0
     ? [{ type: 'text', text: prompt }, ...extraContent]
@@ -424,7 +424,7 @@ async function callClaude(prompt, maxTokens = 12000, extraContent = []) {
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      timeout: 120000,
+      timeout: parseInt(process.env.ANTHROPIC_TIMEOUT || '55000', 10),
     },
   );
   return data.content[0].text.trim();
@@ -597,7 +597,7 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
   }
 }
 
-async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'completo') {
+async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
   try {
     const pdfData = await pdfParse(pdfBuffer);
     const pdfText = pdfData.text.trim().slice(0, 80000);
@@ -635,7 +635,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'completo') {
 async function analisarAvulso(analiseId, opts) {
   try {
     const { numero_controle_pncp, referencia, clienteNome, clienteUF, palavrasChave, pdfBuffer } = opts;
-    const modo = opts.modo || 'completo';
+    const modo = opts.modo || 'reuniao';
 
     let itensPNCP = [];
     let pdfText   = null;
