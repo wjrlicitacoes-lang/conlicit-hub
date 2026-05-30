@@ -3654,22 +3654,38 @@
 
   async function buscarGruposZapi() {
     const sel = document.getElementById('cliente-whatsapp-grupo');
-    const valorAtual = sel.value;
-    sel.innerHTML = '<option>Buscando...</option>';
+    sel.innerHTML = '<option>Buscando todos os grupos...</option>';
     try {
       const r = await fetch(`${API}/oportunidades/grupos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const grupos = await r.json();
-      if (!Array.isArray(grupos) || !grupos.length) {
+      if (!grupos.length) {
         sel.innerHTML = '<option value="">Nenhum grupo encontrado</option>';
-        toast('Nenhum grupo encontrado. Verifique se o WhatsApp está conectado na Z-API.', 'error');
+        toast('Nenhum grupo encontrado', 'error');
         return;
       }
-      sel.innerHTML = '<option value="">Selecione o grupo...</option>' +
+      sel.innerHTML = `<option value="">Selecione o grupo (${grupos.length} encontrados)...</option>` +
         grupos.map(g => `<option value="${esc(g.id)}">${esc(g.nome)}</option>`).join('');
-      if (valorAtual) sel.value = valorAtual;
-      toast(`${grupos.length} grupo(s) encontrado(s)`, 'success');
+
+      const wrap = sel.parentElement;
+      const buscaId = 'busca-grupo-input';
+      if (!document.getElementById(buscaId)) {
+        const input = document.createElement('input');
+        input.id = buscaId;
+        input.type = 'text';
+        input.placeholder = 'Buscar grupo pelo nome...';
+        input.style.cssText = 'width:100%;padding:7px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.06);color:#fff;font-size:13px;margin-bottom:6px;font-family:inherit';
+        input.addEventListener('input', () => {
+          const termo = input.value.toLowerCase();
+          Array.from(sel.options).forEach(opt => {
+            if (!opt.value) return;
+            opt.style.display = opt.text.toLowerCase().includes(termo) ? '' : 'none';
+          });
+        });
+        wrap.insertBefore(input, sel);
+      }
+      toast(`${grupos.length} grupos encontrados`, 'success');
     } catch(e) {
       sel.innerHTML = '<option value="">Erro ao buscar</option>';
       toast('Erro ao buscar grupos: ' + e.message, 'error');
