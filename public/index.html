@@ -6945,21 +6945,53 @@
     } catch (e) { toast(e.message || 'Erro ao salvar proposta', 'error'); }
   }
 
-  function propostaExportarHTML() {
-    const pages = document.getElementById('p-preview-area');
-    if (!pages) return;
-    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Proposta Conlicit</title>
+  function exportHTML() {
+    const estilos = Array.from(document.styleSheets)
+      .map(sheet => {
+        try {
+          return Array.from(sheet.cssRules).map(r => r.cssText).join('\n');
+        } catch { return ''; }
+      }).join('\n');
+
+    const preview = document.getElementById('preview-area') || document.getElementById('p-preview-area');
+    if (!preview) { toast('Preview não encontrado', 'error'); return; }
+
+    const numero = document.getElementById('f_num')?.value || pG('pf_num') || '001-2026';
+    const cliente = document.getElementById('f_cliente')?.value || pG('pf_cliente') || 'cliente';
+    const nomeArq = `proposta-conlicit-${numero.replace(/[^a-zA-Z0-9]/g,'-')}.html`;
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposta Conlicit — ${cliente}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body{margin:0;font-family:Inter,sans-serif;background:#eaecef}
-  .preview-page{background:#fff;width:595px;min-height:842px;padding:40px 44px 36px;margin:24px auto;position:relative;font-size:10px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.12)}
-  ${document.getElementById('section-proposta')?.querySelector('style')?.textContent||''}
-</style></head><body>${pages.outerHTML}</body></html>`;
-    const blob = new Blob([html], {type:'text/html'});
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', Arial, sans-serif; background: #eaecef; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; gap: 16px; }
+${estilos}
+.preview-page { box-shadow: 0 2px 16px rgba(0,0,0,0.12); }
+@media print {
+  body { background: white; padding: 0; }
+  .preview-page { box-shadow: none; margin: 0; }
+}
+</style>
+</head>
+<body>
+${preview.innerHTML}
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `proposta-conlicit-${pG('pf_num').replace(/\s*\/\s*/g,'-')}.html`;
+    a.download = nomeArq;
     a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Proposta exportada ✅', 'success');
   }
+  function propostaExportarHTML() { exportHTML(); }
 
   async function propostaCarregarHistorico() {
     const area = document.getElementById('proposta-historico');
