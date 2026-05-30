@@ -353,7 +353,7 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ALTER COLUMN status TYPE TEXT`);
 
   // WhatsApp grupo nos clientes (para disparo de oportunidades)
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS whatsapp_grupo VARCHAR(50)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS whatsapp_grupo VARCHAR(100)`);
 
   // ── Fila de oportunidades ────────────────────────────────────────────
   await db.query(`

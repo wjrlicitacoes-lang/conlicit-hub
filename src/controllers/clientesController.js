@@ -6,7 +6,7 @@ const SELECT_CLIENTES = `
     c.id, c.nome, c.email, c.whatsapp, c.palavras_chave, c.uf, c.ativo, c.criado_em,
     c.valor_contrato, c.percentual_comissao, c.dia_vencimento,
     c.responsavel, c.origem, c.sdr_nome, c.sdr_comissao,
-    c.contato_nome, c.contato_cargo, c.contato_whatsapp, c.responsavel_conlicit,
+    c.contato_nome, c.contato_cargo, c.contato_whatsapp, c.responsavel_conlicit, c.whatsapp_grupo,
     COALESCE(SUM(CASE WHEN p.status = 'vencido' THEN p.comissao_gerada ELSE 0 END), 0)::NUMERIC AS comissao_total,
     COALESCE(SUM(CASE WHEN p.status = 'vencido' THEN p.valor_vencido   ELSE 0 END), 0)::NUMERIC AS valor_vencido_total,
     COUNT(CASE WHEN p.status = 'a_disputar' THEN 1 END)::INTEGER AS pregoes_a_disputar,
@@ -20,7 +20,7 @@ async function cadastrar(req, res) {
   const { nome, email, whatsapp, palavras_chave, uf, ativo,
           valor_contrato, percentual_comissao, dia_vencimento,
           responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit } = req.body ?? {};
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo } = req.body ?? {};
 
   if (!nome || !email)
     return res.status(400).json({ erro: 'nome e email são obrigatórios' });
@@ -34,12 +34,12 @@ async function cadastrar(req, res) {
       `INSERT INTO clientes
          (nome, email, whatsapp, palavras_chave, uf, ativo, valor_contrato, percentual_comissao,
           dia_vencimento, responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id, nome, email, whatsapp, palavras_chave, uf, ativo, criado_em,
                  valor_contrato, percentual_comissao, dia_vencimento,
                  responsavel, origem, sdr_nome, sdr_comissao,
-                 contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit`,
+                 contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo`,
       [
         nome.trim(),
         email.trim().toLowerCase(),
@@ -58,6 +58,7 @@ async function cadastrar(req, res) {
         contato_cargo?.trim() || null,
         contato_whatsapp?.replace(/\D/g, '') || null,
         responsavel_conlicit?.trim() || null,
+        whatsapp_grupo || null,
       ],
     );
     return res.status(201).json(rows[0]);
@@ -89,7 +90,7 @@ async function atualizar(req, res) {
   const { nome, email, whatsapp, palavras_chave, uf, ativo,
           valor_contrato, percentual_comissao, dia_vencimento,
           responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit } = req.body ?? {};
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo } = req.body ?? {};
 
   if (palavras_chave !== undefined && !Array.isArray(palavras_chave))
     return res.status(400).json({ erro: 'palavras_chave deve ser um array de strings' });
@@ -115,6 +116,7 @@ async function atualizar(req, res) {
   if (contato_cargo         !== undefined) { campos.push(`contato_cargo = $${idx++}`);          valores.push(contato_cargo?.trim() || null); }
   if (contato_whatsapp      !== undefined) { campos.push(`contato_whatsapp = $${idx++}`);       valores.push(contato_whatsapp?.replace(/\D/g, '') || null); }
   if (responsavel_conlicit  !== undefined) { campos.push(`responsavel_conlicit = $${idx++}`);   valores.push(responsavel_conlicit?.trim() || null); }
+  if (whatsapp_grupo        !== undefined) { campos.push(`whatsapp_grupo = $${idx++}`);         valores.push(whatsapp_grupo || null); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 
@@ -125,7 +127,7 @@ async function atualizar(req, res) {
        RETURNING id, nome, email, whatsapp, palavras_chave, uf, ativo, criado_em,
                  valor_contrato, percentual_comissao, dia_vencimento,
                  responsavel, origem, sdr_nome, sdr_comissao,
-                 contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit`,
+                 contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo`,
       valores,
     );
     if (rows.length === 0) return res.status(404).json({ erro: 'Cliente não encontrado' });
