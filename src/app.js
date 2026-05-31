@@ -20,6 +20,7 @@ const boletimRoutes      = require('./routes/boletim');
 const calendarioRoutes   = require('./routes/calendario');
 const edsonRoutes        = require('./routes/edson');
 const prospectsRoutes    = require('./routes/prospects');
+const roboRoutes         = require('./routes/robo');
 const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
 
@@ -60,6 +61,7 @@ app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimR
 app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
 app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);
 app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
+app.use('/robo',          autenticar, verificarPermissao('monitor'),    roboRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
 

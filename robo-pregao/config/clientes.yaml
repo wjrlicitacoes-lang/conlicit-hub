@@ -1,0 +1,54 @@
+# ============================================================
+#  RobôLicit — Configuração de Clientes
+#  Cada cliente tem suas próprias credenciais e estratégia
+# ============================================================
+
+clientes:
+
+  - id: cliente_001
+    nome: "TechSupri Ltda"
+    cnpj: "12.345.678/0001-90"
+    ativo: true
+
+    # Credenciais por plataforma
+    credenciais:
+      comprasgov:
+        login: "seu_login@email.com"
+        senha: "sua_senha"
+      comprasnet:
+        login: "seu_login@email.com"
+        senha: "sua_senha"
+
+    # Estratégia de lances padrão
+    estrategia:
+      modo: "moderado"           # conservador | moderado | agressivo | personalizado
+      reducao_pct: 0.5           # % de redução por lance (ex: 0.5 = meio porcento)
+      intervalo_seg: 30          # segundos entre lances
+      modo_final: "agressivo"    # comportamento nos últimos 2 minutos
+      entrar_so_se_perdendo: true  # só dá lance se não estiver vencendo
+
+    # Arquivos de referência
+    arquivos:
+      planilha: "planilhas/techsupri_proposta.xlsx"
+      edital:   "editais/techsupri_ultimo.pdf"
+
+  - id: cliente_002
+    nome: "InfoMax Comercial"
+    cnpj: "98.765.432/0001-11"
+    ativo: true
+
+    credenciais:
+      comprasgov:
+        login: "infomax@email.com"
+        senha: "senha_infomax"
+
+    estrategia:
+      modo: "conservador"
+      reducao_pct: 0.3
+      intervalo_seg: 60
+      modo_final: "manter"
+      entrar_so_se_perdendo: true
+
+    arquivos:
+      planilha: "planilhas/infomax_proposta.xlsx"
+      edital:   "editais/infomax_ultimo.pdf"

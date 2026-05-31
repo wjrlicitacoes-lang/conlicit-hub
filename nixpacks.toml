@@ -1,0 +1,18 @@
+providers = ["node", "python"]
+
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
+[phases.install]
+cmds = [
+  "npm ci --omit=dev",
+  "pip install playwright pyyaml openpyxl"
+]
+
+[phases.build]
+cmds = [
+  "python -m playwright install chromium --with-deps"
+]
+
+[start]
+cmd = "node --dns-result-order=ipv4first src/app.js"

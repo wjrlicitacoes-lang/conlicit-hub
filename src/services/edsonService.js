@@ -411,23 +411,36 @@ ${JSON_SCHEMA_REUNIAO}`;
 
 async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
+
   const content = extraContent.length > 0
-    ? [{ type: 'text', text: prompt }, ...extraContent]
+    ? [...extraContent, { type: 'text', text: prompt }]
     : prompt;
-  console.log(`[Edson] Prompt: ${typeof prompt === 'string' ? prompt.length : '(multipart)'} chars (~${Math.round((typeof prompt === 'string' ? prompt.length : JSON.stringify(content).length)/4)} tokens est.), maxTokens: ${maxTokens}`);
+
+  const timeout = parseInt(process.env.ANTHROPIC_TIMEOUT || '50000');
+
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
     {
+      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-5',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content }],
+    },
+    {
+      timeout,
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      timeout: parseInt(process.env.ANTHROPIC_TIMEOUT || '55000', 10),
-    },
+    }
   );
-  return data.content[0].text.trim();
+
+  const raw = data.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('');
+
+  return raw;
 }
 
 function finalizarParse(parsed) {
@@ -557,7 +570,7 @@ async function salvarErro(analiseId, msg) {
 
 // ── Análises ──────────────────────────────────────────────────────────────────
 
-async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
+async function analisarPregao(analiseId, pregaoId, modo = 'reuniao') {
   try {
     const { rows: [pregao] } = await db.query(
       `SELECT p.*, c.nome, c.uf, c.palavras_chave
@@ -585,7 +598,7 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
       maxTok = 4000;
     } else {
       prompt = buildPrompt(pregao, itensPNCP, dataSessao);
-      maxTok = 8000;
+      maxTok = 6000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -620,7 +633,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
       maxTok = 4000;
     } else {
       prompt = buildPromptPDF(pregao, pdfText, dataSessao);
-      maxTok = 8000;
+      maxTok = 6000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -660,7 +673,7 @@ async function analisarAvulso(analiseId, opts) {
       maxTok = 4000;
     } else {
       prompt = buildPromptAvulso(opts, itensPNCP, pdfText);
-      maxTok = 8000;
+      maxTok = 6000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
