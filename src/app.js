@@ -20,6 +20,7 @@ const boletimRoutes      = require('./routes/boletim');
 const calendarioRoutes   = require('./routes/calendario');
 const edsonRoutes        = require('./routes/edson');
 const prospectsRoutes    = require('./routes/prospects');
+const roboRoutes         = require('./routes/robo');
 const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
 const { receber: receberFormulario } = require('./controllers/formularioController');
@@ -61,6 +62,7 @@ app.use('/clientes',      autenticar, verificarPermissao('clientes'),   clientes
 app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimRoutes);
 app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
 app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);
+app.use('/robo',          autenticar, verificarPermissao('monitor'),    roboRoutes);
 app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
