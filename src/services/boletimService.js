@@ -220,6 +220,7 @@ async function dispararBoletim() {
     clientes_processados: 0,
     clientes_com_editais: 0,
     envios_whatsapp: 0,
+    envios_grupo: 0,
     envios_email: 0,
     erros: [],
   };
@@ -250,6 +251,34 @@ async function dispararBoletim() {
           resultado.envios_whatsapp++;
         } catch (e) {
           resultado.erros.push({ cliente: cliente.email, canal: 'whatsapp', erro: e.message });
+        }
+      }
+
+      if (cliente.whatsapp_grupo) {
+        try {
+          const instance = process.env.ZAPI_INSTANCE;
+          const token = process.env.ZAPI_TOKEN;
+          const clientToken = process.env.ZAPI_CLIENT_TOKEN;
+          if (!instance || !token) throw new Error('ZAPI_INSTANCE/ZAPI_TOKEN não configurados');
+
+          let grupoId = String(cliente.whatsapp_grupo).trim();
+          if (!grupoId.includes('@')) grupoId = grupoId + '@g.us';
+
+          await axios.post(
+            `https://api.z-api.io/instances/${instance}/token/${token}/send-text`,
+            { phone: grupoId, message: montarMensagemWhatsApp(cliente.nome, resultados) },
+            {
+              timeout: 15000,
+              headers: {
+                'Content-Type': 'application/json',
+                ...(clientToken ? { 'client-token': clientToken } : {}),
+              },
+            },
+          );
+          resultado.envios_grupo++;
+          console.log(`[Boletim] Grupo enviado OK para cliente ${cliente.email}`);
+        } catch (e) {
+          resultado.erros.push({ cliente: cliente.email, canal: 'whatsapp_grupo', erro: e.message });
         }
       }
 

@@ -1440,226 +1440,6 @@
     #pwa-install-banner p { flex: 1; font-size: .85rem; color: var(--text-muted); margin: 0; }
     #pwa-install-banner p strong { color: var(--text); display: block; }
   </style>
-
-<style id="robo-styles">
-
-/* ── MONITOR / ROBÔ ───────────────────────────── */
-.robo-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-.robo-toolbar h2 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-}
-
-/* Cards de pregão na fila do robô */
-.robo-pregao-list {
-  display: flex;
-  flex-direction: column;
-  gap: .75rem;
-}
-
-.robo-card {
-  background: var(--card-bg);
-  border: 1px solid var(--bd);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
-  gap: 1rem;
-  transition: border-color .2s;
-}
-.robo-card:hover { border-color: var(--primary); }
-
-.robo-card-status {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.robo-status-parado    { background: var(--text-muted, #666); }
-.robo-status-rodando   { background: #4CC5D7; animation: pulse-dot 1.5s infinite; }
-.robo-status-iniciando { background: #f0a500; animation: pulse-dot 1s infinite; }
-.robo-status-encerrado { background: #2ecc71; }
-.robo-status-erro      { background: var(--danger, #e74c3c); }
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: .5; transform: scale(.8); }
-}
-
-.robo-card-info { min-width: 0; }
-.robo-card-titulo {
-  font-size: .92rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: .2rem;
-}
-.robo-card-meta {
-  font-size: .78rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  flex-wrap: wrap;
-}
-.robo-card-meta .tag {
-  background: rgba(76,197,215,.1);
-  color: var(--primary);
-  border-radius: 4px;
-  padding: .1rem .45rem;
-  font-size: .72rem;
-  font-weight: 700;
-}
-.robo-card-valor {
-  font-size: .92rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  text-align: right;
-}
-.robo-card-valor small {
-  display: block;
-  font-size: .7rem;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.robo-card-actions {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  flex-shrink: 0;
-}
-
-/* Botão iniciar robô */
-.btn-robo-iniciar {
-  background: var(--primary);
-  color: var(--secondary, #182A39);
-  border: none;
-  border-radius: 6px;
-  padding: .45rem .9rem;
-  font-size: .8rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.btn-robo-iniciar:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
-.btn-robo-parar {
-  background: transparent;
-  color: var(--danger, #e74c3c);
-  border: 1px solid var(--danger, #e74c3c);
-  border-radius: 6px;
-  padding: .45rem .9rem;
-  font-size: .8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.btn-robo-parar:hover { background: rgba(231,76,60,.08); }
-
-.btn-robo-config {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--bd);
-  border-radius: 6px;
-  padding: .45rem .7rem;
-  font-size: .85rem;
-  cursor: pointer;
-  transition: all .15s;
-}
-.btn-robo-config:hover { color: var(--primary); border-color: var(--primary); }
-
-/* Modal config robô */
-.robo-modal-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .85rem;
-  margin-bottom: 1rem;
-}
-.robo-modal-grid .full { grid-column: 1 / -1; }
-
-/* Log ao vivo */
-.robo-log-box {
-  background: #0d1117;
-  border: 1px solid rgba(76,197,215,.15);
-  border-radius: 8px;
-  padding: .85rem 1rem;
-  height: 200px;
-  overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  font-size: .75rem;
-  color: #e8eaf0;
-  margin-top: .75rem;
-}
-.robo-log-box .log-line { line-height: 1.6; }
-.robo-log-box .log-ok    { color: #4CC5D7; }
-.robo-log-box .log-warn  { color: #f0a500; }
-.robo-log-box .log-err   { color: #e74c3c; }
-.robo-log-box .log-lance { color: #2ecc71; font-weight: 700; }
-
-/* Stats topo monitor */
-.monitor-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: .75rem;
-  margin-bottom: 1.5rem;
-}
-.monitor-stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--bd);
-  border-radius: 10px;
-  padding: .9rem 1rem;
-}
-.monitor-stat-label {
-  font-size: .7rem;
-  text-transform: uppercase;
-  letter-spacing: .8px;
-  color: var(--text-muted);
-  margin-bottom: .35rem;
-}
-.monitor-stat-value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--primary);
-  line-height: 1;
-}
-.monitor-stat-sub {
-  font-size: .72rem;
-  color: var(--text-muted);
-  margin-top: .2rem;
-}
-
-/* Badge status inline */
-.s-badge-robo {
-  font-size: .68rem;
-  font-weight: 700;
-  padding: .15rem .5rem;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.s-robo-rodando   { background: rgba(76,197,215,.15); color: #4CC5D7; }
-.s-robo-parado    { background: rgba(100,100,100,.12); color: #888; }
-.s-robo-encerrado { background: rgba(46,204,113,.12); color: #2ecc71; }
-.s-robo-erro      { background: rgba(231,76,60,.12); color: #e74c3c; }
-</style>
 </head>
 <body>
 
@@ -1978,53 +1758,55 @@
       </section>
 
       <!-- ── MONITOR ── -->
-      <section id="section-monitor" class="content-section" style="display:none">
+      <section id="section-monitor" class="section">
+        <div class="section-header">
+          <h1>Monitor de Pregões</h1>
+        </div>
 
-  <!-- Stats topo -->
-  <div class="monitor-stats">
-    <div class="monitor-stat-card">
-      <div class="monitor-stat-label">Robôs Ativos</div>
-      <div class="monitor-stat-value" id="mon-ativos">0</div>
-      <div class="monitor-stat-sub">agora</div>
-    </div>
-    <div class="monitor-stat-card">
-      <div class="monitor-stat-label">Pregões Hoje</div>
-      <div class="monitor-stat-value" id="mon-hoje">—</div>
-      <div class="monitor-stat-sub">agendados</div>
-    </div>
-    <div class="monitor-stat-card">
-      <div class="monitor-stat-label">Último Lance</div>
-      <div class="monitor-stat-value" id="mon-ultimo-lance" style="font-size:1.1rem">—</div>
-      <div class="monitor-stat-sub" id="mon-ultimo-lance-sub">aguardando</div>
-    </div>
-    <div class="monitor-stat-card">
-      <div class="monitor-stat-label">Taxa de Vitória</div>
-      <div class="monitor-stat-value" id="mon-taxa">—</div>
-      <div class="monitor-stat-sub">histórico</div>
-    </div>
-  </div>
+        <div class="monitor-add-box">
+          <h3>Adicionar pregão para monitorar</h3>
+          <div class="monitor-add-grid">
+            <div class="form-group" style="margin:0">
+              <label for="monitor-numero">Número do pregão</label>
+              <input type="text" id="monitor-numero" placeholder="Ex: 001/2026" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="monitor-portal">Portal</label>
+              <select id="monitor-portal">
+                <option value="">Selecione o portal</option>
+                <option value="Licitar Digital">Licitar Digital</option>
+                <option value="Portal de Compras Públicas">Portal de Compras Públicas</option>
+                <option value="Compras.gov.br">Compras.gov.br</option>
+                <option value="Compras MG">Compras MG</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="monitor-url">URL do pregão (opcional)</label>
+              <input type="url" id="monitor-url" placeholder="https://…" />
+            </div>
+            <div style="padding-bottom:1px">
+              <button class="btn btn-primary" onclick="adicionarMonitor()" style="width:100%;padding:.65rem">
+                + Monitorar
+              </button>
+            </div>
+          </div>
+        </div>
 
-  <!-- Toolbar -->
-  <div class="robo-toolbar">
-    <h2>⚡ Robô de Lances</h2>
-    <div style="display:flex;gap:.6rem;align-items:center">
-      <select class="form-select" id="mon-filtro-status" onchange="monitorCarregar()" style="font-size:.82rem;padding:.35rem .7rem">
-        <option value="">Todos os status</option>
-        <option value="a_disputar">A Disputar</option>
-        <option value="rodando">Robô Ativo</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="monitorCarregar()">↻ Atualizar</button>
-    </div>
-  </div>
+        <div id="monitor-area">
+          <div class="state-box">
+            <span class="icon">🔔</span>
+            <h3>Nenhum pregão monitorado</h3>
+            <p>Adicione um pregão acima para começar a monitorar.</p>
+          </div>
+        </div>
 
-  <!-- Lista de pregões -->
-  <div id="robo-pregao-list" class="robo-pregao-list">
-    <div class="state-box">
-      <div class="spinner spinner-lg"></div>
-    </div>
-  </div>
-
-</section>
+        <div style="margin-top:2rem;padding:1.25rem;background:rgba(76,197,215,.06);border:1px solid rgba(76,197,215,.2);border-radius:var(--radius)">
+          <p style="font-size:.85rem;color:var(--text-muted)">
+            💡 <strong style="color:var(--text)">Monitoramento em tempo real</strong> — Instale a extensão ConlicitHub no Chrome para detectar automaticamente novas mensagens nos portais de pregão e receber alertas sonoros e por e-mail.
+          </p>
+        </div>
+      </section>
 
       <!-- ── USUÁRIOS ── -->
       <section id="section-usuarios" class="section">
@@ -2721,7 +2503,6 @@
       <h3 id="detalhe-nome">Detalhes do cliente</h3>
       <div style="display:flex;gap:.5rem;align-items:center">
         <button class="btn btn-ghost btn-sm" onclick="editarClienteAtual()" data-admin-only>Editar</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalCredenciais(clienteAtual?.id, clienteAtual?.nome)">🔑 Credenciais Robô</button>
         <button class="modal-close" onclick="fecharDetalheCliente()">✕</button>
       </div>
     </div>
@@ -7179,74 +6960,48 @@
 
   function propostaGerarJanela() {
     const preview = document.getElementById('p-preview-area');
-    if (!preview) { toast('Editor de proposta não encontrado', 'error'); return null; }
+    if (!preview) return null;
 
-    const numero = document.getElementById('pf_num')?.value || '001-2026';
-    const cliente = document.getElementById('pf_cliente')?.value || 'cliente';
-
-    // Capturar conteúdo e corrigir imagens
-    const conteudo = preview.innerHTML
-      .replace(/<img([^>]*?)>/gi, (match, attrs) => {
-        if (attrs.includes('style=')) {
-          return `<img${attrs.replace(/style="([^"]*)"/, 'style="$1;max-height:22px!important;width:auto!important"')}>`;
-        }
-        return `<img${attrs} style="max-height:22px!important;width:auto!important">`;
-      });
-
-    return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Proposta Conlicit — ${cliente}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --pv-navy: #182A39;
-  --pv-teal: #4CC5D7;
-  --pv-white: #FFFFFF;
-  --pv-border: #e8ecef;
-  --pv-radius: 8px;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Inter', Arial, sans-serif;
-  background: #eaecef;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 16px;
-  gap: 16px;
-}
+    // CSS embutido — independente do contexto da página principal
+    const css = `
+:root { --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+* { box-sizing: border-box; }
+body { font-family: 'Inter', Arial, sans-serif; background: #eaecef; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0; }
 img { max-height: 22px !important; width: auto !important; display: block; }
-.preview-page {
-  background: white;
-  width: 595px;
-  min-height: 842px;
-  padding: 40px 44px 36px;
-  position: relative;
-  font-family: 'Inter', Arial, sans-serif;
-  color: #080808;
-  font-size: 10px;
-  line-height: 1.5;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.12);
-  overflow: hidden;
-}
-.preview-page::before { display: none !important; }
-.pv-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--pv-border); }
+ { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+.panel-form { background:#fff; border-right:1px solid var(--pv-border); overflow-y:auto; padding:24px; isolation:isolate; }
+.panel-preview { background:#eaecef; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:32px 24px; gap:16px; }
+.p-section-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:12px; margin-top:24px; display:flex; align-items:center; gap:6px; }
+.p-section-label::after { content:''; flex:1; height:1px; background:var(--pv-border); }
+.p-field input, .p-field textarea { width:100%; font-family:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--pv-border); border-radius:var(--pv-radius); background:#fafbfc; color:#080808; transition:border-color .15s; outline:none; }
+.p-field input:focus, .p-field textarea:focus { border-color:var(--pv-teal); background:#fff; }
+.p-frente-block { border:1px solid var(--pv-border); border-radius:var(--pv-radius); margin-bottom:8px; overflow:hidden; }
+.p-frente-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f4f6f8; border-bottom:1px solid var(--pv-border); }
+.p-frente-num { width:20px; height:20px; border-radius:4px; background:var(--pv-navy); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.p-frente-name { font-size:11px; font-weight:600; color:var(--pv-navy); }
+.p-ctrl-btn { width:22px; height:22px; border:1px solid var(--pv-border); border-radius:4px; background:#fff; color:var(--pv-navy); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; transition:all .15s; }
+.p-ctrl-btn:hover:not(:disabled) { background:var(--pv-navy); color:#fff; border-color:var(--pv-navy); }
+.p-add-btn { display:flex; align-items:center; gap:6px; width:100%; padding:7px 10px; border:1px dashed var(--pv-border); border-radius:var(--pv-radius); background:transparent; color:var(--pv-teal); font-size:12px; cursor:pointer; margin-top:4px; transition:all .15s; }
+.p-add-btn:hover { background:rgba(76,197,215,.06); border-color:var(--pv-teal); }
+.preview-page { background:#fff; width:595px; min-height:842px; padding:40px 44px 36px; position:relative; font-family:'Inter',sans-serif; color:#080808; font-size:10px; line-height:1.5; box-shadow:0 2px 12px rgba(0,0,0,.12); }
+.preview-page::before { display:none; }
+.preview-page > * { position:relative; z-index:1; }
+.pv-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e8ecef; }
 .pv-logo { height:18px; }
 .pv-num { text-align:right; font-size:8px; letter-spacing:.08em; color:#888; line-height:1.8; }
 .pv-tag { display:inline-flex; align-items:center; gap:6px; font-size:8px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:10px; }
 .pv-tag::before { content:''; width:16px; height:2px; background:var(--pv-teal); }
 .pv-title { font-size:22px; font-weight:700; color:var(--pv-navy); line-height:1.15; margin-bottom:18px; letter-spacing:-.3px; }
-.pv-meta { display:grid; grid-template-columns:1fr 1fr 1fr; border-top:1px solid var(--pv-border); border-bottom:1px solid var(--pv-border); padding:10px 0; margin-bottom:16px; }
+.pv-meta { display:grid; grid-template-columns:1fr 1fr 1fr; border-top:1px solid #e8ecef; border-bottom:1px solid #e8ecef; padding:10px 0; margin-bottom:16px; }
 .pv-meta-item .ml { font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:#aaa; margin-bottom:2px; }
 .pv-meta-item .mv { font-size:10px; font-weight:600; color:var(--pv-navy); }
 .pv-intro { font-size:9.5px; color:#444; line-height:1.65; margin-bottom:18px; }
 .pv-pricing { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
-.pv-card-dark { background:var(--pv-navy); border-radius:10px; padding:14px 16px; color:white; }
+.pv-card-dark { background:var(--pv-navy); border-radius:10px; padding:14px 16px; color:#fff; position:relative; overflow:hidden; }
+.pv-card-dark::after { content:''; position:absolute; right:-20px; bottom:-20px; width:80px; height:80px; border-radius:50%; border:12px solid rgba(76,197,215,0.12); }
 .pv-card-light { background:#eef8fa; border-radius:10px; padding:14px 16px; border:1px solid rgba(76,197,215,.3); }
 .pv-card-label { font-size:7px; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:6px; }
-.pv-price { font-size:24px; font-weight:700; color:white; line-height:1; }
+.pv-price { font-size:24px; font-weight:700; color:#fff; line-height:1; }
 .pv-price-unit { font-size:12px; font-weight:400; }
 .pv-price-sub { font-size:8px; color:rgba(255,255,255,.55); margin-top:6px; line-height:1.5; }
 .pv-comissao { font-size:22px; font-weight:700; color:var(--pv-navy); line-height:1; }
@@ -7256,12 +7011,12 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 .pv-incluso-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; margin-bottom:20px; }
 .pv-incluso-item { display:flex; align-items:flex-start; gap:5px; font-size:8.5px; color:#444; }
 .pv-dot { width:5px; height:5px; border-radius:50%; background:var(--pv-teal); flex-shrink:0; margin-top:2px; }
-.pv-footer { position:absolute; bottom:24px; left:44px; right:44px; border-top:1px solid var(--pv-border); padding-top:8px; font-size:7.5px; color:#aaa; letter-spacing:.04em; display:flex; justify-content:space-between; }
+.pv-footer { position:absolute; bottom:24px; left:44px; right:44px; border-top:1px solid #e8ecef; padding-top:8px; font-size:7.5px; color:#aaa; letter-spacing:.04em; display:flex; justify-content:space-between; }
 .pv-section-tag { font-size:7px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--pv-teal); border-left:2px solid var(--pv-teal); padding-left:6px; margin-bottom:6px; }
 .pv-section-title { font-size:16px; font-weight:700; color:var(--pv-navy); margin-bottom:18px; }
 .pv-frente { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:10px 0; border-bottom:1px solid #f0f0f0; }
 .pv-frente:last-of-type { border-bottom:none; }
-.pv-frente-num { width:24px; height:24px; background:var(--pv-navy); border-radius:5px; color:white; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pv-frente-num { width:24px; height:24px; background:var(--pv-navy); border-radius:5px; color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .pv-frente-label { font-size:7px; letter-spacing:.08em; text-transform:uppercase; color:#aaa; }
 .pv-frente-name { font-size:9.5px; font-weight:700; color:var(--pv-navy); margin-bottom:2px; }
 .pv-frente-desc { font-size:8.5px; color:#666; line-height:1.5; }
@@ -7269,15 +7024,26 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 .pv-cond-item { background:#f4f6f8; border-radius:6px; padding:8px 10px; }
 .pv-cond-label { font-size:6.5px; letter-spacing:.1em; text-transform:uppercase; color:#aaa; margin-bottom:3px; }
 .pv-cond-val { font-size:8.5px; font-weight:600; color:var(--pv-navy); line-height:1.3; }
-.pv-closing { margin-top:14px; font-size:8.5px; color:#555; line-height:1.6; border-top:1px solid var(--pv-border); padding-top:12px; display:grid; grid-template-columns:1fr auto; gap:24px; }
+.pv-closing { margin-top:14px; font-size:8.5px; color:#555; line-height:1.6; border-top:1px solid #e8ecef; padding-top:12px; display:grid; grid-template-columns:1fr auto; gap:24px; }
 .pv-closing-brand { font-size:9px; font-weight:700; color:var(--pv-navy); }
 .pv-closing-email { font-size:8px; color:var(--pv-teal); }
+.panel-preview {
 @media print {
-  body { background:white !important; padding:0 !important; }
-  .preview-page { box-shadow:none !important; page-break-after:always; }
-  .preview-page:last-child { page-break-after:avoid; }
+  body { background: white !important; padding: 0 !important; }
+  .preview-page { box-shadow: none !important; page-break-after: always; }
+  .preview-page:last-child { page-break-after: avoid; }
 }
-</style>
+`;
+
+    const conteudo = preview.innerHTML
+      .replace(/<img /g, '<img style="max-height:22px;width:auto;display:block;" ');
+
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>${css}</style>
 </head>
 <body>${conteudo}</body>
 </html>`;
@@ -7285,26 +7051,26 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 
   function imprimirPropostaApenas() {
     const html = propostaGerarJanela();
-    if (!html) return;
+    if (!html) { toast('Nada para imprimir — gere a proposta primeiro', 'error'); return; }
     const w = window.open('', '_blank', 'width=850,height=1100');
-    if (!w) { toast('Popup bloqueado — permita popups para este site', 'error'); return; }
+    if (!w) { toast('Popup bloqueado pelo navegador. Permita popups para este site e tente novamente.', 'error'); return; }
     w.document.open();
     w.document.write(html);
     w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 1500);
+    setTimeout(() => { w.focus(); w.print(); }, 1800);
   }
 
   function exportHTML() {
     const html = propostaGerarJanela();
     if (!html) return;
-    const numero = document.getElementById('pf_num')?.value || '001-2026';
+    const numero = document.getElementById('f_num')?.value || '001-2026';
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `proposta-conlicit-${numero.replace(/[\s\/\\]/g,'-')}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast('Proposta exportada ✅ — abra o arquivo e Ctrl+P para PDF', 'success');
+    toast('Abra o arquivo e use Ctrl+P → Salvar como PDF ✅', 'success');
   }
   function propostaExportarHTML() { exportHTML(); }
 
@@ -7998,7 +7764,11 @@ async function dispararOportunidade(id, btn) {
     const r = await fetch(`${API}/oportunidades/${id}/disparar`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
     const d = await r.json();
     if (!r.ok) throw new Error(d.erro);
-    toast('Oportunidade disparada com sucesso! ✅','success');
+    if (d.erros && d.erros.length > 0) {
+      toast(`Disparado com erros parciais: ${d.erros.join(' | ')}`, 'error');
+    } else {
+      toast('Oportunidade disparada com sucesso! ✅','success');
+    }
     carregarOportunidades();
   } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='📱 Disparar para cliente'; }
 }
@@ -8265,395 +8035,6 @@ async function salvarOportunidade() {
   } catch(e) { toast(e.message,'error'); }
 }
 
-// ── Estado local do monitor ──────────────────────────────────
-let monitorPregoes   = [];
-let roboConfigAtual  = null;
-let credClienteAtual = null;
-let roboPollingId    = null;
-
-// ── Carregar lista de pregões para o monitor ─────────────────
-async function monitorCarregar() {
-  const area   = document.getElementById('robo-pregao-list');
-  const filtro = document.getElementById('mon-filtro-status')?.value || '';
-  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
-
-  try {
-    const params = new URLSearchParams();
-    if (filtro) params.set('status', filtro);
-    const r = await fetch(`${API}/clientes/pregoes?${params}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!r.ok) throw new Error('Erro ao carregar');
-    const { dados = [] } = await r.json();
-    monitorPregoes = dados;
-
-    const ativos = dados.filter(p => p.robo_status === 'rodando').length;
-    const hoje   = dados.filter(p => {
-      if (!p.data_hora_abertura) return false;
-      const d = new Date(p.data_hora_abertura);
-      return d.toDateString() === new Date().toDateString();
-    }).length;
-    document.getElementById('mon-ativos').textContent = ativos;
-    document.getElementById('mon-hoje').textContent   = hoje;
-
-    if (!dados.length) {
-      area.innerHTML = `<div class="state-box">
-        <span class="icon">⚡</span>
-        <h3>Nenhum pregão encontrado</h3>
-        <p>Cadastre pregões nos clientes para ativá-los aqui.</p>
-      </div>`;
-      return;
-    }
-
-    area.innerHTML = dados.map(p => renderRoboCard(p)).join('');
-
-  } catch (e) {
-    area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`;
-  }
-}
-
-// ── Renderizar card de pregão ────────────────────────────────
-function renderRoboCard(p) {
-  const status    = p.robo_status || 'parado';
-  const rodando   = status === 'rodando';
-  const iniciando = status === 'iniciando';
-  const ativo     = rodando || iniciando;
-
-  const statusLabel = {
-    parado: 'Parado', rodando: 'Ativo', iniciando: 'Iniciando...',
-    encerrado: 'Encerrado', erro: 'Erro', pausado: 'Pausado'
-  }[status] || status;
-
-  const lanceInfo = p.robo_ultimo_lance
-    ? `<span style="color:var(--primary);font-weight:700">R$ ${fmtBRL(p.robo_ultimo_lance)}</span>`
-    : `<span style="color:var(--text-muted)">Sem lances</span>`;
-
-  return `<div class="robo-card" id="robo-card-${p.id}">
-    <div class="robo-card-status robo-status-${status}" title="${statusLabel}"></div>
-
-    <div class="robo-card-info">
-      <div class="robo-card-titulo">${esc(p.objeto || p.numero || '—')}</div>
-      <div class="robo-card-meta">
-        <code style="font-size:.72rem">${esc(p.numero || '—')}</code>
-        <span class="tag">${esc(p.portal_disputa || 'Portal')}</span>
-        <span>${esc(p.cliente_nome || '—')}</span>
-        <span class="s-badge-robo s-robo-${status}">${statusLabel}</span>
-        ${p.robo_total_lances ? `<span>${p.robo_total_lances} lance(s)</span>` : ''}
-      </div>
-    </div>
-
-    <div class="robo-card-valor">
-      ${lanceInfo}
-      <small>mín: ${p.robo_valor_minimo ? 'R$ ' + fmtBRL(p.robo_valor_minimo) : '—'}</small>
-    </div>
-
-    <div class="robo-card-actions">
-      <button class="btn-robo-config" title="Configurar" onclick="abrirConfigRobo(${p.id}, ${p.cliente_id})">⚙</button>
-      ${ativo
-        ? `<button class="btn-robo-parar" onclick="pararRobo(${p.id})">⏹ Parar</button>`
-        : `<button class="btn-robo-iniciar" onclick="iniciarRobo(${p.id}, ${p.cliente_id})">⚡ Iniciar Robô</button>`
-      }
-    </div>
-  </div>`;
-}
-
-// ── Iniciar robô ─────────────────────────────────────────────
-async function iniciarRobo(pregao_id, cliente_id) {
-  if (!confirm('Iniciar o robô para este pregão?')) return;
-  try {
-    const r = await fetch(`${API}/robo/${pregao_id}/iniciar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ cliente_id }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.erro || 'Erro ao iniciar');
-    toast('⚡ Robô iniciado!', 'success');
-    setTimeout(monitorCarregar, 1500);
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-// ── Parar robô ───────────────────────────────────────────────
-async function pararRobo(pregao_id) {
-  if (!confirm('Parar o robô agora?')) return;
-  try {
-    const r = await fetch(`${API}/robo/${pregao_id}/parar`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!r.ok) throw new Error((await r.json()).erro);
-    toast('Robô parado.', 'success');
-    setTimeout(monitorCarregar, 1000);
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-// ── Abrir modal de config ─────────────────────────────────────
-async function abrirConfigRobo(pregao_id, cliente_id) {
-  roboConfigAtual = { pregao_id, cliente_id };
-  const pregao = monitorPregoes.find(p => p.id === pregao_id) || {};
-
-  document.getElementById('robo-config-subtitulo').textContent =
-    `${pregao.numero || ''} — ${pregao.cliente_nome || ''}`;
-  document.getElementById('rc-valor-base').value   = pregao.robo_valor_base   || '';
-  document.getElementById('rc-valor-minimo').value = pregao.robo_valor_minimo || '';
-  document.getElementById('rc-estrategia').value   = pregao.robo_estrategia   || 'moderado';
-  document.getElementById('rc-modo-final').value   = pregao.robo_modo_final   || 'agressivo';
-
-  const rodando = pregao.robo_status === 'rodando';
-  document.getElementById('robo-log-section').style.display = rodando ? 'block' : 'none';
-
-  document.getElementById('modal-robo-config').style.display = 'flex';
-
-  if (rodando) iniciarPollingLog(pregao_id);
-}
-
-function fecharModalRobo() {
-  document.getElementById('modal-robo-config').style.display = 'none';
-  pararPollingLog();
-}
-
-// ── Salvar config ─────────────────────────────────────────────
-async function salvarConfigRobo() {
-  if (!roboConfigAtual) return;
-  const { pregao_id, cliente_id } = roboConfigAtual;
-
-  const body = {
-    cliente_id,
-    valor_base:   parseFloat(document.getElementById('rc-valor-base').value)   || null,
-    valor_minimo: parseFloat(document.getElementById('rc-valor-minimo').value) || null,
-    estrategia:   document.getElementById('rc-estrategia').value,
-    modo_final:   document.getElementById('rc-modo-final').value,
-  };
-
-  if (!body.valor_base || !body.valor_minimo) {
-    toast('Preencha o Valor Base e o Valor Mínimo.', 'error'); return;
-  }
-
-  try {
-    const r = await fetch(`${API}/robo/${pregao_id}/configurar`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error((await r.json()).erro);
-    toast('✅ Estratégia salva!', 'success');
-    fecharModalRobo();
-    monitorCarregar();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-// ── Polling de logs ───────────────────────────────────────────
-function iniciarPollingLog(pregao_id) {
-  pararPollingLog();
-  roboPollingId = setInterval(async () => {
-    try {
-      const r = await fetch(`${API}/robo/${pregao_id}/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!r.ok) return;
-      const data = await r.json();
-
-      const logBox = document.getElementById('robo-log-content');
-      if (logBox && data.logs?.length) {
-        logBox.innerHTML = data.logs.map(l => {
-          let cls = 'log-line';
-          if (l.msg.includes('GANHOU') || l.msg.includes('lance enviado')) cls += ' log-lance';
-          else if (l.msg.includes('ERR') || l.msg.includes('❌')) cls += ' log-err';
-          else if (l.msg.includes('⚠')) cls += ' log-warn';
-          else if (l.msg.includes('✅')) cls += ' log-ok';
-          return `<div class="${cls}">${esc(l.ts?.slice(11,19) || '')} ${esc(l.msg)}</div>`;
-        }).join('');
-        logBox.scrollTop = logBox.scrollHeight;
-      }
-
-      if (data.robo_ultimo_lance) {
-        document.getElementById('mon-ultimo-lance').textContent = 'R$ ' + fmtBRL(data.robo_ultimo_lance);
-        document.getElementById('mon-ultimo-lance-sub').textContent = 'último lance';
-      }
-    } catch {}
-  }, 3000);
-}
-
-function pararPollingLog() {
-  if (roboPollingId) { clearInterval(roboPollingId); roboPollingId = null; }
-}
-
-// ── Credenciais do cliente ────────────────────────────────────
-function abrirModalCredenciais(cliente_id, cliente_nome) {
-  credClienteAtual = cliente_id;
-  document.getElementById('cred-cliente-nome').textContent = cliente_nome || '';
-  ['comprasgov-login','comprasgov-senha','bnc-login','bnc-senha',
-   'licitanet-login','licitanet-senha'].forEach(id => {
-    const el = document.getElementById(`cred-${id}`);
-    if (el) el.value = '';
-  });
-  document.getElementById('modal-credenciais').style.display = 'flex';
-}
-
-function fecharModalCredenciais() {
-  document.getElementById('modal-credenciais').style.display = 'none';
-}
-
-async function salvarCredenciais() {
-  if (!credClienteAtual) return;
-  const body = {
-    comprasgov: {
-      login: document.getElementById('cred-comprasgov-login').value.trim() || undefined,
-      senha: document.getElementById('cred-comprasgov-senha').value        || undefined,
-    },
-    bnc: {
-      login: document.getElementById('cred-bnc-login').value.trim() || undefined,
-      senha: document.getElementById('cred-bnc-senha').value        || undefined,
-    },
-    licitanet: {
-      login: document.getElementById('cred-licitanet-login').value.trim() || undefined,
-      senha: document.getElementById('cred-licitanet-senha').value        || undefined,
-    },
-  };
-  try {
-    const r = await fetch(`${API}/robo/credenciais/${credClienteAtual}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error((await r.json()).erro);
-    toast('🔒 Credenciais salvas com segurança.', 'success');
-    fecharModalCredenciais();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-// ── Auto-carrega o monitor quando navega para ele ─────────────
-const _origNavTo = typeof navTo === 'function' ? navTo : null;
-function navTo(sec) {
-  if (_origNavTo) _origNavTo(sec);
-  if (sec === 'monitor') monitorCarregar();
-}
-
-// ── Injeta botão de credenciais na ficha do cliente ──────────
-function injetarBotaoCredenciaisCliente(clienteId, clienteNome) {
-  const area = document.getElementById('cliente-detalhe-acoes');
-  if (!area) return;
-  if (document.getElementById('btn-cred-robo')) return;
-  const btn = document.createElement('button');
-  btn.id = 'btn-cred-robo';
-  btn.className = 'btn btn-ghost btn-sm';
-  btn.innerHTML = '🔑 Credenciais Robô';
-  btn.onclick = () => abrirModalCredenciais(clienteId, clienteNome);
-  area.appendChild(btn);
-}
-
-// ── Estado da sugestão atual do Edson ────────────────────────
-let edsonSugestaoAtual = null;
-
-// ── Carregar sugestão do Edson para o pregão aberto no modal ─
-async function carregarSugestaoEdson() {
-  if (!roboConfigAtual) return;
-  const { pregao_id, cliente_id } = roboConfigAtual;
-
-  const btn = document.getElementById('btn-usar-edson');
-  if (btn) { btn.disabled = true; btn.textContent = '🤖 Carregando...'; }
-
-  const panel = document.getElementById('edson-sugestao-panel');
-  const body  = document.getElementById('edson-sugestao-body');
-  const badge = document.getElementById('edson-score-badge');
-
-  panel.style.display = 'none';
-
-  try {
-    const r = await fetch(
-      `${API}/robo/${pregao_id}/edson-sugestao?cliente_id=${cliente_id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const data = await r.json();
-
-    if (!r.ok || !data.disponivel) {
-      toast(data.motivo || 'Edson ainda não analisou este pregão.', 'error');
-      return;
-    }
-
-    edsonSugestaoAtual = data;
-
-    const sc  = data.contexto?.score ?? '—';
-    const cls = sc >= 70 ? '#2ecc71' : sc >= 40 ? '#f0a500' : '#e74c3c';
-    badge.textContent      = `Score ${sc}/100`;
-    badge.style.background = `${cls}22`;
-    badge.style.color      = cls;
-
-    body.textContent = data.justificativa || '';
-
-    panel.style.display = 'block';
-
-    if (data.ja_configurado) {
-      body.textContent += '\n\n⚠️ Este pregão já tem estratégia configurada. Ao aplicar, será sobrescrita.';
-    }
-
-  } catch (e) {
-    toast('Erro ao buscar sugestão do Edson: ' + e.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '🤖 Usar análise do Edson'; }
-  }
-}
-
-// ── Aplicar a sugestão e preencher os campos do modal ────────
-async function aplicarSugestaoEdson() {
-  if (!edsonSugestaoAtual || !roboConfigAtual) return;
-
-  const { pregao_id, cliente_id } = roboConfigAtual;
-  const s = edsonSugestaoAtual.sugestao;
-
-  document.getElementById('rc-valor-base').value   = s.valor_base.toFixed(2);
-  document.getElementById('rc-valor-minimo').value = s.valor_minimo.toFixed(2);
-  document.getElementById('rc-estrategia').value   = s.estrategia;
-  document.getElementById('rc-modo-final').value   = s.modo_final;
-
-  try {
-    const r = await fetch(`${API}/robo/${pregao_id}/edson-aplicar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ cliente_id, forcar: edsonSugestaoAtual.ja_configurado }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.erro || 'Erro ao aplicar');
-
-    toast('✅ Estratégia do Edson aplicada!', 'success');
-    document.getElementById('edson-sugestao-panel').style.display = 'none';
-
-    const riscosAltos = edsonSugestaoAtual?.contexto?.riscos_altos || [];
-    edsonSugestaoAtual = null;
-    if (riscosAltos.length > 0) {
-      setTimeout(() => {
-        toast(`⚠️ Atenção: ${riscosAltos.length} risco(s) alto(s) detectado(s) pelo Edson.`, 'error');
-      }, 1500);
-    }
-
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-// ── Auto-carregar Edson ao abrir modal de config ──────────────
-const _origAbrirConfigRobo = typeof abrirConfigRobo === 'function' ? abrirConfigRobo : null;
-async function abrirConfigRobo(pregao_id, cliente_id) {
-  if (_origAbrirConfigRobo) await _origAbrirConfigRobo(pregao_id, cliente_id);
-
-  edsonSugestaoAtual = null;
-  const panel = document.getElementById('edson-sugestao-panel');
-  if (panel) panel.style.display = 'none';
-
-  const pregao = monitorPregoes?.find(p => p.id === pregao_id) || {};
-  if (!pregao.robo_valor_base) {
-    setTimeout(carregarSugestaoEdson, 400);
-  }
-}
-
 </script>
 
 <!-- MODAL: Alterar senha -->
@@ -8743,153 +8124,6 @@ async function abrirConfigRobo(pregao_id, cliente_id) {
       <button class="modal-close" onclick="document.getElementById('modal-resumo-oportunidade').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" id="modal-resumo-body"></div>
-  </div>
-</div>
-
-<div id="modal-robo-config" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalRobo()">
-  <div class="modal-box" style="max-width:480px">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">⚡ Configurar Robô</div>
-        <div style="font-size:.8rem;color:var(--text-muted)" id="robo-config-subtitulo"></div>
-      </div>
-      <button class="btn-icon" onclick="fecharModalRobo()">✕</button>
-    </div>
-    <div class="modal-body">
-
-      <div class="robo-modal-grid">
-        <div class="form-group">
-          <label class="form-label">Valor Base (R$)</label>
-          <input class="form-control" type="number" step="0.01" id="rc-valor-base" placeholder="Ex: 5200.00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Valor Mínimo (R$)</label>
-          <input class="form-control" type="number" step="0.01" id="rc-valor-minimo" placeholder="Ex: 4600.00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Estratégia</label>
-          <select class="form-select" id="rc-estrategia">
-            <option value="conservador">Conservadora (−0,3%)</option>
-            <option value="moderado" selected>Moderada (−0,5%)</option>
-            <option value="agressivo">Agressiva (−1%)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Modo Final (últ. 2 min)</label>
-          <select class="form-select" id="rc-modo-final">
-            <option value="agressivo" selected>Agressivo</option>
-            <option value="manter">Manter posição</option>
-          </select>
-        </div>
-        <div class="form-group full">
-          <label class="form-label">Plataforma</label>
-          <select class="form-select" id="rc-plataforma" disabled>
-            <option>Detectada automaticamente pelo portal_disputa</option>
-          </select>
-          <small style="color:var(--text-muted);font-size:.72rem">
-            Definida pelo campo "Portal de Disputa" do pregão
-          </small>
-        </div>
-      </div>
-
-      <!-- Painel de sugestão do Edson (aparece ao clicar no botão) -->
-      <div id="edson-sugestao-panel" style="display:none;margin-top:.75rem">
-        <div style="background:rgba(76,197,215,.06);border:1px solid rgba(76,197,215,.2);border-radius:8px;padding:.9rem 1rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem">
-            <span style="font-size:1rem">🤖</span>
-            <span style="font-weight:700;font-size:.88rem;color:var(--primary)">Sugestão do Edson IA</span>
-            <span id="edson-score-badge" style="margin-left:auto;font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;background:rgba(76,197,215,.15);color:var(--primary)"></span>
-          </div>
-          <div id="edson-sugestao-body" style="font-size:.8rem;color:var(--text-muted);white-space:pre-line;line-height:1.6"></div>
-          <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">
-            <button class="btn btn-primary btn-sm" onclick="aplicarSugestaoEdson()" style="font-size:.78rem">
-              ✅ Aplicar esta sugestão
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('edson-sugestao-panel').style.display='none'" style="font-size:.78rem">
-              Ignorar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="robo-log-section" style="display:none">
-        <div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem;color:var(--primary)">
-          📡 Log ao vivo
-        </div>
-        <div class="robo-log-box" id="robo-log-content">
-          <div class="log-line" style="color:var(--text-muted)">Aguardando logs...</div>
-        </div>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModalRobo()">Cancelar</button>
-      <button class="btn btn-ghost btn-sm" id="btn-usar-edson"
-        onclick="carregarSugestaoEdson()"
-        style="display:flex;align-items:center;gap:.4rem;font-size:.82rem">
-        🤖 Usar análise do Edson
-      </button>
-      <button class="btn btn-primary" id="btn-salvar-robo-config" onclick="salvarConfigRobo()">
-        💾 Salvar e Fechar
-      </button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-credenciais" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalCredenciais()">
-  <div class="modal-box" style="max-width:500px">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">🔑 Credenciais das Plataformas</div>
-        <div style="font-size:.8rem;color:var(--text-muted)" id="cred-cliente-nome"></div>
-      </div>
-      <button class="btn-icon" onclick="fecharModalCredenciais()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;padding:.6rem .8rem;background:rgba(76,197,215,.06);border-radius:6px;border-left:3px solid var(--primary)">
-        As credenciais são usadas pelo robô para fazer login nas plataformas de pregão. Ficam armazenadas de forma segura no banco de dados.
-      </div>
-
-      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:.6rem">ComprasNet / Compras.gov</div>
-      <div class="robo-modal-grid" style="margin-bottom:1rem">
-        <div class="form-group">
-          <label class="form-label">Login (CPF/CNPJ)</label>
-          <input class="form-control" type="text" id="cred-comprasgov-login" placeholder="000.000.000-00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input class="form-control" type="password" id="cred-comprasgov-senha" placeholder="••••••••">
-        </div>
-      </div>
-
-      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:.6rem">BNC</div>
-      <div class="robo-modal-grid" style="margin-bottom:1rem">
-        <div class="form-group">
-          <label class="form-label">Login</label>
-          <input class="form-control" type="text" id="cred-bnc-login" placeholder="usuario@email.com">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input class="form-control" type="password" id="cred-bnc-senha" placeholder="••••••••">
-        </div>
-      </div>
-
-      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:.6rem">Licitanet</div>
-      <div class="robo-modal-grid">
-        <div class="form-group">
-          <label class="form-label">Login (CNPJ)</label>
-          <input class="form-control" type="text" id="cred-licitanet-login" placeholder="00.000.000/0001-00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input class="form-control" type="password" id="cred-licitanet-senha" placeholder="••••••••">
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModalCredenciais()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarCredenciais()">🔒 Salvar Credenciais</button>
-    </div>
   </div>
 </div>
 

@@ -20,9 +20,9 @@ const boletimRoutes      = require('./routes/boletim');
 const calendarioRoutes   = require('./routes/calendario');
 const edsonRoutes        = require('./routes/edson');
 const prospectsRoutes    = require('./routes/prospects');
-const roboRoutes         = require('./routes/robo');
 const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
+const { receber: receberFormulario } = require('./controllers/formularioController');
 
 const autenticar              = require('./middleware/autenticar');
 const { verificarPermissao }  = require('./middleware/autenticar');
@@ -54,6 +54,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/auth',          authRoutes);
+app.post('/formulario/cliente', receberFormulario);  // rota pública — sem autenticação
 app.use('/health',        healthRoutes);
 app.use('/editais',       autenticar, verificarPermissao('editais'),    editaisRoutes);
 app.use('/clientes',      autenticar, verificarPermissao('clientes'),   clientesRoutes);
@@ -61,9 +62,12 @@ app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimR
 app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
 app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);
 app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
-app.use('/robo',          autenticar, verificarPermissao('monitor'),    roboRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
+
+app.get('/cadastro', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
+});
 
 app.get('/proposta', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'proposta.html'));

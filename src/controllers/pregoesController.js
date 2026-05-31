@@ -55,6 +55,9 @@ async function atualizar(req, res) {
   const valores = [];
   let idx = 1;
 
+  // sempre atualiza updated_at quando qualquer campo muda
+  campos.push(`updated_at = NOW()`);
+
   if (status          !== undefined) { campos.push(`status = $${idx++}`);          valores.push(status); }
   if (valor_vencido   !== undefined) { campos.push(`valor_vencido = $${idx++}`);   valores.push(parseFloat(valor_vencido) || null); }
   if (comissao_gerada !== undefined) { campos.push(`comissao_gerada = $${idx++}`); valores.push(parseFloat(comissao_gerada) || null); }

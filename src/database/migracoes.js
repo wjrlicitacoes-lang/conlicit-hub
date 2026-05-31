@@ -419,39 +419,33 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_pregoes_operador ON pregoes(operador_id)`);
 
-  // RobôLicit — colunas do robô em pregoes
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_ativo          BOOLEAN   NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_valor_base     NUMERIC`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_valor_minimo   NUMERIC`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_estrategia     VARCHAR(20) DEFAULT 'moderado'`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_reducao_pct    NUMERIC   DEFAULT 0.5`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_modo_final     VARCHAR(20) DEFAULT 'agressivo'`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_status         VARCHAR(20) DEFAULT 'parado'`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_pid            INTEGER`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_iniciado_em    TIMESTAMPTZ`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_encerrado_em   TIMESTAMPTZ`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_resultado      VARCHAR(20)`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_ultimo_lance   NUMERIC`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS robo_total_lances   INTEGER   DEFAULT 0`);
-
-  // RobôLicit — credenciais dos clientes por plataforma
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_comprasgov_login  VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_comprasgov_senha  VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_comprasnet_login  VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_comprasnet_senha  VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_bnc_login         VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_bnc_senha         VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_licitanet_login   VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cred_licitanet_senha   VARCHAR(255)`);
-
-  // RobôLicit — constraint de status
+  // updated_at em pregoes — necessário para ordenação correta no dashboard
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
   await db.query(`
-    DO $$ BEGIN
-      ALTER TABLE pregoes ADD CONSTRAINT pregoes_robo_status_check
-        CHECK (robo_status IN ('parado','iniciando','rodando','pausado','encerrado','erro'));
-    EXCEPTION WHEN duplicate_object THEN NULL;
+    UPDATE pregoes SET updated_at = created_at WHERE updated_at IS NULL
+  `);
+
+
+  // Adicionar 'novo_lead' ao status de prospects (formulário público)
+  await db.query(`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE prospects DROP CONSTRAINT IF EXISTS prospects_status_check;
+      EXCEPTION WHEN others THEN NULL;
+      END;
+      BEGIN
+        ALTER TABLE prospects ADD CONSTRAINT prospects_status_check
+          CHECK (status IN ('novo_lead','em_negociacao','proposta_enviada','aguardando','convertido','perdido'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END;
     END $$;
   `);
+
+  // Coluna uf para prospect (origem do formulário público)
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS uf VARCHAR(2)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS palavras_chave TEXT[]`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem_formulario BOOLEAN NOT NULL DEFAULT FALSE`);
 
   console.log('Migrações executadas com sucesso');
 }

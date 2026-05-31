@@ -411,36 +411,39 @@ ${JSON_SCHEMA_REUNIAO}`;
 
 async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
-
   const content = extraContent.length > 0
-    ? [...extraContent, { type: 'text', text: prompt }]
+    ? [{ type: 'text', text: prompt }, ...extraContent]
     : prompt;
-
-  const timeout = parseInt(process.env.ANTHROPIC_TIMEOUT || '50000');
-
-  const { data } = await axios.post(
-    ANTHROPIC_URL,
-    {
-      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-5',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content }],
-    },
-    {
-      timeout,
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+  const inputLen = typeof prompt === 'string' ? prompt.length : JSON.stringify(content).length;
+  console.log(`[Edson] callClaude: ${inputLen} chars (~${Math.round(inputLen/4)} tokens est.), maxTokens: ${maxTokens}`);
+  try {
+    const { data } = await axios.post(
+      ANTHROPIC_URL,
+      { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        timeout: parseInt(process.env.ANTHROPIC_TIMEOUT || '55000', 10),
       },
+    );
+    return data.content[0].text.trim();
+  } catch (e) {
+    // Extrair mensagem real do erro da API Anthropic
+    const apiError = e.response?.data?.error?.message || e.response?.data?.message;
+    const status = e.response?.status;
+    if (apiError) {
+      console.error(`[Edson] API Anthropic erro ${status}: ${apiError}`);
+      throw new Error(`API Anthropic (${status}): ${apiError}`);
     }
-  );
-
-  const raw = data.content
-    .filter(b => b.type === 'text')
-    .map(b => b.text)
-    .join('');
-
-  return raw;
+    if (e.code === 'ECONNABORTED') {
+      console.error(`[Edson] Timeout após ${parseInt(process.env.ANTHROPIC_TIMEOUT || '55000')}ms`);
+      throw new Error(`Timeout na análise — tente o modo "reunião" (mais rápido)`);
+    }
+    throw e;
+  }
 }
 
 function finalizarParse(parsed) {
@@ -558,7 +561,7 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
       JSON.stringify(parsed.prazos_legais ?? {}),
       JSON.stringify(parsed.beneficios_me_epp ?? {}),
     ],
-  ).catch(e => console.warn('[Edson] Campos extras não salvos (migração pendente):', e.message));
+  ).catch(e => console.error('[Edson] ERRO ao salvar clausulas_restritivas/prazos_legais/beneficios_me_epp:', e.message));
 }
 
 async function salvarErro(analiseId, msg) {
@@ -570,7 +573,7 @@ async function salvarErro(analiseId, msg) {
 
 // ── Análises ──────────────────────────────────────────────────────────────────
 
-async function analisarPregao(analiseId, pregaoId, modo = 'reuniao') {
+async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
   try {
     const { rows: [pregao] } = await db.query(
       `SELECT p.*, c.nome, c.uf, c.palavras_chave
@@ -598,7 +601,7 @@ async function analisarPregao(analiseId, pregaoId, modo = 'reuniao') {
       maxTok = 4000;
     } else {
       prompt = buildPrompt(pregao, itensPNCP, dataSessao);
-      maxTok = 6000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -633,7 +636,7 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
       maxTok = 4000;
     } else {
       prompt = buildPromptPDF(pregao, pdfText, dataSessao);
-      maxTok = 6000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -673,7 +676,7 @@ async function analisarAvulso(analiseId, opts) {
       maxTok = 4000;
     } else {
       prompt = buildPromptAvulso(opts, itensPNCP, pdfText);
-      maxTok = 6000;
+      maxTok = 8000;
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
@@ -800,7 +803,7 @@ async function reanalisarComSuplementos(analiseId) {
     }
 
     const prompt = buildPromptReanalise(analise, complementarNote);
-    const raw = await callClaude(prompt, 12000, extraContent);
+    const raw = await callClaude(prompt, 6000, extraContent);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
     await salvarAnalise(analiseId, parsed, criterios, score);
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
@@ -823,9 +826,14 @@ async function chamarClaude(systemPrompt, messages) {
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      timeout: 60000,
+      timeout: parseInt(process.env.ANTHROPIC_TIMEOUT || '55000', 10),
     },
-  );
+  ).catch(e => {
+    const apiError = e.response?.data?.error?.message || e.response?.data?.message;
+    if (apiError) throw new Error(`API Anthropic (${e.response?.status}): ${apiError}`);
+    if (e.code === 'ECONNABORTED') throw new Error('Timeout no chat — tente novamente');
+    throw e;
+  });
   return data.content[0].text;
 }
 

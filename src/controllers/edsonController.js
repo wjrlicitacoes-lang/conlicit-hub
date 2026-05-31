@@ -133,7 +133,7 @@ async function avulso(req, res) {
         clienteNome, clienteUF,
         palavrasChave: Array.isArray(palavrasChave) ? palavrasChave.join(', ') : palavrasChave,
         pdfBuffer: req.file.buffer,
-        modo: modo || 'completo',
+        modo: modo || 'reuniao',
       }).catch(console.error);
       return res.json({ mensagem: 'Análise avulsa iniciada', analise_id: analise.id });
     }
@@ -398,7 +398,7 @@ async function uploadPDF(req, res) {
     );
 
     const { modo: modoUpload } = req.body ?? {};
-    analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer, modoUpload || 'completo').catch(console.error);
+    analisarPDF(analise.id, parseInt(pregao_id, 10), req.file.buffer, modoUpload || 'reuniao').catch(console.error);
     return res.json({ mensagem: 'Análise iniciada', analise_id: analise.id });
   } catch (e) {
     console.error('[Edson] uploadPDF:', e.message);
@@ -437,7 +437,7 @@ async function uploadPDFAvulso(req, res) {
         ? analise.palavras_chave.join(', ')
         : analise.palavras_chave,
       pdfBuffer: req.file.buffer,
-      modo: modoAvulso || 'completo',
+      modo: modoAvulso || 'reuniao',
     }).catch(console.error);
 
     return res.json({ mensagem: 'Análise iniciada', analise_id: parseInt(analise_id, 10) });
