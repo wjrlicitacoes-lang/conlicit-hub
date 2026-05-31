@@ -15,34 +15,33 @@ async function verificarSaldoAnthropic() {
   if (!apiKey) return;
 
   try {
-    const resp = await axios.get('https://api.anthropic.com/v1/usage', {
+    // /v1/usage não existe na API pública da Anthropic — usa /v1/models como ping
+    const resp = await axios.get('https://api.anthropic.com/v1/models', {
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       timeout: 10000,
     });
 
-    const creditos = resp.data?.remaining_credits ?? resp.data?.balance ?? null;
-    const saldoUSD = creditos != null ? parseFloat(creditos) : null;
+    if (resp.status === 200) {
+      console.log('[Cron] Verificação Anthropic ok — API key válida e ativa');
+    }
+  } catch (e) {
+    const status = e.response?.status;
+    const resendKey = process.env.RESEND_API_KEY;
 
-    if (saldoUSD !== null && saldoUSD < LIMITE_SALDO_USD) {
-      const resendKey = process.env.RESEND_API_KEY;
-      if (!resendKey) {
-        console.warn('[Cron] Saldo Anthropic baixo mas RESEND_API_KEY não configurada');
-        return;
-      }
+    // 401 = key inválida ou sem créditos — envia alerta
+    if (status === 401 && resendKey) {
       const resend = new Resend(resendKey);
       await resend.emails.send({
         from: 'Conlicit Hub <noreply@hub.conlicit.com>',
         to: ALERTA_EMAIL,
-        subject: '⚠️ Conlicit Hub — Créditos Anthropic baixos',
-        html: `<p>Saldo atual: <strong>$${saldoUSD.toFixed(2)}</strong>.</p>
-               <p>O Edson pode parar de funcionar. Recarregue em <a href="https://console.anthropic.com">console.anthropic.com</a>.</p>`,
-      });
-      console.warn(`[Cron] Alerta enviado — saldo Anthropic: $${saldoUSD}`);
+        subject: '⚠️ Conlicit Hub — API key Anthropic inválida ou sem créditos',
+        html: `<p>A API key da Anthropic retornou erro <strong>401</strong>.</p>
+               <p>O Edson pode estar fora do ar. Verifique em <a href="https://console.anthropic.com">console.anthropic.com</a>.</p>`,
+      }).catch(err => console.error('[Cron] Falha ao enviar alerta Anthropic:', err.message));
+      console.warn('[Cron] Alerta enviado — API key Anthropic com problema (401)');
     } else {
-      console.log(`[Cron] Saldo Anthropic ok: $${saldoUSD}`);
+      console.warn(`[Cron] Verificação Anthropic falhou: ${status || e.message}`);
     }
-  } catch (e) {
-    console.error('[Cron] Erro ao verificar saldo Anthropic:', e.message);
   }
 }
 
