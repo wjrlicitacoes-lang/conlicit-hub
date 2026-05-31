@@ -1,17 +1,15 @@
-providers = ["node", "python"]
-
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 cmds = [
   "npm ci --omit=dev",
-  "pip install playwright pyyaml openpyxl"
+  "pip3 install playwright pyyaml openpyxl"
 ]
 
 [phases.build]
 cmds = [
-  "python -m playwright install chromium --with-deps"
+  "python3 -m playwright install chromium --with-deps"
 ]
 
 [start]
