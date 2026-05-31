@@ -21,6 +21,7 @@ const calendarioRoutes   = require('./routes/calendario');
 const edsonRoutes        = require('./routes/edson');
 const prospectsRoutes    = require('./routes/prospects');
 const roboRoutes         = require('./routes/robo');
+const captacaoRoutes     = require('./routes/captacao');
 const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
 const { receber: receberFormulario } = require('./controllers/formularioController');
@@ -37,6 +38,8 @@ const origensPermitidas = [
   'https://web-production-18d79.up.railway.app',
   'https://hub.conlicit.com',
   'http://hub.conlicit.com',
+  'https://conlicit.com',
+  'https://www.conlicit.com',
 ];
 
 app.use(cors({
@@ -63,6 +66,7 @@ app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimR
 app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
 app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);
 app.use('/robo',          autenticar, verificarPermissao('monitor'),    roboRoutes);
+app.use('/captacao',      captacaoRoutes);
 app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);

@@ -1,6 +1,7 @@
 const axios    = require('axios');
 const pdfParse = require('pdf-parse');
 const db = require('../database/db');
+const { INSTRUCAO_JURIDICA_BASICA, INSTRUCAO_EXEQUIBILIDADE } = require('./edsonJuridicoInstrucao');
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const PNCP_BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1';
@@ -241,6 +242,10 @@ ${INSTRUCOES_ANALISE}
 
 ${RUBRICA_INSTRUCAO}
 
+${INSTRUCAO_JURIDICA_BASICA}
+
+${INSTRUCAO_EXEQUIBILIDADE}
+
 Responda APENAS com o JSON abaixo, preenchido com a análise do edital:
 ${JSON_SCHEMA_INSTRUCAO}
 
@@ -288,6 +293,10 @@ ${BASE_LEGAL_RESUMO}
 ${INSTRUCOES_ANALISE}
 
 ${RUBRICA_INSTRUCAO}
+
+${INSTRUCAO_JURIDICA_BASICA}
+
+${INSTRUCAO_EXEQUIBILIDADE}
 
 Responda APENAS com o JSON abaixo, preenchido com a análise da licitação:
 ${JSON_SCHEMA_INSTRUCAO}
@@ -756,6 +765,10 @@ Você recebeu informações complementares para uma licitação. Refaça a anál
 }
 
 ${RUBRICA_INSTRUCAO}
+
+${INSTRUCAO_JURIDICA_BASICA}
+
+${INSTRUCAO_EXEQUIBILIDADE}
 
 DADOS DO PREGÃO:
 - Número/Ref: ${analise.numero || analise.referencia || '—'}
