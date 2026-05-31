@@ -1,10 +1,10 @@
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "python3", "python3Packages.pip"]
 
 [phases.install]
 cmds = [
   "npm ci --omit=dev",
-  "pip3 install playwright pyyaml openpyxl"
+  "python3 -m pip install playwright pyyaml openpyxl"
 ]
 
 [phases.build]
