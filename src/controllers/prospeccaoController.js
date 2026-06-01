@@ -36,87 +36,68 @@ const SEGMENTOS = {
   'manutencao':          ['manutenção predial', 'reforma', 'serviços de manutenção'],
 };
 
-// ── Busca pregões no PNCP ─────────────────────────────────────────────────────
+// ── Busca contratos assinados no PNCP (fornecedores vencedores) ───────────────
+// Estratégia: usar /contratos que tem CNPJ real do fornecedor + objeto + UF
 
-async function buscarPregoesHomologados({ palavraChave, uf, cidade, tipo, diasAtras = 90, maxResultados = 60 }) {
+async function buscarContratosVencedores({ palavraChave, uf, cidade, tipo, diasAtras = 90, maxResultados = 60 }) {
   const hoje    = new Date();
   const dataFim = hoje.toISOString().slice(0, 10).replace(/-/g, '');
   const dataIni = new Date(hoje - diasAtras * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
 
   const correspondentes = [];
   const TAMANHO_PAGINA  = 50;
-  const MAX_PAGINAS     = 8; // máx 400 registros varridos por palavra-chave
+  const MAX_PAGINAS     = 8;
 
   for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
     if (correspondentes.length >= maxResultados) break;
 
     let resp;
     try {
-      resp = await axios.get(`${PNCP_CONSULTA}/contratacoes/publicacao`, {
+      resp = await axios.get(`${PNCP_CONSULTA}/contratos`, {
         params: {
-          dataInicial: dataIni,
-          dataFinal:   dataFim,
+          dataInicial:   dataIni,
+          dataFinal:     dataFim,
           pagina,
-          tamanhoPagina:               TAMANHO_PAGINA,
-          codigoModalidadeContratacao: 6,
-          ...(uf ? { uf: uf.toUpperCase() } : {}), // filtro server-side por UF
+          tamanhoPagina: TAMANHO_PAGINA,
+          ...(uf ? { uf: uf.toUpperCase() } : {}),
         },
         timeout: 15000,
       });
     } catch (e) {
-      console.warn('[Prospecção] Falha ao buscar PNCP página', pagina, ':', e.message);
+      console.warn('[Prospecção] Falha ao buscar contratos PNCP página', pagina, ':', e.message);
       break;
     }
 
-    const todos      = resp.data?.data ?? [];
-    const totalPags  = resp.data?.totalPaginas ?? 1;
+    const todos     = resp.data?.data ?? [];
+    const totalPags = resp.data?.totalPaginas ?? 1;
 
-    for (const p of todos) {
-      const objeto   = (p.objetoCompra || '').toLowerCase();
-      const ufP      = (p.unidadeOrgao?.ufSigla || '').toUpperCase();
-      const cidadeP  = (p.unidadeOrgao?.municipioNome || '').toLowerCase();
-      const tipoNome = (p.tipoInstrumentoConvocatorioNome || '').toLowerCase();
+    for (const c of todos) {
+      if (c.tipoPessoa !== 'PJ') continue; // só pessoas jurídicas
+      const cnpj = (c.niFornecedor || '').replace(/\D/g, '');
+      if (cnpj.length !== 14) continue;
+
+      const objeto   = (c.objetoContrato || '').toLowerCase();
+      const ufP      = (c.unidadeOrgao?.ufSigla || '').toUpperCase();
+      const cidadeP  = (c.unidadeOrgao?.municipioNome || '').toLowerCase();
+      const catNome  = (c.categoriaProcesso?.nome || '').toLowerCase();
 
       const matchObj    = palavraChave ? objeto.includes(palavraChave.toLowerCase()) : true;
       const matchUF     = uf     ? ufP === uf.toUpperCase() : true;
       const matchCidade = cidade ? cidadeP.includes(cidade.toLowerCase()) : true;
       const matchTipo   = tipo
-        ? (tipo === 'produto' ? (!tipoNome.includes('serviço') && !tipoNome.includes('servico'))
-         : tipo === 'servico' ? (tipoNome.includes('serviço') || tipoNome.includes('servico') || objeto.includes('serviç'))
+        ? (tipo === 'produto' ? catNome.includes('material') || catNome.includes('bem') || catNome.includes('fornecimento')
+         : tipo === 'servico' ? catNome.includes('serviço')  || catNome.includes('servico')
          : true)
         : true;
 
-      if (matchObj && matchUF && matchCidade && matchTipo) correspondentes.push(p);
+      if (matchObj && matchUF && matchCidade && matchTipo) correspondentes.push(c);
     }
 
-    // Para se não há mais páginas
     if (pagina >= totalPags) break;
-    await sleep(150); // respeita rate limit entre páginas
+    await sleep(150);
   }
 
   return correspondentes;
-}
-
-// ── Busca participantes de um pregão específico ───────────────────────────────
-
-async function buscarParticipantes(cnpjOrgao, ano, sequencial) {
-  try {
-    const { data } = await axios.get(
-      `${PNCP_BASE}/orgaos/${cnpjOrgao}/compras/${ano}/${sequencial}/itens/1/propostas`,
-      { timeout: 10000 }
-    );
-    return Array.isArray(data) ? data : (data.data ?? []);
-  } catch {
-    try {
-      const { data } = await axios.get(
-        `${PNCP_BASE}/orgaos/${cnpjOrgao}/compras/${ano}/${sequencial}/propostas`,
-        { timeout: 10000 }
-      );
-      return Array.isArray(data) ? data : (data.data ?? []);
-    } catch {
-      return [];
-    }
-  }
 }
 
 // ── Enriquece empresa via CNPJ público ───────────────────────────────────────
@@ -174,126 +155,102 @@ async function prospectar(req, res) {
 
   const leadsEncontrados = [];
   const cnpjsProcessados = new Set();
-  let pregoesAnalisados  = 0;
+  let contratosAnalisados = 0;
 
   try {
     for (const palavra of palavrasChave) {
       if (leadsEncontrados.length >= Number(limite)) break;
 
-      const pregoes = await buscarPregoesHomologados({
+      const contratos = await buscarContratosVencedores({
         palavraChave:  palavra,
         uf,
         cidade,
         tipo,
         diasAtras:     Number(dias),
-        maxResultados: Number(limite) * 3, // busca 3x o limite para ter margem após filtro de participantes
+        maxResultados: Number(limite) * 3,
       });
 
-      for (const pregao of pregoes) {
+      for (const contrato of contratos) {
         if (leadsEncontrados.length >= Number(limite)) break;
 
-        const cnpjOrgao    = pregao.orgaoEntidade?.cnpj;
-        const ano          = pregao.anoCompra;
-        const sequencial   = pregao.sequencialCompra;
-        const objeto       = pregao.objetoCompra || '';
-        const valorEst     = pregao.valorTotalEstimado || 0;
-        const numeroPregao = pregao.numeroControlePNCP || `${cnpjOrgao}-${ano}-${sequencial}`;
-        const municipio    = pregao.unidadeOrgao?.municipioNome || null;
-        const ufPregao     = pregao.unidadeOrgao?.ufSigla || null;
+        const cnpjForn  = limparCNPJ(contrato.niFornecedor);
+        if (!cnpjForn || cnpjForn.length !== 14) continue;
+        if (cnpjsProcessados.has(cnpjForn)) continue;
+        cnpjsProcessados.add(cnpjForn);
+        contratosAnalisados++;
 
-        if (!cnpjOrgao || !ano || !sequencial) continue;
-        pregoesAnalisados++;
+        const objeto    = contrato.objetoContrato || '';
+        const valorCont = contrato.valorGlobal || contrato.valorInicial || 0;
+        const municipio = contrato.unidadeOrgao?.municipioNome || null;
+        const ufCont    = contrato.unidadeOrgao?.ufSigla || null;
+        const numContrato = contrato.numeroControlePNCP || contrato.numeroContratoEmpenho || '—';
 
-        await sleep(200);
-        const participantes = await buscarParticipantes(cnpjOrgao, ano, sequencial);
-        if (participantes.length === 0) continue;
+        let dadosCNPJ = null;
+        if (enriquecer === 'true') dadosCNPJ = await enriquecerCNPJ(cnpjForn);
 
-        const sorted = [...participantes].sort((a, b) =>
-          (a.valorTotal || a.valorProposta || 0) - (b.valorTotal || b.valorProposta || 0)
-        );
+        const lead = {
+          cnpj:          formatarCNPJ(cnpjForn),
+          razao_social:  dadosCNPJ?.razao_social || contrato.nomeRazaoSocialFornecedor || null,
+          nome_fantasia: dadosCNPJ?.nome_fantasia || null,
+          responsavel:   dadosCNPJ?.responsavel   || null,
+          telefone:      dadosCNPJ?.telefone       || null,
+          email:         dadosCNPJ?.email          || null,
+          municipio:     dadosCNPJ?.municipio      || municipio || null,
+          uf:            dadosCNPJ?.uf             || ufCont    || uf || null,
+          segmento:      palavra_chave ? (segmento || 'livre') : segmento,
+          contrato_numero: numContrato,
+          contrato_objeto: objeto,
+          contrato_valor:  valorCont,
+          contrato_data:   contrato.dataAssinatura || null,
+          perfil: 'vencedor_licitacao',
+          prioridade: valorCont >= 50000 ? 'Alta' : 'Média',
+        };
 
-        for (const p of sorted.slice(1)) {
-          if (leadsEncontrados.length >= Number(limite)) break;
+        leadsEncontrados.push(lead);
 
-          const cnpjForn = limparCNPJ(p.fornecedor?.cnpj || p.cnpj);
-          if (!cnpjForn || cnpjForn.length !== 14) continue;
-          if (cnpjsProcessados.has(cnpjForn)) continue;
-          cnpjsProcessados.add(cnpjForn);
+        try {
+          const nota = [
+            `[Lead via Prospecção PNCP Contratos — ${new Date().toLocaleDateString('pt-BR')}]`,
+            `Contrato: ${numContrato}`,
+            `Objeto: ${objeto.slice(0, 150)}`,
+            `Valor: R$ ${valorCont?.toLocaleString('pt-BR') || '—'}`,
+            `Assinado em: ${contrato.dataAssinatura || '—'}`,
+            municipio ? `Município do órgão: ${municipio}/${ufCont || ''}` : '',
+            `Perfil: empresa vencedora de licitação — cliente potencial para o Hub`,
+          ].filter(Boolean).join('\n');
 
-          const posicao = sorted.indexOf(p) + 1;
-          const desclassificada = p.situacaoCompra === 'Desclassificada' ||
-            p.situacaoProposta?.toLowerCase()?.includes('desclass');
-          const motivoDesclass = desclassificada
-            ? (p.motivoDesclassificacao || p.justificativa || 'Desclassificada')
-            : null;
-
-          let dadosCNPJ = null;
-          if (enriquecer === 'true') dadosCNPJ = await enriquecerCNPJ(cnpjForn);
-
-          const lead = {
-            cnpj:          formatarCNPJ(cnpjForn),
-            razao_social:  dadosCNPJ?.razao_social || p.fornecedor?.razaoSocial || p.razaoSocial || null,
-            nome_fantasia: dadosCNPJ?.nome_fantasia || null,
-            responsavel:   dadosCNPJ?.responsavel  || null,
-            telefone:      dadosCNPJ?.telefone      || null,
-            email:         dadosCNPJ?.email         || null,
-            municipio:     dadosCNPJ?.municipio     || municipio || null,
-            uf:            dadosCNPJ?.uf            || ufPregao  || uf || null,
-            segmento:      palavra_chave ? (segmento || 'livre') : segmento,
-            pregao_numero: numeroPregao,
-            pregao_objeto: objeto,
-            pregao_valor:  valorEst,
-            posicao_pregao:           posicao,
-            desclassificada,
-            motivo_desclassificacao:  motivoDesclass,
-            prioridade: desclassificada ? 'Alta' : (posicao <= 3 ? 'Alta' : 'Média'),
-          };
-
-          leadsEncontrados.push(lead);
-
-          try {
-            const nota = [
-              `[Lead via Prospecção PNCP — ${new Date().toLocaleDateString('pt-BR')}]`,
-              `Pregão: ${numeroPregao}`,
-              `Objeto: ${objeto}`,
-              `Valor estimado: R$ ${valorEst?.toLocaleString('pt-BR') || '—'}`,
-              `Posição: ${posicao}º lugar`,
-              municipio ? `Município do órgão: ${municipio}/${ufPregao || ''}` : '',
-              desclassificada ? `Desclassificada: ${motivoDesclass}` : '',
-            ].filter(Boolean).join('\n');
-
-            await db.query(
-              `INSERT INTO prospects
-                 (nome, email, whatsapp, empresa, segmento, status, notas, responsavel)
-               VALUES ($1, $2, $3, $4, $5, 'em_negociacao', $6, 'PNCP Auto')
-               ON CONFLICT DO NOTHING`,
-              [
-                dadosCNPJ?.responsavel || lead.razao_social || 'A identificar',
-                dadosCNPJ?.email || null,
-                dadosCNPJ?.telefone || null,
-                lead.razao_social,
-                lead.segmento,
-                nota,
-              ]
-            );
-          } catch (dbErr) {
-            console.warn('[Prospecção] Falha ao salvar prospect:', dbErr.message);
-          }
+          await db.query(
+            `INSERT INTO prospects
+               (nome, email, whatsapp, empresa, segmento, status, notas, responsavel)
+             VALUES ($1, $2, $3, $4, $5, 'em_negociacao', $6, 'PNCP Auto')
+             ON CONFLICT DO NOTHING`,
+            [
+              dadosCNPJ?.responsavel || lead.razao_social || 'A identificar',
+              dadosCNPJ?.email    || null,
+              dadosCNPJ?.telefone || null,
+              lead.razao_social,
+              lead.segmento,
+              nota,
+            ]
+          );
+        } catch (dbErr) {
+          console.warn('[Prospecção] Falha ao salvar prospect:', dbErr.message);
         }
       }
     }
 
     return res.json({
-      sucesso:            true,
-      segmento:           palavra_chave ? 'livre' : segmento,
-      palavra_chave:      palavra_chave || null,
-      uf:                 uf     || 'todos',
-      cidade:             cidade || null,
-      tipo:               tipo   || null,
-      dias_analisados:    Number(dias),
-      pregoes_analisados: pregoesAnalisados,
-      leads_encontrados:  leadsEncontrados.length,
-      leads:              leadsEncontrados,
+      sucesso:              true,
+      estrategia:           'contratos_assinados',
+      segmento:             palavra_chave ? 'livre' : segmento,
+      palavra_chave:        palavra_chave || null,
+      uf:                   uf     || 'todos',
+      cidade:               cidade || null,
+      tipo:                 tipo   || null,
+      dias_analisados:      Number(dias),
+      contratos_analisados: contratosAnalisados,
+      leads_encontrados:    leadsEncontrados.length,
+      leads:                leadsEncontrados,
     });
 
   } catch (e) {
