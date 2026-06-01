@@ -59,6 +59,7 @@ async function buscarPregoesHomologados({ palavraChave, uf, cidade, tipo, diasAt
           pagina,
           tamanhoPagina:               TAMANHO_PAGINA,
           codigoModalidadeContratacao: 6,
+          ...(uf ? { uf: uf.toUpperCase() } : {}), // filtro server-side por UF
         },
         timeout: 15000,
       });
