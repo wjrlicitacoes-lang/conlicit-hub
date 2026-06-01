@@ -6,8 +6,9 @@
 const axios = require('axios');
 const db    = require('../database/db');
 
-const PNCP_BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1';
-const CNPJ_API  = 'https://publica.cnpj.ws/cnpj'; // API pública gratuita
+const PNCP_CONSULTA = 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_BASE     = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1';
+const CNPJ_API      = 'https://publica.cnpj.ws/cnpj'; // API pública gratuita
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ async function buscarPregoesHomologados({ palavraChave, uf, diasAtras = 90, pagi
   const dataIni = new Date(hoje - diasAtras * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
 
   try {
-    const { data } = await axios.get(`${PNCP_BASE}/contratacoes/proposta`, {
+    const { data } = await axios.get(`${PNCP_CONSULTA}/contratacoes/publicacao`, {
       params: {
         dataInicial: dataIni,
         dataFinal:   dataFim,
@@ -57,9 +58,10 @@ async function buscarPregoesHomologados({ palavraChave, uf, diasAtras = 90, pagi
     const todos = data.data ?? [];
 
     // Filtra por palavra-chave e UF localmente
+    // API consulta usa: objetoCompra, ufSigla (direto no objeto)
     return todos.filter(p => {
       const objeto = (p.objetoCompra || '').toLowerCase();
-      const ufP    = p.unidadeOrgao?.ufSigla || '';
+      const ufP    = p.ufSigla || p.unidadeOrgao?.ufSigla || '';
       const matchObj = palavraChave ? objeto.includes(palavraChave.toLowerCase()) : true;
       const matchUF  = uf ? ufP.toUpperCase() === uf.toUpperCase() : true;
       return matchObj && matchUF;
@@ -162,7 +164,7 @@ async function prospectar(req, res) {
       for (const pregao of pregoes) {
         if (leadsEncontrados.length >= Number(limite)) break;
 
-        const cnpjOrgao    = pregao.orgaoEntidade?.cnpj;
+        const cnpjOrgao    = pregao.cnpjOrgao || pregao.orgaoEntidade?.cnpj;
         const ano          = pregao.anoCompra;
         const sequencial   = pregao.sequencialCompra;
         const objeto       = pregao.objetoCompra || '';
