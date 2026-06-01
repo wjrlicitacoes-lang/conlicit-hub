@@ -38,26 +38,39 @@ const SEGMENTOS = {
 
 // ── Busca pregões no PNCP ─────────────────────────────────────────────────────
 
-async function buscarPregoesHomologados({ palavraChave, uf, cidade, tipo, diasAtras = 90, pagina = 1 }) {
+async function buscarPregoesHomologados({ palavraChave, uf, cidade, tipo, diasAtras = 90, maxResultados = 60 }) {
   const hoje    = new Date();
   const dataFim = hoje.toISOString().slice(0, 10).replace(/-/g, '');
   const dataIni = new Date(hoje - diasAtras * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
 
-  try {
-    const { data } = await axios.get(`${PNCP_CONSULTA}/contratacoes/publicacao`, {
-      params: {
-        dataInicial: dataIni,
-        dataFinal:   dataFim,
-        pagina,
-        tamanhoPagina: 20,
-        codigoModalidadeContratacao: 6, // 6 = Pregão Eletrônico
-      },
-      timeout: 15000,
-    });
+  const correspondentes = [];
+  const TAMANHO_PAGINA  = 50;
+  const MAX_PAGINAS     = 8; // máx 400 registros varridos por palavra-chave
 
-    const todos = data.data ?? [];
+  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
+    if (correspondentes.length >= maxResultados) break;
 
-    return todos.filter(p => {
+    let resp;
+    try {
+      resp = await axios.get(`${PNCP_CONSULTA}/contratacoes/publicacao`, {
+        params: {
+          dataInicial: dataIni,
+          dataFinal:   dataFim,
+          pagina,
+          tamanhoPagina:               TAMANHO_PAGINA,
+          codigoModalidadeContratacao: 6,
+        },
+        timeout: 15000,
+      });
+    } catch (e) {
+      console.warn('[Prospecção] Falha ao buscar PNCP página', pagina, ':', e.message);
+      break;
+    }
+
+    const todos      = resp.data?.data ?? [];
+    const totalPags  = resp.data?.totalPaginas ?? 1;
+
+    for (const p of todos) {
       const objeto   = (p.objetoCompra || '').toLowerCase();
       const ufP      = (p.unidadeOrgao?.ufSigla || '').toUpperCase();
       const cidadeP  = (p.unidadeOrgao?.municipioNome || '').toLowerCase();
@@ -67,17 +80,20 @@ async function buscarPregoesHomologados({ palavraChave, uf, cidade, tipo, diasAt
       const matchUF     = uf     ? ufP === uf.toUpperCase() : true;
       const matchCidade = cidade ? cidadeP.includes(cidade.toLowerCase()) : true;
       const matchTipo   = tipo
-        ? (tipo === 'produto'  ? (tipoNome.includes('compra') || tipoNome.includes('aquisição') || !tipoNome.includes('serviço'))
-         : tipo === 'servico'  ? (tipoNome.includes('serviço') || tipoNome.includes('servico') || objeto.includes('serviç'))
+        ? (tipo === 'produto' ? (!tipoNome.includes('serviço') && !tipoNome.includes('servico'))
+         : tipo === 'servico' ? (tipoNome.includes('serviço') || tipoNome.includes('servico') || objeto.includes('serviç'))
          : true)
         : true;
 
-      return matchObj && matchUF && matchCidade && matchTipo;
-    });
-  } catch (e) {
-    console.warn('[Prospecção] Falha ao buscar PNCP:', e.message);
-    return [];
+      if (matchObj && matchUF && matchCidade && matchTipo) correspondentes.push(p);
+    }
+
+    // Para se não há mais páginas
+    if (pagina >= totalPags) break;
+    await sleep(150); // respeita rate limit entre páginas
   }
+
+  return correspondentes;
 }
 
 // ── Busca participantes de um pregão específico ───────────────────────────────
@@ -164,11 +180,12 @@ async function prospectar(req, res) {
       if (leadsEncontrados.length >= Number(limite)) break;
 
       const pregoes = await buscarPregoesHomologados({
-        palavraChave: palavra,
+        palavraChave:  palavra,
         uf,
         cidade,
         tipo,
-        diasAtras: Number(dias),
+        diasAtras:     Number(dias),
+        maxResultados: Number(limite) * 3, // busca 3x o limite para ter margem após filtro de participantes
       });
 
       for (const pregao of pregoes) {
