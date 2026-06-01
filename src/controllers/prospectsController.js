@@ -17,14 +17,14 @@ async function listar(req, res) {
 async function criar(req, res) {
   if (req.usuario.role !== 'admin')
     return res.status(403).json({ erro: 'Acesso negado' });
-  const { nome, email, whatsapp, empresa, segmento, status, notas, responsavel } = req.body ?? {};
+  const { nome, email, whatsapp, empresa, segmento, status, notas, responsavel, indicado_por } = req.body ?? {};
   if (!nome?.trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
   try {
     const { rows: [p] } = await db.query(
-      `INSERT INTO prospects (nome, email, whatsapp, empresa, segmento, status, notas, responsavel)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO prospects (nome, email, whatsapp, empresa, segmento, status, notas, responsavel, indicado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [nome.trim(), email||null, whatsapp||null, empresa||null, segmento||null,
-       status||'em_negociacao', notas||null, responsavel||null],
+       status||'em_negociacao', notas||null, responsavel||null, indicado_por?.trim()||null],
     );
     return res.status(201).json(p);
   } catch (e) {
@@ -37,15 +37,15 @@ async function atualizar(req, res) {
   if (req.usuario.role !== 'admin')
     return res.status(403).json({ erro: 'Acesso negado' });
   const { id } = req.params;
-  const { nome, email, whatsapp, empresa, segmento, status, notas, responsavel } = req.body ?? {};
+  const { nome, email, whatsapp, empresa, segmento, status, notas, responsavel, indicado_por } = req.body ?? {};
   try {
     const { rows } = await db.query(
       `UPDATE prospects SET
          nome=$1, email=$2, whatsapp=$3, empresa=$4, segmento=$5,
-         status=$6, notas=$7, responsavel=$8
-       WHERE id=$9 RETURNING *`,
+         status=$6, notas=$7, responsavel=$8, indicado_por=$9
+       WHERE id=$10 RETURNING *`,
       [nome, email||null, whatsapp||null, empresa||null, segmento||null,
-       status||'em_negociacao', notas||null, responsavel||null, id],
+       status||'em_negociacao', notas||null, responsavel||null, indicado_por?.trim()||null, id],
     );
     if (!rows.length) return res.status(404).json({ erro: 'Prospect não encontrado' });
     return res.json(rows[0]);

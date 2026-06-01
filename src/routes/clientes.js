@@ -5,6 +5,7 @@ const pregoes          = require('../controllers/pregoesController');
 
 const mensalidades     = require('../controllers/mensalidadesController');
 const documentos       = require('../controllers/documentosController');
+const acessos          = require('../controllers/acessosController');
 const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
@@ -37,5 +38,12 @@ router.patch('/:id/mensalidades/:mid', mensalidades.atualizar);
 router.get('/:id/documentos',          documentos.listar);
 router.post('/:id/documentos',         documentos.criar);
 router.delete('/:id/documentos/:did',  documentos.remover);
+router.post('/:id/documentos/onboarding', documentos.inicializarOnboarding);
+router.patch('/:id/documentos/:did/status', documentos.atualizarStatus);
+
+router.get('/:id/acessos',             acessos.listar);
+router.post('/:id/acessos',            acessos.criar);
+router.patch('/:id/acessos/:aid',      acessos.atualizar);
+router.delete('/:id/acessos/:aid',     acessos.remover);
 
 module.exports = router;

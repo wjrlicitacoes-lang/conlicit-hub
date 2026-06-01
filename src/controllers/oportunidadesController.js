@@ -307,6 +307,25 @@ async function registrarResposta(req, res) {
               [pregao.id, id],
             ).catch(e => console.warn('[Oportunidades] Não foi possível vincular pregão:', e.message));
             console.log(`[Oportunidades] Pregão criado id=${pregao.id} para cliente ${opFull.cliente_nome} — ${opFull.objeto?.slice(0, 50)}`);
+
+            // Notificar admin: cliente confirmou interesse — hora de preparar
+            const adminWpp = process.env.ADMIN_WHATSAPP;
+            if (adminWpp) {
+              const dtStr = opFull.data_abertura
+                ? new Date(opFull.data_abertura).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
+                : '—';
+              const msg =
+                `✅ *Cliente confirmou interesse!*\n\n` +
+                `👤 *Cliente:* ${opFull.cliente_nome}\n` +
+                `📋 *Pregão:* ${opFull.objeto?.slice(0, 100)}\n` +
+                `📅 *Data:* ${dtStr}\n\n` +
+                `*Próximos passos:*\n` +
+                `1. Enviar planilha de preços ao cliente\n` +
+                `2. Verificar documentos de habilitação\n` +
+                `3. Cadastrar no portal de disputa\n\n` +
+                `Acesse o Hub para acompanhar: hub.conlicit.com`;
+              zapiSvc.enviarTexto(adminWpp, msg).catch(e => console.warn('[Oportunidades] Notif admin falhou:', e.message));
+            }
           }
         } else {
           console.log(`[Oportunidades] Pregão já existe id=${existente.id} para este edital`);

@@ -19,7 +19,7 @@ async function criar(req, res) {
   const { id } = req.params;
   const { numero, orgao, objeto, data_abertura, valor_estimado, status,
           data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa,
-          acionar_edson } = req.body ?? {};
+          valor_minimo_lance, acionar_edson } = req.body ?? {};
 
   if (!numero) return res.status(400).json({ erro: 'numero é obrigatório' });
 
@@ -27,8 +27,8 @@ async function criar(req, res) {
     const { rows } = await db.query(
       `INSERT INTO pregoes
          (cliente_id, numero, orgao, objeto, data_abertura, valor_estimado, status,
-          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+          data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa, valor_minimo_lance)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [id, numero, orgao || null, objeto || null,
        data_abertura || null, parseFloat(valor_estimado) || null,
        status || 'a_disputar',
@@ -36,7 +36,8 @@ async function criar(req, res) {
        operador_id ? parseInt(operador_id) : null,
        numero_controle_pncp?.trim() || null,
        link_pncp?.trim() || null,
-       portal_disputa?.trim() || null],
+       portal_disputa?.trim() || null,
+       parseFloat(valor_minimo_lance) || null],
     );
     return res.status(201).json(rows[0]);
   } catch (erro) {
@@ -49,7 +50,7 @@ async function atualizar(req, res) {
   const { id, pid } = req.params;
   const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado,
           data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa,
-          contrato_assinado } = req.body ?? {};
+          contrato_assinado, valor_minimo_lance, motivo_perda, menor_preco_concorrente, monitorar_resultado } = req.body ?? {};
 
   const campos = [];
   const valores = [];
@@ -79,6 +80,10 @@ async function atualizar(req, res) {
   if (link_pncp            !== undefined) { campos.push(`link_pncp = $${idx++}`);            valores.push(link_pncp?.trim() || null); }
   if (portal_disputa       !== undefined) { campos.push(`portal_disputa = $${idx++}`);       valores.push(portal_disputa?.trim() || null); }
   if (contrato_assinado    !== undefined) { campos.push(`contrato_assinado = $${idx++}`);    valores.push(Boolean(contrato_assinado)); }
+  if (valor_minimo_lance    !== undefined) { campos.push(`valor_minimo_lance = $${idx++}`);    valores.push(parseFloat(valor_minimo_lance) || null); }
+  if (motivo_perda          !== undefined) { campos.push(`motivo_perda = $${idx++}`);          valores.push(motivo_perda || null); }
+  if (menor_preco_concorrente !== undefined) { campos.push(`menor_preco_concorrente = $${idx++}`); valores.push(parseFloat(menor_preco_concorrente) || null); }
+  if (monitorar_resultado   !== undefined) { campos.push(`monitorar_resultado = $${idx++}`);   valores.push(Boolean(monitorar_resultado)); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 

@@ -447,6 +447,35 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS palavras_chave TEXT[]`);
   await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem_formulario BOOLEAN NOT NULL DEFAULT FALSE`);
 
+
+  // Acessos de portais por cliente
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS acessos_portais (
+      id           SERIAL PRIMARY KEY,
+      cliente_id   INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      portal       VARCHAR(100) NOT NULL,
+      login        VARCHAR(255),
+      senha        VARCHAR(255),
+      url          TEXT,
+      observacoes  TEXT,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_acessos_cliente ON acessos_portais(cliente_id)`);
+
+  // Campo indicado_por nos prospects
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS indicado_por VARCHAR(255)`);
+
+  // Campo valor_minimo_lance nos pregoes
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS valor_minimo_lance NUMERIC`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS motivo_perda VARCHAR(100)`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS menor_preco_concorrente NUMERIC`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS monitorar_resultado BOOLEAN NOT NULL DEFAULT FALSE`);
+
+  // Checklist de onboarding nos documentos
+  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
+
   console.log('Migrações executadas com sucesso');
 }
 
