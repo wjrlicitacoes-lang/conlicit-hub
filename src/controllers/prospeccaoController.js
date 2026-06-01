@@ -58,10 +58,9 @@ async function buscarPregoesHomologados({ palavraChave, uf, diasAtras = 90, pagi
     const todos = data.data ?? [];
 
     // Filtra por palavra-chave e UF localmente
-    // API consulta usa: objetoCompra, ufSigla (direto no objeto)
     return todos.filter(p => {
       const objeto = (p.objetoCompra || '').toLowerCase();
-      const ufP    = p.ufSigla || p.unidadeOrgao?.ufSigla || '';
+      const ufP    = p.unidadeOrgao?.ufSigla || '';
       const matchObj = palavraChave ? objeto.includes(palavraChave.toLowerCase()) : true;
       const matchUF  = uf ? ufP.toUpperCase() === uf.toUpperCase() : true;
       return matchObj && matchUF;
@@ -164,7 +163,7 @@ async function prospectar(req, res) {
       for (const pregao of pregoes) {
         if (leadsEncontrados.length >= Number(limite)) break;
 
-        const cnpjOrgao    = pregao.cnpjOrgao || pregao.orgaoEntidade?.cnpj;
+        const cnpjOrgao    = pregao.orgaoEntidade?.cnpj;
         const ano          = pregao.anoCompra;
         const sequencial   = pregao.sequencialCompra;
         const objeto       = pregao.objetoCompra || '';
