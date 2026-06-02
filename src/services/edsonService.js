@@ -381,7 +381,7 @@ function buildPromptReuniao(dados, pdfText, itensPNCP, dataSessao) {
     : dados.palavrasChave || dados.palavras_chave || '—';
 
   const itensStr = pdfText
-    ? `TEXTO DO EDITAL:\n${pdfText.slice(0, 40000)}`
+    ? `TEXTO DO EDITAL:\n${pdfText}`
     : itensPNCP && itensPNCP.length > 0
       ? `ITENS PNCP:\n${JSON.stringify(itensPNCP.slice(0, 40).map(i => ({
           numero: i.numeroItem, descricao: i.descricao,
@@ -418,6 +418,49 @@ ${JSON_SCHEMA_REUNIAO}`;
 
 // ── Chamada Claude + parse ────────────────────────────────────────────────────
 
+
+// ── Segmentador de edital — reduz custo de tokens em ~80% ────────────────────
+function segmentarEdital(textoCompleto) {
+  const padroes = {
+    objeto:      [/DO\s+OBJETO/i, /OBJETO\s+DA\s+LICITA[ÇC][ÃA]O/i, /1[\s\.]+OBJETO/i],
+    habilitacao: [/DA\s+HABILITA[ÇC][ÃA]O/i, /DOCUMENTOS?\s+DE\s+HABILITA[ÇC][ÃA]O/i],
+    itens:       [/PLANILHA\s+DE\s+PRE[ÇC]OS?/i, /TERMO\s+DE\s+REFER[EÊ]NCIA/i, /ESPECIFICA[ÇC][ÕO]ES?\s+T[EÉ]CNICAS?/i, /ITENS?\s+DA\s+LICITA[ÇC][ÃA]O/i],
+    prazos:      [/DOS?\s+PRAZOS?/i, /PRAZO\s+DE\s+ENTREGA/i, /PRAZO\s+DE\s+EXECU[ÇC][ÃA]O/i],
+    penalidades: [/DAS?\s+SAN[ÇC][ÕO]ES?/i, /DAS?\s+PENALIDADES?/i],
+  };
+  const limites = { objeto: 4000, habilitacao: 6000, itens: 10000, prazos: 3000, penalidades: 3000 };
+  const secoes = { encontradas: [] };
+
+  for (const [nome, lista] of Object.entries(padroes)) {
+    for (const regex of lista) {
+      const match = textoCompleto.match(regex);
+      if (match) {
+        const inicio = Math.max(0, textoCompleto.indexOf(match[0]) - 50);
+        secoes[nome] = textoCompleto.slice(inicio, inicio + limites[nome]);
+        secoes.encontradas.push(nome);
+        break;
+      }
+    }
+  }
+  if (!secoes.objeto) { secoes.objeto = textoCompleto.slice(0, 4000); secoes.encontradas.push('objeto_inferido'); }
+
+  const totalEnviado = Object.entries(secoes).filter(([k]) => k !== 'encontradas').reduce((acc, [,v]) => acc + (v||'').length, 0);
+  const economia = Math.round((1 - totalEnviado / Math.max(textoCompleto.length, 1)) * 100);
+  console.log(`[Edson] Segmentação: ${secoes.encontradas.join(', ')} | ${totalEnviado} chars | economia: ${economia}%`);
+  return secoes;
+}
+
+function montarContextoPDF(secoes) {
+  const partes = [];
+  if (secoes.objeto)      partes.push(`[OBJETO]\n${secoes.objeto}`);
+  if (secoes.itens)       partes.push(`[ITENS]\n${secoes.itens}`);
+  if (secoes.habilitacao) partes.push(`[HABILITAÇÃO]\n${secoes.habilitacao}`);
+  if (secoes.prazos)      partes.push(`[PRAZOS]\n${secoes.prazos}`);
+  if (secoes.penalidades) partes.push(`[PENALIDADES]\n${secoes.penalidades}`);
+  return partes.join('\n\n---\n\n');
+}
+
+
 async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const content = extraContent.length > 0
@@ -428,7 +471,7 @@ async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
   try {
     const { data } = await axios.post(
       ANTHROPIC_URL,
-      { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
+      { model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5', max_tokens: maxTokens, messages: [{ role: 'user', content }] },
       {
         headers: {
           'x-api-key': process.env.ANTHROPIC_API_KEY,
@@ -625,7 +668,7 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
 async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
   try {
     const pdfData = await pdfParse(pdfBuffer);
-    const pdfText = pdfData.text.trim().slice(0, 80000);
+    const pdfText = montarContextoPDF(segmentarEdital(pdfData.text.trim()));
     if (!pdfText) throw new Error('Não foi possível extrair texto do PDF');
 
     console.log(`[Edson] PDF analise ${analiseId}: ${pdfText.length} chars extraídos`);
@@ -667,7 +710,7 @@ async function analisarAvulso(analiseId, opts) {
 
     if (pdfBuffer) {
       const pdfData = await pdfParse(pdfBuffer);
-      pdfText = pdfData.text.trim().slice(0, 80000);
+      pdfText = montarContextoPDF(segmentarEdital(pdfData.text.trim()));
       console.log(`[Edson] Avulso PDF ${analiseId}: ${pdfText?.length || 0} chars`);
     } else if (numero_controle_pncp) {
       try {
@@ -832,7 +875,7 @@ async function chamarClaude(systemPrompt, messages) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages },
+    { model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5', max_tokens: 1024, system: systemPrompt, messages },
     {
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
