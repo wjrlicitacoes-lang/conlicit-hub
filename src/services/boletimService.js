@@ -101,10 +101,10 @@ async function enviarWhatsApp(whatsapp, mensagem) {
   const token = process.env.ZAPI_TOKEN;
   if (!instance || !token) throw new Error('ZAPI_INSTANCE/ZAPI_TOKEN não configurados');
 
-  const telefone = limparTelefone(whatsapp);
+  const phone = whatsapp.includes('@') ? whatsapp : limparTelefone(whatsapp);
   const { data } = await axios.post(
     `https://api.z-api.io/instances/${instance}/token/${token}/send-text`,
-    { phone: telefone, message: mensagem },
+    { phone, message: mensagem },
     { timeout: 15000 },
   );
   return data;
@@ -256,25 +256,9 @@ async function dispararBoletim() {
 
       if (cliente.whatsapp_grupo) {
         try {
-          const instance = process.env.ZAPI_INSTANCE;
-          const token = process.env.ZAPI_TOKEN;
-          const clientToken = process.env.ZAPI_CLIENT_TOKEN;
-          if (!instance || !token) throw new Error('ZAPI_INSTANCE/ZAPI_TOKEN não configurados');
-
           let grupoId = String(cliente.whatsapp_grupo).trim();
           if (!grupoId.includes('@')) grupoId = grupoId + '@g.us';
-
-          await axios.post(
-            `https://api.z-api.io/instances/${instance}/token/${token}/send-text`,
-            { phone: grupoId, message: montarMensagemWhatsApp(cliente.nome, resultados) },
-            {
-              timeout: 15000,
-              headers: {
-                'Content-Type': 'application/json',
-                ...(clientToken ? { 'client-token': clientToken } : {}),
-              },
-            },
-          );
+          await enviarWhatsApp(grupoId, montarMensagemWhatsApp(cliente.nome, resultados));
           resultado.envios_grupo++;
           console.log(`[Boletim] Grupo enviado OK para cliente ${cliente.email}`);
         } catch (e) {

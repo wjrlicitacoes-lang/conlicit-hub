@@ -875,7 +875,7 @@ async function chamarClaude(systemPrompt, messages) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
   const { data } = await axios.post(
     ANTHROPIC_URL,
-    { model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5', max_tokens: 1024, system: systemPrompt, messages },
+    { model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5', max_tokens: 4000, system: systemPrompt, messages },
     {
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
