@@ -411,24 +411,13 @@ async function listarGrupos(req, res) {
       ...(CLIENT_TOKEN ? { 'client-token': CLIENT_TOKEN } : {}),
     };
 
-    let todos = [];
-    let page = 0;
-    let temMais = true;
+    const r = await axios.get(
+      `${BASE}/instances/${INST}/token/${TOKEN}/chats`,
+      { headers, timeout: 15000, params: { page: 1, pageSize: 100 } }
+    );
 
-    while (temMais) {
-      const r = await axios.get(
-        `${BASE}/instances/${INST}/token/${TOKEN}/groups`,
-        { headers, timeout: 15000, params: { page, pageSize: 100 } }
-      );
-      const grupos = r.data ?? [];
-      if (!Array.isArray(grupos) || grupos.length === 0) {
-        temMais = false;
-      } else {
-        todos = todos.concat(grupos);
-        if (grupos.length < 100) temMais = false;
-        else page++;
-      }
-    }
+    const todos = (Array.isArray(r.data) ? r.data : [])
+      .filter(g => g.isGroup === true);
 
     todos.sort((a, b) => {
       const na = (a.name || a.subject || a.groupName || '').toLowerCase();
@@ -437,8 +426,8 @@ async function listarGrupos(req, res) {
     });
 
     return res.json(todos.map(g => ({
-      id:   g.phone || g.id || g.groupId,
-      nome: g.name  || g.subject || g.groupName || g.phone,
+      id:   g.phone,
+      nome: g.name || g.subject || g.groupName || g.phone,
     })));
   } catch (e) {
     console.error('[Grupos Z-API]', e.response?.data || e.message);
