@@ -49,13 +49,11 @@ async function enviarGrupo(groupId, mensagem) {
   if (id.includes('chat.whatsapp.com')) {
     throw new Error('Use o ID do grupo, não o link de convite. Busque os grupos pelo Hub.');
   }
-  // Normaliza para o formato "123...@g.us":
-  // "123-group" → remove sufixo "-group"
-  // "123" ou "123-group" → adiciona "@g.us"
-  // "123@g.us" → mantém
-  id = id.replace(/-group$/i, '');
-  if (!id.includes('@')) {
-    id = id + '@g.us';
+  // Normaliza para o formato "123...-group":
+  if (id.endsWith('@g.us')) {
+    id = id.slice(0, -5) + '-group';
+  } else if (!id.toLowerCase().endsWith('-group')) {
+    id = id + '-group';
   }
   const r = await client.post('/send-text', { phone: id, message: mensagem });
   return r.data;
