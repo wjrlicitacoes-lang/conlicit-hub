@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pós-Vitória — Conlicit Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/pos-vitoria.css" />
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a class="topbar-logo" href="/">Conlicit<span>Hub</span></a>
+  <span class="topbar-title">Pós-Vitória</span>
+  <a class="topbar-back" href="/">← Voltar ao painel</a>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Contratos ativos</div>
+      <div class="kpi-value" id="kpi-contratos">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Valor total</div>
+      <div class="kpi-value" id="kpi-valor">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Comissão a receber</div>
+      <div class="kpi-value" id="kpi-comissao-receber">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Recebido no mês</div>
+      <div class="kpi-value" id="kpi-comissao-mes">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">NFs pendentes</div>
+      <div class="kpi-value" id="kpi-nfs">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Cobranças atrasadas</div>
+      <div class="kpi-value" id="kpi-atrasadas">—</div>
+    </div>
+  </div>
+
+  <!-- Contratos -->
+  <div>
+    <div class="section-header" style="margin-bottom:12px">
+      <span class="section-title">Contratos</span>
+      <div class="filters">
+        <select id="filtro-status" style="width:160px" onchange="carregarContratos()">
+          <option value="">Todos os status</option>
+          <option value="assinando">Assinando</option>
+          <option value="ativo">Ativo</option>
+          <option value="aguardando_nf">Aguardando NF</option>
+          <option value="concluido">Concluído</option>
+          <option value="rescindido">Rescindido</option>
+        </select>
+        <input id="filtro-cliente" placeholder="Filtrar cliente..." style="width:200px" oninput="carregarContratos()" />
+        <button class="btn btn-primary" onclick="abrirModalContrato()">+ Novo contrato</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Pregão</th>
+            <th>Órgão</th>
+            <th>Valor</th>
+            <th>% Comissão</th>
+            <th>Comissão total</th>
+            <th>Status</th>
+            <th>Data vitória</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-contratos">
+          <tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Novo Contrato
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Novo Contrato</h2>
+      <button class="modal-close" onclick="fecharModal('modal-contrato')">✕</button>
+    </div>
+    <form id="form-contrato" onsubmit="event.preventDefault();salvarContrato()">
+      <div class="modal-body">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Cliente *</label>
+            <input name="cliente_nome" placeholder="Nome do cliente" required />
+          </div>
+          <div class="form-group">
+            <label>Modalidade *</label>
+            <select name="modalidade" required>
+              <option value="">Selecione...</option>
+              <option value="Pregão Eletrônico">Pregão Eletrônico</option>
+              <option value="Pregão Presencial">Pregão Presencial</option>
+              <option value="Dispensa Eletrônica">Dispensa Eletrônica</option>
+              <option value="Concorrência">Concorrência</option>
+              <option value="Tomada de Preços">Tomada de Preços</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Nº do Pregão *</label>
+            <input name="numero_pregao" placeholder="Ex: PE 001/2025" required />
+          </div>
+          <div class="form-group">
+            <label>Órgão *</label>
+            <input name="orgao" placeholder="Órgão licitante" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Objeto</label>
+          <textarea name="objeto" rows="2" placeholder="Descrição do objeto licitado"></textarea>
+        </div>
+
+        <div class="form-grid cols3">
+          <div class="form-group">
+            <label>Valor do contrato *</label>
+            <input name="valor_contrato" type="number" step="0.01" min="0" placeholder="0,00" required />
+          </div>
+          <div class="form-group">
+            <label>% Comissão *</label>
+            <input name="percentual_comissao" type="number" step="0.01" min="0" max="100" placeholder="Ex: 5.00" required />
+          </div>
+          <div class="form-group">
+            <label>Data da vitória *</label>
+            <input name="data_vitoria" type="date" required />
+          </div>
+        </div>
+
+        <div class="form-grid cols3">
+          <div class="form-group">
+            <label>Data de assinatura</label>
+            <input name="data_assinatura" type="date" />
+          </div>
+          <div class="form-group">
+            <label>Vigência início</label>
+            <input name="data_vigencia_inicio" type="date" />
+          </div>
+          <div class="form-group">
+            <label>Vigência fim</label>
+            <input name="data_vigencia_fim" type="date" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2" placeholder="Observações opcionais"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-contrato')">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-contrato">Salvar contrato</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Detalhe do Contrato
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-detalhe">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <div class="detail-header">
+          <span class="num" id="det-num"></span>
+          <h3 id="det-nome"></h3>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:2px" id="det-orgao"></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-detalhe')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Objeto -->
+      <div style="background:rgba(76,197,215,0.06);border:1px solid rgba(76,197,215,0.15);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#4CC5D7;margin-bottom:4px">Objeto</div>
+        <div id="det-objeto" style="font-size:14px;color:#DEE6E9;line-height:1.5"></div>
+      </div>
+
+      <!-- Campos -->
+      <div class="detail-fields">
+        <div class="detail-field"><div class="lbl">Valor contrato</div><div class="val" id="det-valor"></div></div>
+        <div class="detail-field"><div class="lbl">% Comissão</div><div class="val" id="det-pct"></div></div>
+        <div class="detail-field"><div class="lbl">Comissão total</div><div class="val" id="det-comissao-total"></div></div>
+        <div class="detail-field"><div class="lbl">Total faturado</div><div class="val" id="det-faturado"></div></div>
+        <div class="detail-field"><div class="lbl">Status</div><div class="val" id="det-status"></div></div>
+        <div class="detail-field"><div class="lbl">Data vitória</div><div class="val" id="det-vitoria"></div></div>
+        <div class="detail-field"><div class="lbl">Assinatura</div><div class="val" id="det-assinatura"></div></div>
+        <div class="detail-field" style="grid-column:span 2"><div class="lbl">Vigência</div><div class="val" id="det-vigencia"></div></div>
+      </div>
+
+      <!-- Alterar status -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="margin:0;text-transform:none;font-size:13px;color:var(--text-muted);white-space:nowrap">Alterar status:</label>
+        <select id="select-status-contrato" style="width:auto;flex:0 0 auto">
+          <option value="assinando">Assinando</option>
+          <option value="ativo">Ativo</option>
+          <option value="aguardando_nf">Aguardando NF</option>
+          <option value="concluido">Concluído</option>
+          <option value="rescindido">Rescindido</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="alterarStatusContrato()">Atualizar</button>
+      </div>
+
+      <!-- Tabs -->
+      <div>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tab-nfs" onclick="ativarTab('tab-nfs')">Notas Fiscais</button>
+          <button class="tab-btn" data-tab="tab-comissoes" onclick="ativarTab('tab-comissoes')">Comissões</button>
+        </div>
+
+        <!-- Tab NFs -->
+        <div class="tab-panel active" id="tab-nfs">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNF()">+ Nova NF</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº NF</th><th>Emissão</th><th>Valor NF</th>
+                  <th>Comissão</th><th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-nfs"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab Comissões -->
+        <div class="tab-panel" id="tab-comissoes">
+          <div class="table-wrap" style="margin-top:4px">
+            <table>
+              <thead>
+                <tr>
+                  <th>NF</th><th>Emissão</th><th>Esperado</th>
+                  <th>Recebido</th><th>Status</th><th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-comissoes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Nova NF
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-nf">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nova Nota Fiscal</h2>
+      <button class="modal-close" onclick="fecharModal('modal-nf')">✕</button>
+    </div>
+    <form id="form-nf" onsubmit="event.preventDefault();salvarNF()">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nº da NF *</label>
+            <input name="numero_nf" placeholder="Ex: NF-0001" required />
+          </div>
+          <div class="form-group">
+            <label>Data de emissão *</label>
+            <input name="data_emissao" type="date" required />
+          </div>
+          <div class="form-group">
+            <label>Valor da NF *</label>
+            <input name="valor_nf" type="number" step="0.01" min="0" placeholder="0,00" required />
+          </div>
+          <div class="form-group">
+            <label>% Comissão aplicado *</label>
+            <input id="nf-pct" name="percentual_aplicado" type="number" step="0.01" min="0" max="100" placeholder="Ex: 5.00" required />
+          </div>
+          <div class="form-group">
+            <label>Prazo de pagamento</label>
+            <input name="prazo_pagamento" type="date" />
+          </div>
+          <div class="form-group">
+            <label>Arquivo NF (PDF/imagem)</label>
+            <input name="arquivo_nf" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding:5px" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-nf')">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-nf">Salvar NF</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Registrar Recebimento
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-recebimento">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h2>Registrar Recebimento</h2>
+      <button class="modal-close" onclick="fecharModal('modal-recebimento')">✕</button>
+    </div>
+    <form id="form-recebimento" onsubmit="event.preventDefault();salvarRecebimento()">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Status *</label>
+            <select name="status" required>
+              <option value="recebida">Recebida</option>
+              <option value="enviada">Cobrança enviada</option>
+              <option value="atrasada">Atrasada</option>
+              <option value="negociando">Negociando</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Forma de pagamento</label>
+            <select name="forma_pagamento">
+              <option value="">—</option>
+              <option value="PIX">PIX</option>
+              <option value="TED">TED</option>
+              <option value="Boleto">Boleto</option>
+              <option value="Cheque">Cheque</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor recebido</label>
+            <input id="rec-valor" name="valor_recebido" type="number" step="0.01" min="0" placeholder="0,00" />
+          </div>
+          <div class="form-group">
+            <label>Data de recebimento</label>
+            <input id="rec-data" name="data_recebimento" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-recebimento')">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-rec">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/pos-vitoria.js"></script>
+</body>
+</html>

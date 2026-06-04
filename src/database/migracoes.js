@@ -167,16 +167,16 @@ async function executarMigracoes() {
   await db.query(`
     DO $$
     BEGIN
-      -- Remove qualquer constraint de role existente (com ou sem 'cliente')
+      -- Remove qualquer constraint de role existente
       IF EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
       ) THEN
         ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
       END IF;
-      -- Recria sempre com os três roles
+      -- Recria sempre com o conjunto completo de roles
       ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','cliente'));
+        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'));
     END $$
   `);
 
@@ -294,7 +294,7 @@ async function executarMigracoes() {
         ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
       END IF;
       ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','cliente','socio_fundador','diretor_comercial'));
+        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'));
     END $$
   `);
 

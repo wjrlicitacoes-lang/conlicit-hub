@@ -24,6 +24,7 @@ const roboRoutes         = require('./routes/robo');
 const captacaoRoutes     = require('./routes/captacao');
 const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
+const posVitoriaRoutes    = require('./routes/posVitoria');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 
 const autenticar              = require('./middleware/autenticar');
@@ -56,6 +57,7 @@ app.options('*', cors());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/auth',          authRoutes);
 app.post('/formulario/cliente', receberFormulario);  // rota pública — sem autenticação
@@ -70,6 +72,7 @@ app.use('/captacao',      captacaoRoutes);
 app.use('/prospects',     autenticar, verificarPermissao('prospects'),  prospectsRoutes);
 app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
+app.use('/api/pos-vitoria', autenticar, posVitoriaRoutes);
 
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
