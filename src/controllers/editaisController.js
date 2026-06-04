@@ -49,6 +49,17 @@ function formatarMoeda(valor) {
 
 function formatarData(d) {
   if (!d) return null;
+  // Date object de coluna DATE do pg = midnight UTC → usar partes UTC diretamente
+  if (d instanceof Date) {
+    const dia = String(d.getUTCDate()).padStart(2, '0');
+    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `${dia}/${mes}/${d.getUTCFullYear()}`;
+  }
+  // String date-only "YYYY-MM-DD" → parse direto, sem conversão de fuso
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(d))) {
+    const [ano, mes, dia] = String(d).split('-');
+    return `${dia}/${mes}/${ano}`;
+  }
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
@@ -78,7 +89,21 @@ function formatarEdital(item) {
     municipio:                u.municipioNome ?? item.municipio ?? null,
     link:                     cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null,
     linkSistemaOrigem:        item.linkSistemaOrigem ?? raw.linkSistemaOrigem ?? null,
-    dataEncerramento:         item.dataEncerramentoProposta ?? item.data_encerramento ?? null,
+    // dataEncerramento: ISO seguro — DATE do BD vira noon BRT (evita rollback para 21h)
+    dataEncerramento: (() => {
+      const rawVal = item.dataEncerramentoProposta ?? item.data_encerramento;
+      if (!rawVal) return null;
+      if (rawVal instanceof Date) {
+        const y = rawVal.getUTCFullYear();
+        const m = String(rawVal.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(rawVal.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}T12:00:00-03:00`;
+      }
+      const s = String(rawVal);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T12:00:00-03:00`;
+      return s;
+    })(),
+    dataAberturaProposta:     item.dataAberturaProposta ?? raw.dataAberturaProposta ?? null,
     portal_disputa:           detectarPortal(item.linkSistemaOrigem ?? raw.linkSistemaOrigem ?? null),
   };
 }
