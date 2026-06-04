@@ -170,7 +170,8 @@ async function disparar(req, res) {
   const { id } = req.params;
   try {
     const { rows: [op] } = await db.query(
-      `SELECT o.*, c.nome AS cliente_nome, c.contato_whatsapp, c.whatsapp_grupo,
+      `SELECT o.*, c.nome AS cliente_nome, c.whatsapp AS whatsapp_empresa,
+              c.contato_whatsapp, c.whatsapp_grupo,
               c.responsavel AS cliente_responsavel
        FROM oportunidades_fila o
        LEFT JOIN clientes c ON c.id = o.cliente_id
@@ -206,22 +207,26 @@ async function disparar(req, res) {
 
     const erros = [];
 
-    console.log(`[Disparo] op.id=${op.id} grupo="${op.whatsapp_grupo}" dm="${op.contato_whatsapp}"`);
+    console.log(`[Disparo] op.id=${op.id} | grupo="${op.whatsapp_grupo}" | contato_whatsapp="${op.contato_whatsapp}" | whatsapp_empresa="${op.whatsapp_empresa}"`);
 
     if (op.whatsapp_grupo) {
       try {
-        await zapiSvc.enviarGrupo(op.whatsapp_grupo, msgGrupo);
-        console.log(`[Disparo] Grupo enviado OK`);
+        const resGrupo = await zapiSvc.enviarGrupo(op.whatsapp_grupo, msgGrupo);
+        console.log(`[Disparo] Grupo OK — phone="${op.whatsapp_grupo}" messageId="${resGrupo?.messageId}"`);
       } catch (e) {
-        console.error(`[Disparo] Erro grupo:`, e.response?.data || e.message);
+        console.error(`[Disparo] Erro grupo — phone="${op.whatsapp_grupo}":`, e.response?.data || e.message);
         erros.push(`Grupo: ${e.message}`);
       }
+    } else {
+      console.log(`[Disparo] Sem grupo configurado para cliente`);
     }
 
-    if (op.contato_whatsapp) {
+    const dmPhone = op.contato_whatsapp || op.whatsapp_empresa;
+    if (dmPhone) {
+      console.log(`[Disparo] DM → phone="${dmPhone}" (${op.contato_whatsapp ? 'contato' : 'empresa (fallback)'})`);
       try {
-        await zapiSvc.enviarBotoes(
-          op.contato_whatsapp,
+        const resBotoes = await zapiSvc.enviarBotoes(
+          dmPhone,
           '🔔 Nova Oportunidade',
           msgDM,
           'Conlicit Hub · hub.conlicit.com',
@@ -230,14 +235,22 @@ async function disparar(req, res) {
             { id: `nao_${op.id}`, label: '❌ Não tenho interesse' },
           ],
         );
-      } catch {
+        console.log(`[Disparo] DM botões OK — messageId="${resBotoes?.messageId}"`);
+      } catch (eBotoes) {
+        console.warn(`[Disparo] Botões falhou, tentando texto simples — ${eBotoes.response?.data?.message || eBotoes.message}`);
         try {
-          await zapiSvc.enviarTexto(
-            op.contato_whatsapp,
+          const resTexto = await zapiSvc.enviarTexto(
+            dmPhone,
             msgDM + '\n\nResponda *SIM* para participar ou *NÃO* para recusar.',
           );
-        } catch (e2) { erros.push(`DM: ${e2.message}`); }
+          console.log(`[Disparo] DM texto OK — messageId="${resTexto?.messageId}"`);
+        } catch (e2) {
+          console.error(`[Disparo] DM texto falhou — phone="${dmPhone}":`, e2.response?.data || e2.message);
+          erros.push(`DM: ${e2.message}`);
+        }
       }
+    } else {
+      console.log(`[Disparo] Sem WhatsApp de DM configurado para cliente`);
     }
 
     await db.query(
