@@ -476,6 +476,13 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
 
+  // Campos estruturados extraídos pelo Edson — órgão, valor, data, UF, número
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS orgao         TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS valor_estimado NUMERIC`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS data_abertura  TEXT`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS uf             VARCHAR(2)`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS numero_pregao  TEXT`);
+
   console.log('Migrações executadas com sucesso');
 }
 

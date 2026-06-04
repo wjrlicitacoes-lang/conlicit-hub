@@ -110,11 +110,19 @@ LEGISLAÇÃO APLICÁVEL — Lei 14.133/2021:
 
 const JSON_SCHEMA_INSTRUCAO = `
 Responda APENAS com JSON válido contendo exatamente estes campos de nível raiz:
+numero_pregao, orgao, valor_estimado, data_abertura, uf,
 criterios_score, score_justificativa, resumo_executivo, modalidade, modo_disputa,
 tipo_julgamento, itens, habilitacao, clausulas_restritivas, prazos_legais,
 beneficios_me_epp, riscos, checklist, tipo_fornecimento, entrega_tipo,
 julgamento_tipo, locais_entrega, prazo_entrega, habilitacao_juridica,
 habilitacao_economica, capacidade_tecnica.
+
+Campos de identificação — extraia diretamente do texto do edital (retorne null se não encontrar):
+- numero_pregao: número/identificador do pregão ou licitação (ex: "PE 001/2026", "012/2026") — NÃO é o objeto
+- orgao: nome completo do órgão ou entidade licitante
+- valor_estimado: valor estimado total em número (ex: 150000.00) — null se sigiloso ou não informado
+- data_abertura: data e hora da sessão de abertura como string (ex: "29/05/2026 09:00") — null se não encontrar
+- uf: sigla do estado do órgão licitante (2 letras, ex: "MG") — null se não identificado
 
 Tipos obrigatórios:
 - criterios_score: objeto com 6 números (alinhamento_objeto 0-25, complexidade_habilitacao 0-20, valor_viabilidade 0-20, modo_disputa 0-15, risco_juridico 0-10, prazo_adequado 0-10)
@@ -557,7 +565,7 @@ function parsearRespostaEdson(raw) {
   return finalizarParse({});
 }
 
-async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []) {
+async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = [], dadosContexto = {}) {
   if ((!parsed.itens || parsed.itens.length === 0) && itensPNCP.length > 0) {
     parsed.itens = itensPNCP.slice(0, 100).map(i => ({
       numero: i.numeroItem, descricao: i.descricao,
@@ -565,6 +573,15 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
       valor_unitario_estimado: i.valorUnitarioEstimado,
     }));
   }
+
+  // Campos estruturados — prioridade: Claude → contexto do banco (JOIN) → null
+  const orgao         = parsed.orgao         || dadosContexto.orgao         || null;
+  const uf            = parsed.uf            || dadosContexto.uf            || null;
+  const numero_pregao = parsed.numero_pregao || dadosContexto.numero        || null;
+  const data_abertura = parsed.data_abertura || dadosContexto.data_abertura || null;
+  const valor_estimado = (parsed.valor_estimado != null && parsed.valor_estimado !== '')
+    ? parseFloat(parsed.valor_estimado) || null
+    : (dadosContexto.valor_estimado != null ? parseFloat(dadosContexto.valor_estimado) || null : null);
 
   await db.query(
     `UPDATE analises_edson SET
@@ -576,6 +593,7 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
        tipo_fornecimento = $13, entrega_tipo = $14, julgamento_tipo = $15,
        locais_entrega = $16, prazo_entrega = $17,
        habilitacao_juridica_json = $18, habilitacao_economica_json = $19, capacidade_tecnica_json = $20,
+       orgao = $21, valor_estimado = $22, data_abertura = $23, uf = $24, numero_pregao = $25,
        atualizado_em = NOW()
      WHERE id = $1`,
     [
@@ -598,6 +616,7 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
       JSON.stringify(parsed.habilitacao_juridica ?? []),
       JSON.stringify(parsed.habilitacao_economica ?? {}),
       JSON.stringify(parsed.capacidade_tecnica ?? {}),
+      orgao, valor_estimado, data_abertura, uf, numero_pregao,
     ],
   );
 
@@ -657,7 +676,10 @@ async function analisarPregao(analiseId, pregaoId, modo = 'completo') {
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
-    await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
+    await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP, {
+      orgao: pregao.orgao, uf: pregao.uf, numero: pregao.numero,
+      valor_estimado: pregao.valor_estimado, data_abertura: pregao.data_hora_abertura,
+    });
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro na análise:', e.message);
@@ -692,7 +714,10 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
-    await salvarAnalise(analiseId, parsed, criterios, score);
+    await salvarAnalise(analiseId, parsed, criterios, score, [], {
+      orgao: pregao.orgao, uf: pregao.uf, numero: pregao.numero,
+      valor_estimado: pregao.valor_estimado, data_abertura: pregao.data_hora_abertura,
+    });
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro no PDF:', e.message);
@@ -732,7 +757,10 @@ async function analisarAvulso(analiseId, opts) {
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
-    await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP);
+    await salvarAnalise(analiseId, parsed, criterios, score, itensPNCP, {
+      uf: clienteUF || null,
+      numero: referencia || null,
+    });
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] Erro avulso:', e.message);
@@ -861,7 +889,11 @@ async function reanalisarComSuplementos(analiseId) {
     const prompt = buildPromptReanalise(analise, complementarNote);
     const raw = await callClaude(prompt, 6000, extraContent);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
-    await salvarAnalise(analiseId, parsed, criterios, score);
+    await salvarAnalise(analiseId, parsed, criterios, score, [], {
+      orgao: analise.orgao, uf: analise.uf,
+      numero: analise.numero || analise.referencia,
+      valor_estimado: analise.valor_estimado, data_abertura: analise.data_hora_abertura,
+    });
     gerarPerguntasProativas(analiseId).catch(e => console.warn('[Edson] Perguntas proativas:', e.message));
   } catch (e) {
     console.error('[Edson] reanalisarComSuplementos:', e.message);
