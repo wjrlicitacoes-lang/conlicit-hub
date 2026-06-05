@@ -199,6 +199,102 @@ async function analisar(req, res) {
   }
 }
 
+// ── Análise automática de edital para prospect (background) ─────────────────
+
+async function processarAnaliseProspect(prospect) {
+  const { analisarAvulso } = require('../services/edsonService');
+  const { readFile } = require('fs').promises;
+  const path = require('path');
+
+  const referencia = `Prospect #${prospect.id}: ${prospect.nome} — ${prospect.empresa || prospect.segmento || ''} | ${prospect.edital}`;
+
+  // Cria registro em analises_edson
+  const { rows: [analise] } = await db.query(
+    `INSERT INTO analises_edson (referencia, status) VALUES ($1, 'aguardando_pdf') RETURNING id`,
+    [referencia],
+  );
+
+  await db.query(
+    `UPDATE prospects SET analise_edson_id=$1, updated_at=NOW() WHERE id=$2`,
+    [analise.id, prospect.id],
+  );
+
+  await registrarEvento(prospect.id, 'analise_solicitada',
+    `Análise Edson criada (#${analise.id}) via landing page`);
+
+  // TODO: conectar busca PNCP por número de edital quando número de controle for passado
+  await analisarAvulso(analise.id, {
+    referencia,           // número/link do edital passado via referencia
+    palavrasChave: prospect.segmento || null,
+    modo: 'reuniao',
+  });
+
+  // Busca resultado salvo pela análise
+  const { rows: [resultado] } = await db.query(
+    `SELECT * FROM analises_edson WHERE id=$1`,
+    [analise.id],
+  );
+
+  if (resultado?.status !== 'pronto' || !prospect.email || !process.env.RESEND_API_KEY) return;
+
+  // Lê e preenche template de email
+  const templatePath = path.join(__dirname, '../../public/emails/email-resumo-prospect.html');
+  let html = await readFile(templatePath, 'utf8');
+
+  const habJson = Array.isArray(resultado.habilitacao) ? resultado.habilitacao
+    : (() => { try { return JSON.parse(resultado.habilitacao || '[]'); } catch { return []; } })();
+  const clausulasJson = Array.isArray(resultado.clausulas_restritivas) ? resultado.clausulas_restritivas
+    : (() => { try { return JSON.parse(resultado.clausulas_restritivas || '[]'); } catch { return []; } })();
+
+  const habText = habJson.map(h =>
+    `${h.categoria}: ${(h.documentos || []).map(d => d.nome).join(', ')}`
+  ).join('<br>') || '—';
+  const docsText = habJson.flatMap(h => (h.documentos || []).map(d => d.nome)).join(', ') || '—';
+  const pontosText = clausulasJson.length
+    ? clausulasJson.map(c => `⚠️ ${c.clausula}`).join('<br>')
+    : 'Nenhum ponto crítico identificado.';
+  const valorFmt = resultado.valor_estimado
+    ? `R$ ${Number(resultado.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    : '—';
+
+  html = html
+    .replace(/\{\{NOME\}\}/g,            prospect.nome || '')
+    .replace(/\{\{EMPRESA\}\}/g,          prospect.empresa || 'sua empresa')
+    .replace(/\{\{ORGAO\}\}/g,            resultado.orgao || '—')
+    .replace(/\{\{OBJETO\}\}/g,           prospect.edital || '—')
+    .replace(/\{\{VALOR\}\}/g,            valorFmt)
+    .replace(/\{\{DATA_ABERTURA\}\}/g,    resultado.data_abertura || '—')
+    .replace(/\{\{HABILITACAO\}\}/g,      habText)
+    .replace(/\{\{DOCUMENTOS\}\}/g,       docsText)
+    .replace(/\{\{PONTOS_ATENCAO\}\}/g,   pontosText)
+    .replace(/\{\{RESUMO_EXECUTIVO\}\}/g, resultado.resumo_executivo || '—');
+
+  await axios.post('https://api.resend.com/emails', {
+    from: process.env.BOLETIM_FROM_EMAIL || 'onboarding@resend.dev',
+    to: prospect.email,
+    subject: `📋 Resumo do edital que você enviou — Conlicit`,
+    html,
+  }, { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` } });
+
+  await registrarEvento(prospect.id, 'resumo_enviado',
+    `Resumo do edital enviado por email para ${prospect.email}`);
+  await db.query(
+    `UPDATE prospects SET status='resumo_enviado', updated_at=NOW() WHERE id=$1`,
+    [prospect.id],
+  );
+
+  // WhatsApp de confirmação de envio
+  if (prospect.whatsapp && process.env.ZAPI_INSTANCE) {
+    const { enviarTexto } = require('../services/zapiService');
+    const msg =
+      `Olá ${prospect.nome}! 👋\n\n` +
+      `Acabei de enviar para ${prospect.email} o resumo do edital que você solicitou.\n\n` +
+      `Se quiser conversar sobre o resultado, é só responder aqui.\n\n` +
+      `— Sabrine | Conlicit`;
+    enviarTexto(prospect.whatsapp, msg).catch(() => {});
+  }
+}
+
 // ── Endpoint público — landing page ──────────────────────────────────────────
 
 async function receberLanding(req, res) {
@@ -250,6 +346,11 @@ async function receberLanding(req, res) {
     }
 
     notificarAdmin(prospect);
+    if (prospect.edital?.trim()) {
+      processarAnaliseProspect(prospect).catch(e =>
+        console.error('[Prospects] processarAnaliseProspect:', e.message),
+      );
+    }
     return res.status(201).json({ ok: true, id: prospect.id });
   } catch (e) {
     console.error('[Prospects] receberLanding:', e.message);

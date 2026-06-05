@@ -46,7 +46,18 @@ async function verificarSaldoAnthropic() {
   }
 }
 
+async function migrarColunaFollowup() {
+  try {
+    await db.query(
+      `ALTER TABLE prospects ADD COLUMN IF NOT EXISTS followup_enviado BOOLEAN DEFAULT FALSE`,
+    );
+  } catch (e) {
+    console.error('[Cron] Migração followup_enviado:', e.message);
+  }
+}
+
 function iniciarAgendador() {
+  migrarColunaFollowup();
   // Sincronização do cache PNCP — todo dia às 6h (antes do boletim das 7h)
   const cronSync = process.env.SYNC_CRON || '0 6 * * *';
   cron.schedule(
@@ -199,6 +210,92 @@ function iniciarAgendador() {
   }, { timezone: 'America/Sao_Paulo' });
 
   console.log('[Cron] Alerta de vencimento de documentos agendado: 0 8 * * * (America/Sao_Paulo)');
+
+  // Follow-up automático de prospects — todo dia às 9h
+  cron.schedule('0 9 * * *', async () => {
+    console.log('[Cron] Iniciando follow-up de prospects...');
+    try {
+      const { rows: prospects } = await db.query(`
+        SELECT * FROM prospects
+        WHERE status = 'resumo_enviado'
+          AND updated_at <= NOW() - INTERVAL '24 hours'
+          AND followup_enviado IS NOT TRUE
+          AND email IS NOT NULL
+      `);
+
+      if (!prospects.length) {
+        console.log('[Cron] Nenhum prospect para follow-up.');
+        return;
+      }
+
+      const { readFile } = require('fs').promises;
+      const path = require('path');
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        console.warn('[Cron] RESEND_API_KEY não configurada — follow-up cancelado');
+        return;
+      }
+      const resend = new Resend(resendKey);
+
+      const templatePath = path.join(__dirname, '../../public/emails/email-followup-prospect.html');
+      const templateBase = await readFile(templatePath, 'utf8');
+
+      const PS_MAP = {
+        saude:      'P.S.: A maioria dos editais de saúde e medicamentos exige habilitação técnica e certidão CRF. O Conlicit já tem checklist pronto pra isso.',
+        alimentacao:'P.S.: Editais de merenda escolar têm exigências da ANVISA e PNAE. O Conlicit monitora e filtra só os que se encaixam no seu perfil.',
+        obras:      'P.S.: Licitações de obras têm prazo mínimo de 25 dias úteis por lei. O Conlicit captura antes da maioria saber que existe.',
+        limpeza:    'P.S.: Editais de limpeza e conservação saem toda semana nas prefeituras da RMBH. Eu te aviso por WhatsApp antes do prazo fechar.',
+        escritorio: 'P.S.: Material de escritório costuma ter pregão eletrônico com SRP — você pode fornecer para vários órgãos com um só cadastro.',
+        ti:         'P.S.: Licitações de TI e software costumam ter menos concorrentes qualificados. É um nicho com boa margem pra quem conhece o processo.',
+        seguranca:  'P.S.: Editais de segurança e vigilância exigem registro na SSP. O Conlicit já filtra só os que cabem no seu CNAE.',
+        manutencao: 'P.S.: Manutenção predial tem alta demanda nas prefeituras da RMBH. Posso te avisar assim que sair o próximo.',
+        transporte: 'P.S.: Licitações de transporte e veículos costumam exigir registro ANTT. O Conlicit verifica isso antes de te avisar.',
+        epi:        'P.S.: EPI e uniformes têm pregão quase toda semana. O Conlicit monitora por CNAE e te avisa antes do prazo fechar.',
+      };
+
+      for (const prospect of prospects) {
+        try {
+          const trechoObjeto = prospect.edital
+            ? `"${prospect.edital.slice(0, 60)}${prospect.edital.length > 60 ? '…' : ''}"`
+            : 'enviado anteriormente';
+          const psNicho = PS_MAP[prospect.segmento]
+            || 'P.S.: Se quiser, posso monitorar automaticamente os editais do seu segmento e te avisar no WhatsApp antes dos prazos fecharem.';
+
+          const html = templateBase
+            .replace(/\{\{NOME\}\}/g,         prospect.nome || '')
+            .replace(/\{\{EMPRESA\}\}/g,       prospect.empresa || 'sua empresa')
+            .replace(/\{\{TRECHO_OBJETO\}\}/g, trechoObjeto)
+            .replace(/\{\{PS_NICHO\}\}/g,      psNicho);
+
+          await resend.emails.send({
+            from: process.env.BOLETIM_FROM_EMAIL || 'Conlicit <onboarding@resend.dev>',
+            to: prospect.email,
+            subject: `Você teve chance de ver o resumo do edital?`,
+            html,
+          });
+
+          await db.query(
+            `UPDATE prospects SET status='em_followup', followup_enviado=TRUE, updated_at=NOW() WHERE id=$1`,
+            [prospect.id],
+          );
+
+          await db.query(
+            `INSERT INTO prospects_eventos (prospect_id, tipo, descricao)
+             VALUES ($1, 'followup_enviado', $2)`,
+            [prospect.id, `Email de follow-up enviado para ${prospect.email}`],
+          );
+
+          console.log(`[Cron] Follow-up enviado — prospect ${prospect.id} (${prospect.nome})`);
+        } catch (e) {
+          console.error(`[Cron] Erro no follow-up do prospect ${prospect.id}:`, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[Cron] Erro no job de follow-up:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
+  console.log('[Cron] Follow-up de prospects agendado: 0 9 * * * (America/Sao_Paulo)');
 
   console.log(`[Cron] Sync PNCP agendado: "${cronSync}" (America/Sao_Paulo)`);
   console.log(`[Cron] Boletim agendado: "${cronBoletim}" (America/Sao_Paulo)`);

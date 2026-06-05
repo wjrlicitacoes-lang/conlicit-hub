@@ -6,13 +6,14 @@
   <title>Conlicit Hub — Painel</title>
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#182A39" />
+  <meta name="theme-color" content="#162A39" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Conlicit Hub" />
   <link rel="apple-touch-icon" href="/assets/images/simbolo-branco.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <style>
     @font-face { font-family:'AdineuePRO'; src:url('/assets/fonts/ADINEUE_PRO.TTF') format('truetype'); font-weight:400; font-display:swap }
@@ -24,66 +25,70 @@
 
     :root {
       --primary:   #4CC5D7;
-      --primary-d: #35a8b9;
+      --primary-d: #2fa8ba;
       --primary-l: #7dd8e6;
-      --secondary: #182A39;
-      --sec-light: #1f3547;
-      --sec-card:  #182A39;
+      --secondary: #162A39;
+      --sec-light: #1a3245;
+      --sec-card:  #162A39;
       --sec-border:rgba(76,197,215,0.12);
-      --text:      #FFFFFF;
-      --text-muted:#DEE6E9;
-      --danger:    #e05c5c;
-      --success:   #4CC5D7;
-      --warning:   #f0a840;
-      --font: 'AdineuePRO', 'Barlow', -apple-system, sans-serif;
-      --font-condensed: 'AdineuePRO', 'Barlow Condensed', sans-serif;
+      --text:      #ffffff;
+      --text-muted:#a8bfcc;
+      --danger:    #f87171;
+      --success:   #34d399;
+      --warning:   #f59e0b;
+      --font: 'DM Sans', 'Barlow', -apple-system, sans-serif;
+      --font-condensed: 'DM Sans', 'Barlow Condensed', sans-serif;
       --radius: 12px;
       --radius-sm: 8px;
-      --shadow: 0 4px 24px rgba(0,0,0,.35);
+      --shadow: 0 4px 24px rgba(0,0,0,.4);
       --sidebar-w: 220px;
       /* ── tema dark (padrão) ── */
-      --bg:          #0f1e29;
-      --card-bg:     #182A39;
+      --bg:          #0d1b25;
+      --card-bg:     #1a3245;
       --card-border: rgba(76,197,215,0.12);
-      --sidebar-bg:  #182A39;
-      --topbar-bg:   #182A39;
-      --t1:          #FFFFFF;
-      --t2:          #DEE6E9;
-      --t3:          rgba(255,255,255,0.4);
+      --sidebar-bg:  #162A39;
+      --topbar-bg:   #162A39;
+      --t1:          #ffffff;
+      --t2:          #a8bfcc;
+      --t3:          #5a7a8c;
       --input-bg:    rgba(255,255,255,0.06);
       --input-border:rgba(76,197,215,0.2);
       --th-bg:       rgba(255,255,255,0.04);
-      --row-hover:   rgba(76,197,215,0.05);
+      --row-hover:   rgba(76,197,215,0.06);
       --bd:          rgba(76,197,215,0.12);
     }
 
     body.tema-light {
-      --bg:          #DEE6E9;
-      --card-bg:     #FFFFFF;
+      --bg:          #f0f4f7;
+      --card-bg:     #ffffff;
       --card-border: rgba(0,0,0,0.08);
-      --t1:          #080808;
-      --t2:          #182A39;
-      --t3:          rgba(0,0,0,0.4);
-      --input-bg:    #FFFFFF;
-      --input-border:rgba(24,42,57,0.2);
-      --th-bg:       #F0F2F5;
-      --row-hover:   #F0F2F5;
+      --t1:          #0d1b25;
+      --t2:          #2d4a5f;
+      --t3:          #5a7a8c;
+      --input-bg:    #ffffff;
+      --input-border:rgba(14,143,163,0.3);
+      --th-bg:       #e8f0f5;
+      --row-hover:   #e8f0f5;
       --bd:          rgba(0,0,0,0.08);
-      --text:        #080808;
-      --text-muted:  #182A39;
+      --text:        #0d1b25;
+      --text-muted:  #2d4a5f;
       --sec-border:  rgba(0,0,0,0.1);
+      --primary:     #0e8fa3;
+      --primary-l:   #4CC5D7;
+      --sidebar-bg:  #162A39;
+      --topbar-bg:   #162A39;
     }
     body.tema-dark {
-      --bg:          #0f1e29;
-      --card-bg:     #182A39;
+      --bg:          #0d1b25;
+      --card-bg:     #1a3245;
       --card-border: rgba(76,197,215,0.12);
-      --t1:          #FFFFFF;
-      --t2:          #DEE6E9;
-      --t3:          rgba(255,255,255,0.4);
+      --t1:          #ffffff;
+      --t2:          #a8bfcc;
+      --t3:          #5a7a8c;
       --input-bg:    rgba(255,255,255,0.06);
       --input-border:rgba(76,197,215,0.2);
       --th-bg:       rgba(255,255,255,0.04);
-      --row-hover:   rgba(76,197,215,0.05);
+      --row-hover:   rgba(76,197,215,0.06);
       --bd:          rgba(76,197,215,0.12);
     }
 
@@ -112,7 +117,7 @@
 
     /* ── HEADER ── */
     header {
-      background: var(--topbar-bg, #182A39);
+      background: var(--topbar-bg, #162A39);
       border-bottom: 1px solid rgba(76,197,215,0.15);
       padding: 0 clamp(1rem, 3vw, 2rem);
       position: sticky;
@@ -283,7 +288,7 @@
     body.tema-light .sidebar {
       width: var(--sidebar-w);
       flex-shrink: 0;
-      background: #182A39 !important;
+      background: #162A39 !important;
       border-right: 1px solid rgba(76,197,215,0.12);
       display: flex;
       flex-direction: column;
@@ -294,7 +299,7 @@
     }
     header,
     body.tema-light header {
-      background: #182A39 !important;
+      background: #162A39 !important;
     }
     .sidebar-nav {
       flex: 1;
@@ -305,11 +310,11 @@
     }
     .sidebar-section-label,
     body.tema-light .sidebar-section-label {
-      font-size: .67rem;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: rgba(255,255,255,0.4) !important;
+      letter-spacing: 1.2px;
+      color: rgba(255,255,255,0.35) !important;
       opacity: 1;
       padding: .75rem 1.1rem .3rem;
     }
@@ -319,12 +324,12 @@
       align-items: center;
       gap: .7rem;
       width: 100%;
-      padding: .65rem 1.1rem;
+      padding: .6rem 1.1rem;
       border: none;
       background: transparent !important;
       color: rgba(255,255,255,0.6) !important;
-      font-family: var(--font);
-      font-size: .88rem;
+      font-family: 'DM Sans', 'Barlow', sans-serif;
+      font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all .18s;
@@ -352,10 +357,11 @@
       background: #4CC5D7;
       border-radius: 0 2px 2px 0;
     }
-    /* Emojis e ícones da sidebar sempre visíveis */
+    /* Ícones Tabler na sidebar */
     .nav-icon,
     body.tema-light .nav-icon { color: inherit !important; }
-    .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-icon { font-size: 18px; width: 20px; text-align: center; flex-shrink: 0; line-height: 1; }
+    .nav-icon .ti { font-size: 18px; display: block; }
     .nav-badge {
       margin-left: auto;
       background: var(--primary);
@@ -1246,7 +1252,7 @@
     .modal-box { background:var(--card-bg); border:1px solid var(--bd); border-radius:12px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow); animation:modalIn .2s ease; }
 
     /* ── PROPOSTA COMERCIAL ─────────────────────────────────────── */
-    #section-proposta { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+    #section-proposta { padding: 0 !important; --pv-navy:#162A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
     #section-proposta .proposta-header { padding:1.5rem clamp(1.25rem,3vw,2.5rem) 1rem; border-bottom:1px solid var(--border-l,#e8ecef); display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
     #section-proposta .proposta-header h1 { font-size:1.4rem; font-weight:700; color:var(--t1,#fff); }
     #section-proposta .proposta-header-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
@@ -1439,20 +1445,58 @@
     #pwa-install-banner img { width: 36px; height: 36px; border-radius: 8px; }
     #pwa-install-banner p { flex: 1; font-size: .85rem; color: var(--text-muted); margin: 0; }
     #pwa-install-banner p strong { color: var(--text); display: block; }
+
+    /* ── Pulse animation para Robô de Pregão ── */
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+      50%       { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+    }
+    .robo-running .monitor-status-dot.dot-active {
+      background: #34d399;
+      animation: pulse-green 1.8s ease-in-out infinite;
+    }
+
+    /* ── Menu toggle icon refinado ── */
+    .menu-toggle .ti { font-size: 22px; }
+    .menu-toggle { color: rgba(255,255,255,0.85) !important; }
+
+    /* ── Header buttons ── */
+    #btn-tema { min-width: 32px; display: inline-flex !important; align-items: center; justify-content: center; }
+    #btn-tema .ti { font-size: 16px; }
+    #btn-trocar-senha .ti { font-size: 14px; }
+
+    /* ── Topbar border refinada ── */
+    header { border-bottom-color: rgba(76,197,215,0.18) !important; }
+
+    /* ── Card active state nas métricas ── */
+    .metric-card { border-top: none; }
+    .metric-card::after { border-radius: 12px 12px 0 0; }
+    .metric-value { font-family: 'DM Sans', sans-serif; letter-spacing: -0.5px; }
+
+    /* ── Botão tema — esconde emoji, mostra ícone Tabler via ::after ── */
+    #btn-tema { font-size: 0 !important; }
+    #btn-tema::after {
+      font-family: 'tabler-icons' !important;
+      font-style: normal;
+      font-size: 16px;
+      line-height: 1;
+    }
+    body:not(.tema-light) #btn-tema::after { content: '\eaf8'; }
+    body.tema-light #btn-tema::after { content: '\eb30'; }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu" id="btn-menu-toggle">☰</button>
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu" id="btn-menu-toggle"><i class="ti ti-menu-2"></i></button>
     <a class="logo" href="#">
       <img src="/assets/images/logo-branco.png" alt="Conlicit Hub" style="height:26px;object-fit:contain;display:block">
     </a>
     <div class="header-right">
       <span class="user-badge" id="user-badge"></span>
       <button class="btn btn-ghost btn-sm" id="btn-tema" onclick="alternarTema()" title="Alternar tema" style="font-size:1rem;padding:.3rem .6rem">🌙</button>
-      <button class="btn btn-ghost btn-sm" id="btn-trocar-senha" style="display:none;font-size:12px" onclick="abrirTrocarSenha()" title="Alterar senha">🔑 Senha</button>
+      <button class="btn btn-ghost btn-sm" id="btn-trocar-senha" style="display:none;font-size:12px" onclick="abrirTrocarSenha()" title="Alterar senha"><i class="ti ti-key"></i> Senha</button>
       <button class="btn btn-ghost btn-sm" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
     </div>
   </div>
@@ -1494,68 +1538,72 @@
         <!-- Visível para staff (admin/assistente) -->
         <div class="sidebar-section-label" data-staff-only>Principal</div>
         <button class="nav-item active" data-nav="dashboard" onclick="navTo('dashboard')" data-staff-only>
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span>
           <span class="nav-label">Dashboard</span>
         </button>
         <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
-          <span class="nav-icon">🤖</span>
+          <span class="nav-icon"><i class="ti ti-robot"></i></span>
           <span class="nav-label">Edson IA</span>
         </button>
 
         <!-- Visível para staff -->
         <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-staff-only>
-          <span class="nav-icon">🔍</span>
+          <span class="nav-icon"><i class="ti ti-search"></i></span>
           <span class="nav-label">Buscar Editais</span>
         </button>
         <button class="nav-item" data-nav="oportunidades" onclick="navTo('oportunidades')" data-staff-only id="nav-oportunidades">
-          <span class="nav-icon">🎯</span>
+          <span class="nav-icon"><i class="ti ti-target"></i></span>
           <span class="nav-label">Oportunidades</span>
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>Gestão</div>
         <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><i class="ti ti-users"></i></span>
           <span class="nav-label">Clientes</span>
         </button>
         <button class="nav-item" data-nav="boletins" onclick="navTo('boletins')" data-staff-only>
-          <span class="nav-icon">📨</span>
+          <span class="nav-icon"><i class="ti ti-mail"></i></span>
           <span class="nav-label">Boletins</span>
         </button>
         <button class="nav-item" data-nav="monitor" onclick="navTo('monitor')" data-staff-only>
-          <span class="nav-icon">🔔</span>
+          <span class="nav-icon"><i class="ti ti-bell"></i></span>
           <span class="nav-label">Monitor</span>
         </button>
         <button class="nav-item" data-nav="calendario" onclick="navTo('calendario')" data-staff-only>
-          <span class="nav-icon">📅</span>
+          <span class="nav-icon"><i class="ti ti-calendar"></i></span>
           <span class="nav-label">Calendário</span>
+        </button>
+        <button class="nav-item" data-nav="robo" onclick="navTo('robo')" data-staff-only>
+          <span class="nav-icon"><i class="ti ti-bolt"></i></span>
+          <span class="nav-label">Robô de Pregão</span>
         </button>
 
         <!-- Exclusivo para role cliente -->
         <div class="sidebar-section-label" style="margin-top:.5rem" data-cliente-visible id="nav-label-cliente" hidden>Minha Conta</div>
         <button class="nav-item" data-nav="minha-area" onclick="navTo('minha-area')" data-cliente-visible id="nav-minha-area" hidden>
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon"><i class="ti ti-home"></i></span>
           <span class="nav-label">Minha Área</span>
         </button>
         <button class="nav-item" data-nav="meus-pregoes" onclick="navTo('meus-pregoes')" data-cliente-visible id="nav-meus-pregoes" hidden>
-          <span class="nav-icon">📋</span>
+          <span class="nav-icon"><i class="ti ti-file-text"></i></span>
           <span class="nav-label">Meus Pregões</span>
         </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
         <button class="nav-item" data-nav="pregoes-todos" onclick="navTo('pregoes-todos')" id="nav-pregoes-todos" hidden>
-          <span class="nav-icon">📋</span>
+          <span class="nav-icon"><i class="ti ti-file-text"></i></span>
           <span class="nav-label">Pregões</span>
         </button>
         <button class="nav-item" data-nav="prospects" onclick="navTo('prospects')" id="nav-prospects" hidden>
-          <span class="nav-icon">🎯</span>
+          <span class="nav-icon"><i class="ti ti-target"></i></span>
           <span class="nav-label">Prospects</span>
         </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
-          <span class="nav-icon">📄</span>
+          <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
         </button>
         <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
-          <span class="nav-icon">🔑</span>
+          <span class="nav-icon"><i class="ti ti-key"></i></span>
           <span class="nav-label">Usuários</span>
         </button>
       </nav>
@@ -2294,6 +2342,19 @@
         </div>
       </section>
 
+      <!-- SEÇÃO ROBÔ DE PREGÃO -->
+      <section id="section-robo" class="section">
+        <div class="section-header">
+          <h1>Robô de Pregão</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarRobo()">↻ Atualizar</button>
+          </div>
+        </div>
+        <div id="robo-lista">
+          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
       <!-- SEÇÃO OPORTUNIDADES -->
       <section id="section-oportunidades" class="section">
         <div class="section-header">
@@ -2841,6 +2902,7 @@
     else if (section === 'monitor')        renderMonitor();
     else if (section === 'usuarios')       carregarUsuarios();
     else if (section === 'calendario')     carregarCalendario();
+    else if (section === 'robo')           carregarRobo();
     else if (section === 'edson')          carregarEdson();
     else if (section === 'minha-area')     carregarMinhaArea();
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
@@ -5025,13 +5087,16 @@
     const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
     const link   = e.link || e.linkSistemaOrigem || '';
 
-    // Urgência baseada no encerramento
+    // Urgência baseada no encerramento — respeita timezone Brasília (UTC-3)
     const hoje = new Date();
-    const enc  = e.dataEncerramentoProposta ? new Date(e.dataEncerramentoProposta) : null;
+    const encRaw = e.dataEncerramentoProposta || e.dataEncerramento || null;
+    const enc = encRaw
+      ? (encRaw.includes('T') ? new Date(encRaw) : new Date(encRaw + 'T00:00:00-03:00'))
+      : null;
     let urgBadge = '';
-    if (enc) {
-      const dias = Math.ceil((enc - hoje) / 86400000);
-      if (dias <= 0)      urgBadge = '';
+    if (enc && !isNaN(enc.getTime())) {
+      const dias = Math.ceil((enc - hoje) / (1000 * 60 * 60 * 24));
+      if (dias <= 0)      urgBadge = `<span class="edital-urgencia urgencia-hoje">Encerrado</span>`;
       else if (dias <= 1) urgBadge = `<span class="edital-urgencia urgencia-hoje">Encerra hoje</span>`;
       else if (dias <= 7) urgBadge = `<span class="edital-urgencia urgencia-semana">Encerra em ${dias}d</span>`;
       else                urgBadge = `<span class="edital-urgencia urgencia-normal">${dias}d restantes</span>`;
@@ -6106,6 +6171,55 @@
   function calProximoMes() {
     calMes++; if (calMes > 12) { calMes = 1; calAno++; }
     carregarCalendario();
+  }
+
+  function abrirNovoPregaoCalendario() {
+    const form = document.getElementById('form-novo-pregao-cal');
+    const sel  = document.getElementById('cal-cliente-id');
+    const opts = (clientesCache.length ? clientesCache : []).map(c =>
+      `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email || String(c.id))}</option>`
+    ).join('');
+    sel.innerHTML = '<option value="">Selecione o cliente...</option>' + opts;
+    if (!clientesCache.length) {
+      fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => {
+          clientesCache = d.dados || d || [];
+          sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
+            clientesCache.map(c => `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email)}</option>`).join('');
+        }).catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+    }
+    ['cal-numero','cal-data','cal-orgao','cal-objeto','cal-lance-min'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById('cal-portal').value = '';
+    form.style.display = '';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function salvarPregaoCalendario() {
+    const clienteId = document.getElementById('cal-cliente-id').value;
+    const numero    = document.getElementById('cal-numero').value.trim();
+    if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
+    if (!numero)    { toast('Número do pregão é obrigatório', 'error'); return; }
+    const body = {
+      numero,
+      orgao:              document.getElementById('cal-orgao').value.trim() || null,
+      objeto:             document.getElementById('cal-objeto').value.trim() || null,
+      data_hora_abertura: document.getElementById('cal-data').value || null,
+      portal_disputa:     document.getElementById('cal-portal').value || null,
+      valor_minimo_lance: parseFloat(document.getElementById('cal-lance-min').value) || null,
+    };
+    try {
+      const r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+      toast('Pregão adicionado ao calendário!', 'success');
+      document.getElementById('form-novo-pregao-cal').style.display = 'none';
+      carregarCalendario();
+    } catch (err) { toast(err.message, 'error'); }
   }
 
   async function carregarCalendario() {
@@ -7799,11 +7913,11 @@
 
     // CSS embutido — independente do contexto da página principal
     const css = `
-:root { --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+:root { --pv-navy:#162A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
 * { box-sizing: border-box; }
 body { font-family: 'Inter', Arial, sans-serif; background: #eaecef; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0; }
 img { max-height: 22px !important; width: auto !important; display: block; }
- { padding: 0 !important; --pv-navy:#182A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
+ { padding: 0 !important; --pv-navy:#162A39; --pv-teal:#4CC5D7; --pv-border:#dde4e8; --pv-radius:8px; }
 .panel-form { background:#fff; border-right:1px solid var(--pv-border); overflow-y:auto; padding:24px; isolation:isolate; }
 .panel-preview { background:#eaecef; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:32px 24px; gap:16px; }
 .p-section-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--pv-teal); margin-bottom:12px; margin-top:24px; display:flex; align-items:center; gap:6px; }
@@ -8068,6 +8182,120 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       toast('Senha alterada com sucesso', 'success');
       document.getElementById('modal-trocar-senha').classList.remove('visible');
     } catch(e) { toast(e.message, 'error'); }
+  }
+
+  // ─────────────────────────────────────────
+  // ROBÔ DE PREGÃO
+  // ─────────────────────────────────────────
+  let _roboAtualId = null;
+
+  async function carregarRobo() {
+    const el = document.getElementById('robo-lista');
+    if (!el) return;
+    el.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/clientes/pregoes?status=a_disputar`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error('Erro ao carregar pregões');
+      const data = await r.json();
+      const lista = data.dados || data || [];
+      if (!lista.length) {
+        el.innerHTML = '<div class="state-box"><span class="icon" style="font-size:2.5rem">⚡</span><h3>Nenhum pregão a disputar</h3><p>Pregões com status "a_disputar" aparecerão aqui para configurar o robô.</p></div>';
+        return;
+      }
+      el.innerHTML = lista.map(p => {
+        const dataStr = p.data_hora_abertura
+          ? new Date(p.data_hora_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+          : '—';
+        const valorStr = p.valor_estimado
+          ? parseFloat(p.valor_estimado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+          : '—';
+        return `<div class="monitor-item" style="margin-bottom:.75rem">
+          <div class="monitor-status-dot ${p.robo_ativo ? 'dot-active' : 'dot-paused'}" id="robo-dot-${p.id}"></div>
+          <div class="monitor-info">
+            <div class="monitor-pregao">${esc(p.numero || '—')} · ${esc(p.cliente_nome || p.orgao || '—')}</div>
+            <div class="monitor-portal">${esc(p.orgao || '')}${p.objeto ? ' — ' + esc(p.objeto.slice(0,80)) : ''}</div>
+            <div class="monitor-since">Abertura: ${dataStr} · ${valorStr}</div>
+          </div>
+          <div class="monitor-actions">
+            <span id="robo-status-${p.id}" style="font-size:11px;color:var(--text-muted);margin-right:4px">${p.robo_ativo ? '🟢 Rodando' : '⭕ Parado'}</span>
+            <button class="btn btn-primary btn-sm" onclick="abrirConfigurarRobo(${p.id},'${esc(p.numero||'')}','${esc(p.cliente_nome||'')}')">Configurar Robô</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      el.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${esc(e.message)}</p></div>`;
+    }
+  }
+
+  function abrirConfigurarRobo(pregaoId, numero, clienteNome) {
+    _roboAtualId = pregaoId;
+    document.getElementById('robo-modal-titulo').textContent = `${numero} · ${clienteNome}`;
+    document.getElementById('robo-modal-status').textContent = '—';
+    document.getElementById('robo-modal-status').style.color = 'var(--text-muted)';
+    document.getElementById('robo-estrategia').value = 'moderado';
+    document.getElementById('robo-lance-min').value = '';
+    document.getElementById('robo-decremento').value = '';
+    document.getElementById('robo-reacao').value = '30';
+    document.getElementById('modal-robo-config').classList.add('visible');
+    verificarStatusRobo(pregaoId);
+  }
+
+  async function verificarStatusRobo(pregaoId) {
+    try {
+      const r = await fetch(`${API}/robo/${pregaoId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      const statusEl = document.getElementById('robo-modal-status');
+      if (statusEl) {
+        statusEl.textContent = data.rodando ? '🟢 Rodando' : '⭕ Parado';
+        statusEl.style.color = data.rodando ? '#34d399' : 'var(--text-muted)';
+      }
+      if (data.config) {
+        if (data.config.estrategia)         document.getElementById('robo-estrategia').value = data.config.estrategia;
+        if (data.config.valor_minimo_lance) document.getElementById('robo-lance-min').value = data.config.valor_minimo_lance;
+        if (data.config.decremento_minimo)  document.getElementById('robo-decremento').value = data.config.decremento_minimo;
+        if (data.config.tempo_reacao)       document.getElementById('robo-reacao').value = data.config.tempo_reacao;
+      }
+    } catch {}
+  }
+
+  async function iniciarRobo() {
+    if (!_roboAtualId) return;
+    const body = {
+      estrategia:         document.getElementById('robo-estrategia').value,
+      valor_minimo_lance: parseFloat(document.getElementById('robo-lance-min').value)  || null,
+      decremento_minimo:  parseFloat(document.getElementById('robo-decremento').value) || null,
+      tempo_reacao:       parseInt(document.getElementById('robo-reacao').value)        || 30,
+    };
+    try {
+      const r = await fetch(`${API}/robo/${_roboAtualId}/iniciar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao iniciar robô');
+      toast('Robô iniciado! ⚡', 'success');
+      await verificarStatusRobo(_roboAtualId);
+      carregarRobo();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function pararRobo() {
+    if (!_roboAtualId) return;
+    try {
+      const r = await fetch(`${API}/robo/${_roboAtualId}/parar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao parar robô');
+      toast('Robô parado.', 'success');
+      await verificarStatusRobo(_roboAtualId);
+      carregarRobo();
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   // ── Calendário: deletar pregão ────────────────────────────────────────────────
@@ -8763,7 +8991,7 @@ function expandirEdital(idx) {
   if (!e) return;
   _editalExpandidoIdx = idx;
 
-  const objeto = e.objeto || '—';
+  const objeto = e.objeto || e.objetoCompra || e.descricaoObjeto || '—';
   const orgao  = e.orgao  || '—';
   const nPNCP  = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || '';
   const link   = e.link || e.linkSistemaOrigem || '';
@@ -8945,7 +9173,7 @@ async function salvarOportunidade() {
 <div class="modal-overlay" id="modal-edital-expandido" onclick="this.classList.remove('visible')">
   <div class="modal" onclick="event.stopPropagation()"
        style="max-width:720px;width:95vw;max-height:85vh;overflow-y:auto">
-    <div class="modal-header">
+    <div class="modal-header" style="background:#162A39;color:#ffffff">
       <div style="flex:1;min-width:0">
         <div id="exp-numero" style="font-size:11px;color:#4CC5D7;font-family:monospace;margin-bottom:4px"></div>
         <h3 id="exp-orgao" style="font-size:15px;line-height:1.3"></h3>
@@ -9001,6 +9229,52 @@ async function salvarOportunidade() {
       <button class="modal-close" onclick="document.getElementById('modal-resumo-oportunidade').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" id="modal-resumo-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Configurar Robô de Pregão -->
+<div class="modal-overlay" id="modal-robo-config" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="modal-header" style="background:#162A39;color:#ffffff">
+      <div>
+        <div style="font-size:10px;color:#4CC5D7;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">⚡ CONFIGURAR ROBÔ</div>
+        <h3 id="robo-modal-titulo" style="font-size:15px;line-height:1.3"></h3>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-robo-config').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(76,197,215,0.06);border-radius:8px;border:1px solid rgba(76,197,215,0.12)">
+        <span style="font-size:12px;color:var(--text-muted)">Status atual:</span>
+        <span id="robo-modal-status" style="font-size:12px;font-weight:600;color:var(--text-muted)">—</span>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Estratégia de lance</label>
+        <select id="robo-estrategia">
+          <option value="agressivo">Agressivo — prioriza vencer, margem secundária</option>
+          <option value="moderado" selected>Moderado — equilíbrio entre margem e vitória</option>
+          <option value="conservador">Conservador — preserva margem máxima</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0">
+          <label>Valor mínimo de lance (R$)</label>
+          <input type="number" id="robo-lance-min" placeholder="Ex: 10000,00" min="0" step="0.01" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Decremento mínimo (R$)</label>
+          <input type="number" id="robo-decremento" placeholder="Ex: 100,00" min="0" step="0.01" />
+        </div>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Tempo de reação (segundos)</label>
+        <input type="number" id="robo-reacao" value="30" min="5" max="300" step="5" />
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--sec-border)">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-robo-config').classList.remove('visible')">Fechar</button>
+        <button class="btn btn-danger btn-sm" onclick="pararRobo()">⬛ Parar Robô</button>
+        <button class="btn btn-primary" onclick="iniciarRobo()">▶ Iniciar Robô</button>
+      </div>
+    </div>
   </div>
 </div>
 

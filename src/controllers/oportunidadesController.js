@@ -106,15 +106,26 @@ async function gerarResumo(req, res) {
     );
     if (!op) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
 
+    const dataFormatada = (() => {
+      const dt = op.data_abertura;
+      if (!dt) return '—';
+      try {
+        const d = new Date(dt);
+        if (isNaN(d.getTime())) return '—';
+        const data = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+        const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
+        return `${data} às ${hora}`;
+      } catch { return '—'; }
+    })();
+
     const prompt = `Você é o Edson, especialista em licitações da Conlicit.
-Gere um resumo OBJETIVO desta licitação para enviar ao cliente via WhatsApp.
-Direto, sem jargão jurídico, máx 200 palavras no resumo_whatsapp.
+Gere um resumo desta licitação para disparar ao cliente via WhatsApp.
 
 DADOS:
 Objeto: ${op.objeto || '—'}
 Órgão: ${op.orgao || '—'}
 Valor estimado: ${op.valor_estimado ? `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'Verificar no edital'}
-Data da sessão: ${op.data_abertura ? new Date(op.data_abertura).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '—'}
+Data fim de recebimento de propostas (dataEncerramentoProposta): ${dataFormatada}
 Plataforma: ${op.portal || '—'}
 Cidade/UF: ${op.municipio ? `${op.municipio}/${op.uf}` : '—'}
 Cliente: ${op.cliente_nome || '—'}
@@ -122,14 +133,14 @@ Link PNCP: ${op.link_pncp || op.link_edital || '—'}
 
 Responda APENAS com este JSON (sem markdown):
 {
-  "resumo_whatsapp": "<texto para WhatsApp com emojis, máx 200 palavras>",
+  "resumo_whatsapp": "<máximo 2 linhas descrevendo o objeto e a oportunidade — NÃO repita data, valor, plataforma nem localização, pois esses campos já aparecem separados na mensagem>",
   "valor_formatado": "<R$ X.XXX,XX — NUNCA use 'sigiloso' se houver valor nos dados acima>",
-  "data_formatada": "<DD/MM/AAAA às HH:MM>",
+  "data_formatada": "${dataFormatada}",
   "plataforma": "<nome da plataforma>",
   "cidade_uf": "<Cidade/UF>",
   "tipo_julgamento": "<Por Item|Por Lote|Global — inferir pelo objeto>",
   "tipo_entrega": "<Integral|Parcelada|Imediata — inferir pelo objeto>",
-  "documentos_principais": ["<doc 1>", "<doc 2>", "<doc 3>"],
+  "documentos_principais": <array com APENAS documentos reais mencionados no edital (certidões, atestados, contratos sociais, etc.). Se não houver texto do edital ou documentos explícitos nos dados acima, retorne []. NÃO invente documentos genéricos.>,
   "forma_entrega": "<descrição resumida do local e prazo de entrega>",
   "score_rapido": <0-100>,
   "recomendacao": "<PARTICIPAR|AVALIAR|NÃO PARTICIPAR>"
