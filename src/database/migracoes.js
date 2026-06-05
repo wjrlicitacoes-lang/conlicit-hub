@@ -580,6 +580,10 @@ async function executarMigracoes() {
   await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_email ON prospects(email)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status)`);
 
+  // Planilha de pesquisa de preços — seleção de itens e resultado da pesquisa
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_selecao  JSONB DEFAULT '[]'`);
+  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_pesquisa JSONB DEFAULT '[]'`);
+
   console.log('Migrações executadas com sucesso');
 }
 
