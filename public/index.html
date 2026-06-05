@@ -618,13 +618,13 @@
     .urgencia-hoje { background: rgba(239,68,68,0.15); color: #f87171; }
     .urgencia-semana { background: rgba(251,146,60,0.15); color: #fb923c; }
     .urgencia-normal { background: rgba(76,197,215,0.1); color: #4CC5D7; }
-    .edital-orgao { font-size: 15px; font-weight: 600; color: #FFFFFF; line-height: 1.3; margin-bottom: 3px; }
+    .edital-orgao { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
     .edital-objeto {
-      font-size: 13px; color: #DEE6E9; line-height: 1.5;
+      font-size: 12px; color: var(--text-muted); line-height: 1.5;
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
       margin-bottom: 6px; cursor: pointer;
     }
-    .edital-objeto:hover { color: #FFFFFF; }
+    .edital-objeto:hover { color: var(--text); }
     .edital-meta {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
       padding: 10px 0;
@@ -633,10 +633,10 @@
     }
     .edital-meta-item { display: flex; flex-direction: column; gap: 2px; }
     .edital-meta-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
-      text-transform: uppercase; color: #4CC5D7;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-muted);
     }
-    .edital-meta-value { font-size: 13px; color: #FFFFFF; font-weight: 500; }
+    .edital-meta-value { font-size: 13px; color: var(--text); font-weight: 500; }
     .edital-meta-value.valor { color: #4CC5D7; }
     .edital-acoes { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .btn-ver-pncp {
@@ -1558,10 +1558,6 @@
           <span class="nav-icon">🔑</span>
           <span class="nav-label">Usuários</span>
         </button>
-        <a class="nav-item" href="/pos-vitoria.html" data-staff-only style="text-decoration:none">
-          <span class="nav-icon">🏆</span>
-          <span class="nav-label">Pós-Vitória</span>
-        </a>
       </nav>
     </aside>
 
@@ -4623,9 +4619,9 @@
     const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
     const link   = e.link || e.linkSistemaOrigem || '';
 
-    // Urgência baseada no encerramento — usa ISO seguro do backend (evita Invalid Date)
+    // Urgência baseada no encerramento
     const hoje = new Date();
-    const enc  = e.dataEncerramento ? new Date(e.dataEncerramento) : null;
+    const enc  = e.dataEncerramentoProposta ? new Date(e.dataEncerramentoProposta) : null;
     let urgBadge = '';
     if (enc) {
       const dias = Math.ceil((enc - hoje) / 86400000);
@@ -8148,19 +8144,17 @@ function expandirEdital(idx) {
     ['Local', local],
     ['Plataforma', portal],
     ['Publicação', e.dataPublicacao || '—'],
-    ['Abertura', (() => {
-      const raw = e.dataAberturaProposta; if (!raw) return '—';
-      const d = new Date(raw); return isNaN(d.getTime()) ? String(raw) : d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false});
-    })()],
-    ['Encerramento', (() => {
-      const raw = e.dataEncerramento || e.dataEncerramentoProposta; if (!raw) return '—';
-      const d = new Date(raw); return isNaN(d.getTime()) ? String(raw) : d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false});
-    })()],
+    ['Abertura', e.dataAberturaProposta
+      ? new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+      : '—'],
+    ['Encerramento', e.dataEncerramentoProposta
+      ? new Date(e.dataEncerramentoProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+      : '—'],
   ];
   document.getElementById('exp-meta').innerHTML = metaItems.map(([l,v]) => `
     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4CC5D7;margin-bottom:4px">${l}</div>
-      <div style="font-size:14px;color:#FFFFFF;font-weight:500">${esc(String(v))}</div>
+      <div style="font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px">${l}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(String(v))}</div>
     </div>
   `).join('');
 
@@ -8314,14 +8308,14 @@ async function salvarOportunidade() {
     <div class="modal-header">
       <div style="flex:1;min-width:0">
         <div id="exp-numero" style="font-size:11px;color:#4CC5D7;font-family:monospace;margin-bottom:4px"></div>
-        <h3 id="exp-orgao" style="font-size:20px;font-weight:700;color:#FFFFFF;line-height:1.3"></h3>
+        <h3 id="exp-orgao" style="font-size:15px;line-height:1.3"></h3>
       </div>
       <button class="modal-close" onclick="document.getElementById('modal-edital-expandido').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
       <div style="background:rgba(76,197,215,0.06);border:1px solid rgba(76,197,215,0.15);border-radius:8px;padding:12px 14px">
-        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#4CC5D7;margin-bottom:6px">Objeto</div>
-        <div id="exp-objeto" style="font-size:14px;line-height:1.6;color:#DEE6E9"></div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#4CC5D7;margin-bottom:6px">Objeto</div>
+        <div id="exp-objeto" style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85)"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="exp-meta"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" id="exp-badges"></div>

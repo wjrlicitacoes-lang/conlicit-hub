@@ -167,16 +167,16 @@ async function executarMigracoes() {
   await db.query(`
     DO $$
     BEGIN
-      -- Remove qualquer constraint de role existente
+      -- Remove qualquer constraint de role existente (com ou sem 'cliente')
       IF EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
       ) THEN
         ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
       END IF;
-      -- Recria sempre com o conjunto completo de roles
+      -- Recria sempre com os três roles
       ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'));
+        CHECK (role IN ('admin','assistente','cliente'));
     END $$
   `);
 
@@ -294,7 +294,7 @@ async function executarMigracoes() {
         ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
       END IF;
       ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'));
+        CHECK (role IN ('admin','assistente','cliente','socio_fundador','diretor_comercial'));
     END $$
   `);
 
@@ -475,13 +475,6 @@ async function executarMigracoes() {
   // Checklist de onboarding nos documentos
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
-
-  // Campos estruturados extraídos pelo Edson — órgão, valor, data, UF, número
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS orgao         TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS valor_estimado NUMERIC`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS data_abertura  TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS uf             VARCHAR(2)`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS numero_pregao  TEXT`);
 
   console.log('Migrações executadas com sucesso');
 }
