@@ -539,6 +539,47 @@ async function executarMigracoes() {
   // Coluna whatsapp nos usuários (para alertas diretos aos sócios)
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(20)`);
 
+  // ── Módulo de Prospecção ampliado ────────────────────────────────────────────
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS edital TEXT`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS obs TEXT`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem VARCHAR(50) NOT NULL DEFAULT 'manual'`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_email_id VARCHAR(100)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status VARCHAR(30)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status_at TIMESTAMPTZ`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS formulario_preenchido BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS analise_edson_id INTEGER REFERENCES analises_edson(id) ON DELETE SET NULL`);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE prospects DROP CONSTRAINT IF EXISTS prospects_status_check;
+      EXCEPTION WHEN others THEN NULL;
+      END;
+      BEGIN
+        ALTER TABLE prospects ADD CONSTRAINT prospects_status_check
+          CHECK (status IN ('novo_lead','em_negociacao','proposta_enviada','aguardando',
+                            'resumo_enviado','em_followup','convertido','perdido'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END;
+    END $$;
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS prospects_eventos (
+      id          SERIAL PRIMARY KEY,
+      prospect_id INTEGER NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
+      tipo        VARCHAR(50) NOT NULL,
+      descricao   TEXT,
+      dados       JSONB,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_eventos ON prospects_eventos(prospect_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_email ON prospects(email)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

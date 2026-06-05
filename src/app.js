@@ -26,6 +26,7 @@ const propostasRoutes    = require('./routes/propostas');
 const oportunidadesRoutes = require('./routes/oportunidades');
 const posVitoriaRoutes    = require('./routes/posVitoria');
 const { receber: receberFormulario } = require('./controllers/formularioController');
+const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
 const autenticar              = require('./middleware/autenticar');
 const { verificarPermissao }  = require('./middleware/autenticar');
@@ -60,7 +61,9 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/auth',          authRoutes);
-app.post('/formulario/cliente', receberFormulario);  // rota pública — sem autenticação
+app.post('/formulario/cliente',    receberFormulario);   // pública — onboarding
+app.post('/api/prospects',         receberLanding);      // pública — landing page análise gratuita
+app.post('/prospects/webhook-brevo', webhookBrevo);      // pública — eventos Brevo
 app.use('/health',        healthRoutes);
 app.use('/editais',       autenticar, verificarPermissao('editais'),    editaisRoutes);
 app.use('/clientes',      autenticar, verificarPermissao('clientes'),   clientesRoutes);

@@ -1847,12 +1847,51 @@
       <!-- ── PROSPECTS (admin) ── -->
       <section id="section-prospects" class="section">
         <div class="section-header">
-          <h1>Prospects</h1>
+          <h1>Prospecção</h1>
           <div class="section-header-actions">
-            <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Prospect</button>
-            <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻ Atualizar</button>
+            <button class="btn btn-ghost btn-sm" id="btn-view-kanban" onclick="setViewProspects('kanban')" title="Kanban">⬛ Kanban</button>
+            <button class="btn btn-ghost btn-sm" id="btn-view-lista"  onclick="setViewProspects('lista')"  title="Lista">☰ Lista</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Lead</button>
+            <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻</button>
           </div>
         </div>
+
+        <!-- Stats -->
+        <div id="prospects-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem"></div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+          <select id="pf-status" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
+            <option value="">Todos os status</option>
+            <option value="novo_lead">Novo lead</option>
+            <option value="em_negociacao">Em negociação</option>
+            <option value="resumo_enviado">Resumo enviado</option>
+            <option value="em_followup">Em follow-up</option>
+            <option value="proposta_enviada">Proposta enviada</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="convertido">Convertido</option>
+            <option value="perdido">Perdido</option>
+          </select>
+          <select id="pf-segmento" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
+            <option value="">Todos os segmentos</option>
+            <option value="saude">Saúde / Medicamentos</option>
+            <option value="alimentacao">Alimentação / Merenda</option>
+            <option value="obras">Obras e Engenharia</option>
+            <option value="limpeza">Limpeza e Conservação</option>
+            <option value="escritorio">Material de Escritório</option>
+            <option value="ti">TI e Software</option>
+            <option value="seguranca">Segurança e Vigilância</option>
+            <option value="manutencao">Manutenção Predial</option>
+            <option value="transporte">Transporte / Veículos</option>
+            <option value="epi">EPI / Uniformes</option>
+          </select>
+          <input type="date" id="pf-data-de"  style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)" title="De">
+          <input type="date" id="pf-data-ate" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)" title="Até">
+          <input type="text" id="pf-q" placeholder="Buscar nome, empresa…" style="font-size:.8rem;padding:5px 10px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);min-width:160px">
+          <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">Filtrar</button>
+          <button class="btn btn-ghost btn-sm" onclick="limparFiltrosProspects()">✕ Limpar</button>
+        </div>
+
         <div id="prospects-area">
           <div class="state-box"><div class="spinner spinner-lg"></div></div>
         </div>
@@ -6908,60 +6947,188 @@
     aguardando: 's-pendente', convertido: 's-vencido', perdido: 's-atrasado',
   };
 
-  const KANBAN_COLUNAS = [
+  // ── Prospecção ───────────────────────────────────────────────────────────────
+
+  const PROSPECT_STATUS = [
     { id: 'novo_lead',        label: 'Novo lead',         cor: '#4CC5D7' },
-    { id: 'em_negociacao',    label: 'Em negociação',     cor: '#F59E0B' },
+    { id: 'resumo_enviado',   label: 'Resumo enviado',    cor: '#06B6D4' },
+    { id: 'em_followup',      label: 'Em follow-up',      cor: '#F59E0B' },
+    { id: 'em_negociacao',    label: 'Em negociação',     cor: '#A78BFA' },
     { id: 'proposta_enviada', label: 'Proposta enviada',  cor: '#8B5CF6' },
     { id: 'aguardando',       label: 'Aguardando',        cor: '#6B7280' },
-    { id: 'convertido',       label: 'Convertido ✓',      cor: '#10B981' },
+    { id: 'convertido',       label: 'Convertido',        cor: '#10B981' },
     { id: 'perdido',          label: 'Perdido',           cor: '#EF4444' },
   ];
+
+  const BREVO_BADGE = {
+    clicado: { label: '✉ Clicou',  bg: '#10B981', cor: '#fff' },
+    aberto:  { label: '✉ Abriu',   bg: '#F59E0B', cor: '#fff' },
+    enviado: { label: '✉ Enviado', bg: '#6B7280', cor: '#fff' },
+  };
+
+  let prospectsView = 'kanban';
+
+  function setViewProspects(v) {
+    prospectsView = v;
+    document.getElementById('btn-view-kanban').classList.toggle('active', v === 'kanban');
+    document.getElementById('btn-view-lista').classList.toggle('active', v === 'lista');
+    carregarProspects();
+  }
+
+  function limparFiltrosProspects() {
+    ['pf-status','pf-segmento','pf-q'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['pf-data-de','pf-data-ate'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    carregarProspects();
+  }
+
+  function prStatusBadge(status) {
+    const s = PROSPECT_STATUS.find(x => x.id === status) || { label: status, cor: '#6B7280' };
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.7rem;font-weight:600;background:${s.cor}22;color:${s.cor};border:1px solid ${s.cor}44">${s.label}</span>`;
+  }
+
+  function brevoBadge(p) {
+    if (!p.brevo_status) return '<span style="color:var(--t3);font-size:.75rem">—</span>';
+    const b = BREVO_BADGE[p.brevo_status] || { label: p.brevo_status, bg: '#6B7280', cor: '#fff' };
+    const dt = p.brevo_status_at ? new Date(p.brevo_status_at).toLocaleDateString('pt-BR') : '';
+    return `<span style="display:inline-block;padding:2px 7px;border-radius:12px;font-size:.7rem;font-weight:600;background:${b.bg};color:${b.cor}" title="${dt}">${b.label}</span>`;
+  }
 
   async function carregarProspects() {
     const area = document.getElementById('prospects-area');
     area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+
+    const params = new URLSearchParams();
+    const pStatus  = document.getElementById('pf-status')?.value;
+    const pSeg     = document.getElementById('pf-segmento')?.value;
+    const pDe      = document.getElementById('pf-data-de')?.value;
+    const pAte     = document.getElementById('pf-data-ate')?.value;
+    const pQ       = document.getElementById('pf-q')?.value;
+    if (pStatus) params.set('status', pStatus);
+    if (pSeg)    params.set('segmento', pSeg);
+    if (pDe)     params.set('data_de', pDe);
+    if (pAte)    params.set('data_ate', pAte);
+    if (pQ)      params.set('q', pQ);
+
     try {
-      const r = await fetch(`${API}/prospects`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API}/prospects?${params}`, { headers: { Authorization: `Bearer ${token}` } });
       const { dados = [] } = await r.json();
 
-      const porStatus = {};
-      KANBAN_COLUNAS.forEach(c => { porStatus[c.id] = []; });
-      dados.forEach(p => {
-        const col = porStatus[p.status];
-        if (col) col.push(p);
-        else if (porStatus['em_negociacao']) porStatus['em_negociacao'].push(p);
-      });
+      // Stats
+      const statsEl = document.getElementById('prospects-stats');
+      if (statsEl) {
+        const totalAtivos   = dados.filter(p => !['convertido','perdido'].includes(p.status)).length;
+        const novos         = dados.filter(p => p.status === 'novo_lead').length;
+        const formPreen     = dados.filter(p => p.formulario_preenchido).length;
+        const convertidos   = dados.filter(p => p.status === 'convertido').length;
+        const statItems = [
+          { label: 'Total', val: dados.length, cor: 'var(--primary)' },
+          { label: 'Ativos no funil', val: totalAtivos, cor: '#F59E0B' },
+          { label: 'Novos leads', val: novos, cor: '#4CC5D7' },
+          { label: 'Formulário preenchido', val: formPreen, cor: '#8B5CF6' },
+          { label: 'Convertidos', val: convertidos, cor: '#10B981' },
+        ];
+        statsEl.innerHTML = statItems.map(s =>
+          `<div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;min-width:110px">
+            <div style="font-size:.7rem;color:var(--t2);margin-bottom:2px">${s.label}</div>
+            <div style="font-size:1.3rem;font-weight:700;color:${s.cor}">${s.val}</div>
+          </div>`
+        ).join('');
+      }
 
-      const totalAtivos = dados.filter(p => !['convertido','perdido'].includes(p.status)).length;
-
-      area.innerHTML = `
-        <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem">${dados.length} prospect(s) · ${totalAtivos} ativo(s) no funil</div>
-        <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px">
-          ${KANBAN_COLUNAS.map(col => {
-            const cards = porStatus[col.id] || [];
-            return `<div style="min-width:200px;flex:1;background:var(--bg-secondary,rgba(0,0,0,.15));border-radius:10px;padding:10px">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-                <span style="width:8px;height:8px;border-radius:50%;background:${col.cor};flex-shrink:0"></span>
-                <span style="font-size:.78rem;font-weight:600;color:var(--text)">${col.label}</span>
-                <span style="margin-left:auto;font-size:.72rem;color:var(--text-muted);background:rgba(0,0,0,.2);padding:1px 7px;border-radius:10px">${cards.length}</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:7px">
-                ${cards.map(p => `<div style="background:var(--bg-primary,#1a2f3f);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px 10px;cursor:pointer" onclick='abrirEditarProspect(${JSON.stringify(p)})'>
-                  <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:2px">${esc(p.nome)}</div>
-                  ${p.empresa ? `<div style="font-size:.72rem;color:var(--text-muted)">${esc(p.empresa)}</div>` : ''}
-                  ${p.indicado_por ? `<div style="font-size:.7rem;color:var(--primary);margin-top:3px">↪ ${esc(p.indicado_por)}</div>` : ''}
-                  <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
-                    <select style="font-size:.68rem;padding:2px 5px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:var(--text);cursor:pointer" onchange="moverProspect(${p.id},this.value)" onclick="event.stopPropagation()">
-                      ${KANBAN_COLUNAS.map(c => `<option value="${c.id}" ${c.id===p.status?'selected':''}>${c.label}</option>`).join('')}
-                    </select>
-                    ${!['convertido','perdido'].includes(p.status) ? `<button class="btn btn-primary btn-sm" style="font-size:.65rem;padding:2px 6px" onclick="event.stopPropagation();converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→ Cliente</button>` : ''}
-                  </div>
-                </div>`).join('') || `<div style="font-size:.75rem;color:var(--text-muted);text-align:center;padding:8px">Vazio</div>`}
-              </div>
-            </div>`;
-          }).join('')}
-        </div>`;
+      if (prospectsView === 'lista') {
+        renderProspectsLista(area, dados);
+      } else {
+        renderProspectsKanban(area, dados);
+      }
     } catch (e) { area.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  function renderProspectsKanban(area, dados) {
+    const porStatus = {};
+    PROSPECT_STATUS.forEach(c => { porStatus[c.id] = []; });
+    dados.forEach(p => {
+      if (porStatus[p.status]) porStatus[p.status].push(p);
+      else if (porStatus['em_negociacao']) porStatus['em_negociacao'].push(p);
+    });
+
+    area.innerHTML = `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">
+      ${PROSPECT_STATUS.map(col => {
+        const cards = porStatus[col.id] || [];
+        return `<div style="min-width:190px;flex:0 0 190px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${col.cor};flex-shrink:0"></span>
+            <span style="font-size:.75rem;font-weight:600;color:var(--t1)">${col.label}</span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--t3);background:rgba(0,0,0,.2);padding:1px 6px;border-radius:10px">${cards.length}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${cards.map(p => {
+              const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
+              return `<div style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:pointer" onclick='abrirEditarProspect(${JSON.stringify(p)})'>
+                <div style="font-size:.83rem;font-weight:600;color:var(--t1);margin-bottom:1px">${esc(p.nome)}</div>
+                ${p.empresa ? `<div style="font-size:.7rem;color:var(--t2)">${esc(p.empresa)}</div>` : ''}
+                ${p.segmento ? `<div style="font-size:.67rem;color:var(--primary);margin-top:2px">${esc(p.segmento)}</div>` : ''}
+                <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;align-items:center">
+                  ${brevoBadge(p)}
+                  ${p.formulario_preenchido ? `<span style="font-size:.67rem;color:#10B981">✓ Form</span>` : ''}
+                </div>
+                <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+                  <select style="font-size:.67rem;padding:2px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:var(--t1);cursor:pointer" onchange="moverProspect(${p.id},this.value)" onclick="event.stopPropagation()">
+                    ${PROSPECT_STATUS.map(c => `<option value="${c.id}" ${c.id===p.status?'selected':''}>${c.label}</option>`).join('')}
+                  </select>
+                  <button style="font-size:.63rem;padding:2px 5px;background:rgba(76,197,215,.15);border:1px solid var(--primary);border-radius:4px;color:var(--primary);cursor:pointer" onclick="event.stopPropagation();verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Ver histórico">🕐</button>
+                  ${p.edital ? `<button style="font-size:.63rem;padding:2px 5px;background:rgba(139,92,246,.15);border:1px solid #8B5CF6;border-radius:4px;color:#8B5CF6;cursor:pointer" onclick="event.stopPropagation();analisarEditalProspect(${p.id})" title="Analisar edital">🔬</button>` : ''}
+                  ${!['convertido','perdido'].includes(p.status) ? `<button style="font-size:.63rem;padding:2px 5px;background:rgba(16,185,129,.15);border:1px solid #10B981;border-radius:4px;color:#10B981;cursor:pointer" onclick="event.stopPropagation();converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→</button>` : ''}
+                </div>
+                <div style="font-size:.65rem;color:var(--t3);margin-top:4px">${dataStr}</div>
+              </div>`;
+            }).join('') || `<div style="font-size:.72rem;color:var(--t3);text-align:center;padding:8px">Vazio</div>`}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  function renderProspectsLista(area, dados) {
+    if (!dados.length) { area.innerHTML = '<div class="state-box">Nenhum prospect encontrado.</div>'; return; }
+    area.innerHTML = `<div class="table-wrap"><table class="data-table">
+      <thead><tr>
+        <th>Lead</th><th>Segmento</th><th>Status lead</th>
+        <th>Email Brevo</th><th>Formulário</th><th>Edital</th>
+        <th>Data</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${dados.map(p => {
+          const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
+          const formCell = p.formulario_preenchido
+            ? `<span style="color:#10B981;font-size:.8rem">✓ Preenchido</span>`
+            : `<span style="color:var(--t3);font-size:.8rem">—</span>`;
+          const editalCell = p.edital
+            ? `<span style="font-size:.75rem;color:var(--t2)" title="${esc(p.edital)}">${esc(p.edital.length>30 ? p.edital.slice(0,30)+'…' : p.edital)}</span>`
+            : `<span style="color:var(--t3);font-size:.75rem">—</span>`;
+          return `<tr>
+            <td>
+              <div style="font-weight:600;font-size:.85rem">${esc(p.nome)}</div>
+              ${p.empresa ? `<div style="font-size:.75rem;color:var(--t2)">${esc(p.empresa)}</div>` : ''}
+              ${p.email ? `<div style="font-size:.7rem;color:var(--t3)">${esc(p.email)}</div>` : ''}
+            </td>
+            <td style="font-size:.78rem">${p.segmento ? esc(p.segmento) : '<span style="color:var(--t3)">—</span>'}</td>
+            <td>${prStatusBadge(p.status)}</td>
+            <td>${brevoBadge(p)}</td>
+            <td>${formCell}</td>
+            <td>${editalCell}</td>
+            <td style="font-size:.75rem;color:var(--t2);white-space:nowrap">${dataStr}</td>
+            <td>
+              <div style="display:flex;gap:4px;justify-content:flex-end">
+                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Histórico">🕐</button>
+                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick='abrirEditarProspect(${JSON.stringify(p)})' title="Editar">✏️</button>
+                ${p.edital ? `<button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem;color:#8B5CF6" onclick="analisarEditalProspect(${p.id})" title="Analisar edital">🔬</button>` : ''}
+                ${!['convertido','perdido'].includes(p.status) ? `<button class="btn btn-primary btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→ Cliente</button>` : ''}
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
   }
 
   async function moverProspect(id, novoStatus) {
@@ -6974,44 +7141,62 @@
       carregarProspects();
     } catch (e) { toast(e.message, 'error'); }
   }
+
   function abrirModalProspect() {
-    document.getElementById('prospect-modal-titulo').textContent = 'Novo Prospect';
+    document.getElementById('prospect-modal-titulo').textContent = 'Novo Lead';
     document.getElementById('pr-id').value = '';
-    ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas','pr-indicado-por'].forEach(id => {
-      document.getElementById(id).value = '';
+    ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas','pr-indicado-por','pr-edital'].forEach(fid => {
+      const el = document.getElementById(fid); if (el) el.value = '';
     });
-    document.getElementById('pr-status').value = 'em_negociacao';
+    const seg = document.getElementById('pr-segmento'); if(seg) seg.value = '';
+    document.getElementById('pr-status').value = 'novo_lead';
     hideAlert('alert-prospect');
     document.getElementById('modal-prospect').classList.add('visible');
   }
 
   function abrirEditarProspect(p) {
-    document.getElementById('prospect-modal-titulo').textContent = 'Editar Prospect';
-    document.getElementById('pr-id').value        = p.id;
-    document.getElementById('pr-nome').value      = p.nome||'';
-    document.getElementById('pr-empresa').value   = p.empresa||'';
-    document.getElementById('pr-email').value     = p.email||'';
-    document.getElementById('pr-whatsapp').value  = p.whatsapp||'';
-    document.getElementById('pr-responsavel').value = p.responsavel||'';
-    document.getElementById('pr-notas').value      = p.notas||'';
+    document.getElementById('prospect-modal-titulo').textContent = 'Editar Lead';
+    document.getElementById('pr-id').value           = p.id;
+    document.getElementById('pr-nome').value         = p.nome||'';
+    document.getElementById('pr-empresa').value      = p.empresa||'';
+    document.getElementById('pr-email').value        = p.email||'';
+    document.getElementById('pr-whatsapp').value     = p.whatsapp||'';
+    document.getElementById('pr-responsavel').value  = p.responsavel||'';
+    document.getElementById('pr-notas').value        = p.notas||'';
     const ipEl = document.getElementById('pr-indicado-por'); if(ipEl) ipEl.value = p.indicado_por||'';
-    document.getElementById('pr-status').value    = p.status||'em_negociacao';
+    const edEl = document.getElementById('pr-edital');       if(edEl) edEl.value = p.edital||'';
+    const sgEl = document.getElementById('pr-segmento');     if(sgEl) sgEl.value = p.segmento||'';
+    document.getElementById('pr-status').value = p.status||'novo_lead';
+
+    // Mostrar dados do formulário da landing se existirem
+    const obsArea = document.getElementById('pr-obs-landing');
+    if (obsArea) {
+      obsArea.style.display = (p.obs || p.formulario_preenchido) ? 'block' : 'none';
+      const obsEl = document.getElementById('pr-obs-texto');
+      if (obsEl) obsEl.textContent = p.obs || '—';
+      const origEl = document.getElementById('pr-origem-texto');
+      if (origEl) origEl.textContent = p.origem || 'manual';
+    }
+
     hideAlert('alert-prospect');
     document.getElementById('modal-prospect').classList.add('visible');
   }
 
   async function salvarProspect() {
-    const id = document.getElementById('pr-id').value;
+    const id   = document.getElementById('pr-id').value;
     const nome = document.getElementById('pr-nome').value.trim();
     if (!nome) { showAlert('alert-prospect', 'Nome é obrigatório', 'error'); return; }
     const body = {
-      nome, empresa: document.getElementById('pr-empresa').value.trim()||null,
-      email: document.getElementById('pr-email').value.trim()||null,
-      whatsapp: document.getElementById('pr-whatsapp').value.trim()||null,
-      status: document.getElementById('pr-status').value,
-      responsavel: document.getElementById('pr-responsavel').value.trim()||null,
-      notas: document.getElementById('pr-notas').value.trim()||null,
+      nome,
+      empresa:      document.getElementById('pr-empresa').value.trim()||null,
+      email:        document.getElementById('pr-email').value.trim()||null,
+      whatsapp:     document.getElementById('pr-whatsapp').value.trim()||null,
+      status:       document.getElementById('pr-status').value,
+      responsavel:  document.getElementById('pr-responsavel').value.trim()||null,
+      notas:        document.getElementById('pr-notas').value.trim()||null,
       indicado_por: document.getElementById('pr-indicado-por')?.value.trim()||null,
+      edital:       document.getElementById('pr-edital')?.value.trim()||null,
+      segmento:     document.getElementById('pr-segmento')?.value||null,
     };
     try {
       const r = await fetch(`${API}/prospects${id ? `/${id}` : ''}`, {
@@ -7021,9 +7206,57 @@
       });
       if (!r.ok) throw new Error((await r.json()).erro);
       document.getElementById('modal-prospect').classList.remove('visible');
-      toast(id ? 'Prospect atualizado!' : 'Prospect criado!', 'success');
+      toast(id ? 'Lead atualizado!' : 'Lead criado!', 'success');
       carregarProspects();
     } catch (e) { showAlert('alert-prospect', e.message, 'error'); }
+  }
+
+  async function analisarEditalProspect(id) {
+    if (!confirm('Criar análise Edson para este prospect? Você precisará fazer o upload do PDF no módulo Edson.')) return;
+    try {
+      const r = await fetch(`${API}/prospects/${id}/analisar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.erro);
+      toast(`Análise criada (#${data.analise_id}). Acesse o Edson para fazer upload do PDF.`, 'success');
+      carregarProspects();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function verTimelineProspect(id, nome) {
+    document.getElementById('tl-nome').textContent = nome;
+    document.getElementById('tl-lista').innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
+    document.getElementById('modal-prospect-timeline').classList.add('visible');
+    try {
+      const r = await fetch(`${API}/prospects/${id}/eventos`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      if (!dados.length) {
+        document.getElementById('tl-lista').innerHTML = '<p style="color:var(--t3);text-align:center;padding:1rem">Sem eventos registrados.</p>';
+        return;
+      }
+      const iconMap = {
+        lead_criado: '🎯', email_enviado: '✉️', email_aberto: '👁️', email_clicado: '🖱️',
+        formulario_preenchido: '📋', analise_solicitada: '🔬', analise_enviada: '📄',
+        status_alterado: '🔄', nota_adicionada: '📝',
+      };
+      document.getElementById('tl-lista').innerHTML = `
+        <div style="position:relative;padding-left:28px">
+          <div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--bd)"></div>
+          ${dados.map((ev, i) => {
+            const icon = iconMap[ev.tipo] || '⚡';
+            const dt   = new Date(ev.created_at).toLocaleString('pt-BR', { day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit' });
+            return `<div style="position:relative;margin-bottom:14px">
+              <span style="position:absolute;left:-28px;top:2px;font-size:1rem">${icon}</span>
+              <div style="font-size:.8rem;color:var(--t1);font-weight:500">${esc(ev.descricao||ev.tipo)}</div>
+              <div style="font-size:.7rem;color:var(--t3);margin-top:2px">${dt}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    } catch (e) {
+      document.getElementById('tl-lista').innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
+    }
   }
 
   function converterProspect(id, nome, email, empresa, whatsapp, uf, segmento, indicado_por) {
@@ -7036,7 +7269,7 @@
     setTimeout(() => {
       abrirModalCliente();
       setTimeout(() => {
-        const setV = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+        const setV = (fid, v) => { const el = document.getElementById(fid); if (el && v) el.value = v; };
         setV('cliente-nome', empresa || nome);
         setV('cliente-email', email);
         setV('cliente-whatsapp', whatsapp);
@@ -7047,16 +7280,14 @@
           toggleSdrFields();
           setV('cliente-sdr-nome', indicado_por);
         }
-        const completude = [
-          !!(empresa || nome), !!email, !!whatsapp, !!uf
-        ];
+        const completude = [ !!(empresa || nome), !!email, !!whatsapp, !!uf ];
         const pct = Math.round(completude.filter(Boolean).length / completude.length * 100);
         if (pct < 75) {
-          showAlert('modal-alert', `⚠️ Preencha os campos em branco antes de salvar — dados do prospect estão ${pct}% completos.`, 'warning');
+          showAlert('modal-alert', `⚠️ Preencha os campos em branco — dados do lead estão ${pct}% completos.`, 'warning');
         }
       }, 300);
     }, 300);
-    toast(`Prospect convertido! Complete o cadastro de ${nome}.`, 'success');
+    toast(`Lead convertido! Complete o cadastro de ${nome}.`, 'success');
   }
 
   // ── Minha Área: switchMaTab expandido ────────────────────────────────────────
@@ -8079,10 +8310,24 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 </div>
 
 <!-- MODAL: Prospect -->
-<div class="modal-overlay" id="modal-prospect" onclick="this.classList.remove('visible')">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
+<!-- Modal timeline de prospect -->
+<div class="modal-overlay" id="modal-prospect-timeline" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
     <div class="modal-header">
-      <h3 id="prospect-modal-titulo">Novo Prospect</h3>
+      <h3>Histórico — <span id="tl-nome"></span></h3>
+      <button class="modal-close" onclick="document.getElementById('modal-prospect-timeline').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:420px;overflow-y:auto">
+      <div id="tl-lista"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal criar/editar prospect -->
+<div class="modal-overlay" id="modal-prospect" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="prospect-modal-titulo">Novo Lead</h3>
       <button class="modal-close" onclick="document.getElementById('modal-prospect').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body">
@@ -8097,8 +8342,27 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label>Segmento</label>
+          <select id="pr-segmento">
+            <option value="">— Selecione —</option>
+            <option value="saude">Saúde / Medicamentos</option>
+            <option value="alimentacao">Alimentação / Merenda</option>
+            <option value="obras">Obras e Engenharia</option>
+            <option value="limpeza">Limpeza e Conservação</option>
+            <option value="escritorio">Material de Escritório</option>
+            <option value="ti">TI e Software</option>
+            <option value="seguranca">Segurança e Vigilância</option>
+            <option value="manutencao">Manutenção Predial</option>
+            <option value="transporte">Transporte / Veículos</option>
+            <option value="epi">EPI / Uniformes</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Status</label>
           <select id="pr-status">
+            <option value="novo_lead">Novo lead</option>
+            <option value="resumo_enviado">Resumo enviado</option>
+            <option value="em_followup">Em follow-up</option>
             <option value="em_negociacao">Em negociação</option>
             <option value="proposta_enviada">Proposta enviada</option>
             <option value="aguardando">Aguardando</option>
@@ -8106,9 +8370,18 @@ img { max-height: 22px !important; width: auto !important; display: block; }
             <option value="perdido">Perdido</option>
           </select>
         </div>
-        <div class="form-group"><label>Responsável</label><input type="text" id="pr-responsavel" placeholder="Nome do responsável" /></div>
       </div>
-      <div class="form-group"><label>Notas</label><textarea id="pr-notas" rows="3" placeholder="Observações sobre o prospect…"></textarea></div>
+      <div class="form-group"><label>Edital (número ou link PNCP)</label><input type="text" id="pr-edital" placeholder="Ex: 00884057000152-1-000001/2024 ou link" /></div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input type="text" id="pr-responsavel" placeholder="Nome do responsável" /></div>
+        <div class="form-group"><label>Indicado por</label><input type="text" id="pr-indicado-por" placeholder="Fonte ou indicação" /></div>
+      </div>
+      <div class="form-group"><label>Notas internas</label><textarea id="pr-notas" rows="2" placeholder="Observações internas sobre o lead…"></textarea></div>
+      <div id="pr-obs-landing" style="display:none;background:rgba(76,197,215,.07);border:1px solid var(--primary);border-radius:8px;padding:10px;margin-top:8px">
+        <div style="font-size:.72rem;color:var(--primary);font-weight:600;margin-bottom:4px">📋 Dados da landing page</div>
+        <div style="font-size:.78rem;color:var(--t2)"><strong>Origem:</strong> <span id="pr-origem-texto"></span></div>
+        <div style="font-size:.78rem;color:var(--t2);margin-top:3px"><strong>Obs do lead:</strong> <span id="pr-obs-texto"></span></div>
+      </div>
       <div id="alert-prospect" class="alert"></div>
     </div>
     <div class="modal-footer">
