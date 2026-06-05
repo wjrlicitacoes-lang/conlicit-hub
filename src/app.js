@@ -77,6 +77,19 @@ app.use('/propostas',     autenticar, propostasRoutes);
 app.use('/oportunidades', autenticar, oportunidadesRoutes);
 app.use('/api/pos-vitoria', autenticar, posVitoriaRoutes);
 
+// Endpoint temporário para forçar migrations pontuais via API
+app.post('/admin/migrar', autenticar, async (req, res) => {
+  if (req.usuario?.role !== 'admin') return res.status(403).json({ erro: 'Apenas admin' });
+  const db = require('./database/db');
+  try {
+    await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_selecao  JSONB DEFAULT '[]'`);
+    await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_pesquisa JSONB DEFAULT '[]'`);
+    return res.json({ ok: true, mensagem: 'Colunas garantidas' });
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+});
+
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
 });
