@@ -624,6 +624,10 @@
     .urgencia-hoje { background: rgba(239,68,68,0.15); color: #f87171; }
     .urgencia-semana { background: rgba(251,146,60,0.15); color: #fb923c; }
     .urgencia-normal { background: rgba(76,197,215,0.1); color: #4CC5D7; }
+    .badge-dias { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+    .badge-dias.encerrado { background: rgba(248,113,113,0.15); color: #F87171; }
+    .badge-dias.urgente   { background: rgba(251,191,36,0.15);  color: #FBBF24; }
+    .badge-dias.normal    { background: rgba(76,197,215,0.15);  color: #4CC5D7; }
     .edital-orgao { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
     .edital-objeto {
       font-size: 12px; color: var(--text-muted); line-height: 1.5;
@@ -2347,6 +2351,7 @@
         <div class="section-header">
           <h1>Robô de Pregão</h1>
           <div class="section-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="abrirAdicionarPregaoRobo()">+ Adicionar Pregão</button>
             <button class="btn btn-ghost btn-sm" onclick="carregarRobo()">↻ Atualizar</button>
           </div>
         </div>
@@ -5087,19 +5092,19 @@
     const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
     const link   = e.link || e.linkSistemaOrigem || '';
 
-    // Urgência baseada no encerramento — respeita timezone Brasília (UTC-3)
-    const hoje = new Date();
-    const encRaw = e.dataEncerramentoProposta || e.dataEncerramento || null;
-    const enc = encRaw
-      ? (encRaw.includes('T') ? new Date(encRaw) : new Date(encRaw + 'T00:00:00-03:00'))
-      : null;
+    // Urgência baseada no encerramento — comparação no nível do dia (sem horário)
+    const dataEnc = e.dataEncerramentoProposta || e.data_encerramento_proposta || e.dataEncerramento || null;
     let urgBadge = '';
-    if (enc && !isNaN(enc.getTime())) {
-      const dias = Math.ceil((enc - hoje) / (1000 * 60 * 60 * 24));
-      if (dias <= 0)      urgBadge = `<span class="edital-urgencia urgencia-hoje">Encerrado</span>`;
-      else if (dias <= 1) urgBadge = `<span class="edital-urgencia urgencia-hoje">Encerra hoje</span>`;
-      else if (dias <= 7) urgBadge = `<span class="edital-urgencia urgencia-semana">Encerra em ${dias}d</span>`;
-      else                urgBadge = `<span class="edital-urgencia urgencia-normal">${dias}d restantes</span>`;
+    if (dataEnc) {
+      const enc  = new Date(dataEnc);
+      const hoje = new Date();
+      enc.setHours(0, 0, 0, 0);
+      hoje.setHours(0, 0, 0, 0);
+      const dias = Math.round((enc - hoje) / (1000 * 60 * 60 * 24));
+      if (dias < 0)       urgBadge = `<span class="badge-dias encerrado">Encerrado</span>`;
+      else if (dias === 0)urgBadge = `<span class="badge-dias urgente">Encerra hoje</span>`;
+      else if (dias <= 3) urgBadge = `<span class="badge-dias urgente">${dias}d restantes</span>`;
+      else                urgBadge = `<span class="badge-dias normal">${dias}d restantes</span>`;
     }
 
     // Botão de preview de itens via PNCP
@@ -6175,24 +6180,30 @@
 
   function abrirNovoPregaoCalendario() {
     const form = document.getElementById('form-novo-pregao-cal');
+    if (!form) return;
     const sel  = document.getElementById('cal-cliente-id');
-    const opts = (clientesCache.length ? clientesCache : []).map(c =>
-      `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email || String(c.id))}</option>`
-    ).join('');
-    sel.innerHTML = '<option value="">Selecione o cliente...</option>' + opts;
-    if (!clientesCache.length) {
-      fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => {
-          clientesCache = d.dados || d || [];
-          sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
-            clientesCache.map(c => `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email)}</option>`).join('');
-        }).catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+    if (sel) {
+      const popularSelect = (lista) => {
+        sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
+          lista.map(c => `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email || String(c.id))}</option>`).join('');
+      };
+      if (clientesCache.length) {
+        popularSelect(clientesCache);
+      } else {
+        sel.innerHTML = '<option value="">Carregando...</option>';
+        fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json()).then(d => {
+            clientesCache = d.dados || d || [];
+            popularSelect(clientesCache);
+          }).catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+      }
     }
     ['cal-numero','cal-data','cal-orgao','cal-objeto','cal-lance-min'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
-    document.getElementById('cal-portal').value = '';
-    form.style.display = '';
+    const calPortal = document.getElementById('cal-portal');
+    if (calPortal) calPortal.value = '';
+    form.style.display = 'block';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -6201,11 +6212,13 @@
     const numero    = document.getElementById('cal-numero').value.trim();
     if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
     if (!numero)    { toast('Número do pregão é obrigatório', 'error'); return; }
+    const dataHora  = document.getElementById('cal-data')?.value || null;
     const body = {
       numero,
       orgao:              document.getElementById('cal-orgao').value.trim() || null,
       objeto:             document.getElementById('cal-objeto').value.trim() || null,
-      data_hora_abertura: document.getElementById('cal-data').value || null,
+      data_hora_abertura: dataHora ? new Date(dataHora).toISOString() : null,
+      data_abertura:      dataHora ? dataHora.split('T')[0] : null,
       portal_disputa:     document.getElementById('cal-portal').value || null,
       valor_minimo_lance: parseFloat(document.getElementById('cal-lance-min').value) || null,
     };
@@ -8221,6 +8234,7 @@ img { max-height: 22px !important; width: auto !important; display: block; }
           <div class="monitor-actions">
             <span id="robo-status-${p.id}" style="font-size:11px;color:var(--text-muted);margin-right:4px">${p.robo_ativo ? '🟢 Rodando' : '⭕ Parado'}</span>
             <button class="btn btn-primary btn-sm" onclick="abrirConfigurarRobo(${p.id},'${esc(p.numero||'')}','${esc(p.cliente_nome||'')}')">Configurar Robô</button>
+            <button onclick="excluirPregaoRobo(${p.id},${p.cliente_id || 0})" class="btn btn-sm" style="background:rgba(248,113,113,0.15);color:#F87171;border:1px solid rgba(248,113,113,0.3);margin-left:8px">Excluir</button>
           </div>
         </div>`;
       }).join('');
@@ -8296,6 +8310,71 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       await verificarStatusRobo(_roboAtualId);
       carregarRobo();
     } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function excluirPregaoRobo(pregaoId, clienteId) {
+    if (!confirm('Remover este pregão da lista do robô?')) return;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteId}/pregoes/${pregaoId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) { toast('Pregão removido.', 'success'); carregarRobo(); }
+      else { const err = await r.json().catch(() => ({})); toast(err.erro || 'Erro ao excluir', 'error'); }
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function abrirAdicionarPregaoRobo() {
+    const sel = document.getElementById('robo-add-cliente-id');
+    if (sel) {
+      const popularSelect = (lista) => {
+        sel.innerHTML = '<option value="">Selecione o cliente</option>' +
+          lista.map(c => `<option value="${c.id}">${esc(c.nome || c.razao_social || c.email)}</option>`).join('');
+      };
+      if (clientesCache.length) {
+        popularSelect(clientesCache);
+      } else {
+        sel.innerHTML = '<option value="">Carregando...</option>';
+        fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json()).then(d => { clientesCache = d.dados || d || []; popularSelect(clientesCache); })
+          .catch(() => { sel.innerHTML = '<option value="">Erro ao carregar</option>'; });
+      }
+    }
+    ['robo-add-numero','robo-add-orgao','robo-add-objeto','robo-add-data','robo-add-valor'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const roboAddPortal = document.getElementById('robo-add-portal');
+    if (roboAddPortal) roboAddPortal.value = '';
+    document.getElementById('modal-robo-adicionar').classList.add('visible');
+  }
+
+  async function salvarPregaoRobo() {
+    const clienteId = document.getElementById('robo-add-cliente-id').value;
+    const numero    = document.getElementById('robo-add-numero').value.trim();
+    if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
+    if (!numero)    { toast('Número do pregão é obrigatório', 'error'); return; }
+    const dataHora  = document.getElementById('robo-add-data')?.value || null;
+    const body = {
+      numero,
+      orgao:              document.getElementById('robo-add-orgao').value.trim() || null,
+      objeto:             document.getElementById('robo-add-objeto').value.trim() || null,
+      data_hora_abertura: dataHora ? new Date(dataHora).toISOString() : null,
+      data_abertura:      dataHora ? dataHora.split('T')[0] : null,
+      valor_estimado:     parseFloat(document.getElementById('robo-add-valor').value) || null,
+      portal_disputa:     document.getElementById('robo-add-portal').value || null,
+      status:             'a_disputar',
+    };
+    try {
+      const r = await fetch(`${API}/clientes/${clienteId}/pregoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+      toast('Pregão adicionado!', 'success');
+      document.getElementById('modal-robo-adicionar').classList.remove('visible');
+      carregarRobo();
+    } catch (err) { toast(err.message, 'error'); }
   }
 
   // ── Calendário: deletar pregão ────────────────────────────────────────────────
@@ -9229,6 +9308,61 @@ async function salvarOportunidade() {
       <button class="modal-close" onclick="document.getElementById('modal-resumo-oportunidade').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" id="modal-resumo-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar Pregão ao Robô -->
+<div class="modal-overlay" id="modal-robo-adicionar" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header" style="background:#162A39;color:#ffffff">
+      <div>
+        <div style="font-size:10px;color:#4CC5D7;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">⚡ ROBÔ DE PREGÃO</div>
+        <h3 style="font-size:15px">Adicionar pregão a disputar</h3>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-robo-adicionar').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group" style="margin:0">
+        <label>Cliente *</label>
+        <select id="robo-add-cliente-id"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0">
+          <label>Número do pregão *</label>
+          <input id="robo-add-numero" placeholder="001/2026" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Portal de disputa</label>
+          <select id="robo-add-portal">
+            <option value="">Selecione</option>
+            <option>PNCP</option><option>ComprasNet</option><option>BLL</option>
+            <option>Licitações-e</option><option>ComprasBR</option><option>Licitar Digital</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Órgão</label>
+        <input id="robo-add-orgao" placeholder="Prefeitura de..." />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Objeto</label>
+        <input id="robo-add-objeto" placeholder="Descrição do pregão..." />
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0">
+          <label>Data e hora de abertura</label>
+          <input type="datetime-local" id="robo-add-data" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Valor estimado (R$)</label>
+          <input type="number" id="robo-add-valor" placeholder="Ex: 50000" min="0" step="0.01" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--sec-border)">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-robo-adicionar').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarPregaoRobo()">Salvar pregão</button>
+      </div>
+    </div>
   </div>
 </div>
 
