@@ -20,7 +20,8 @@ async function cadastrar(req, res) {
   const { nome, email, whatsapp, palavras_chave, uf, ativo,
           valor_contrato, percentual_comissao, dia_vencimento,
           responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo } = req.body ?? {};
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo,
+          cnpj, razao_social, responsavel_legal, cargo_responsavel, cpf_responsavel, endereco } = req.body ?? {};
 
   if (!nome || !email)
     return res.status(400).json({ erro: 'nome e email são obrigatórios' });
@@ -34,12 +35,10 @@ async function cadastrar(req, res) {
       `INSERT INTO clientes
          (nome, email, whatsapp, palavras_chave, uf, ativo, valor_contrato, percentual_comissao,
           dia_vencimento, responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-       RETURNING id, nome, email, whatsapp, palavras_chave, uf, ativo, criado_em,
-                 valor_contrato, percentual_comissao, dia_vencimento,
-                 responsavel, origem, sdr_nome, sdr_comissao,
-                 contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo`,
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo,
+          cnpj, razao_social, responsavel_legal, cargo_responsavel, cpf_responsavel, endereco)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+       RETURNING *`,
       [
         nome.trim(),
         email.trim().toLowerCase(),
@@ -90,7 +89,8 @@ async function atualizar(req, res) {
   const { nome, email, whatsapp, palavras_chave, uf, ativo,
           valor_contrato, percentual_comissao, dia_vencimento,
           responsavel, origem, sdr_nome, sdr_comissao,
-          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo } = req.body ?? {};
+          contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo,
+          cnpj, razao_social, responsavel_legal, cargo_responsavel, cpf_responsavel, endereco } = req.body ?? {};
 
   if (palavras_chave !== undefined && !Array.isArray(palavras_chave))
     return res.status(400).json({ erro: 'palavras_chave deve ser um array de strings' });

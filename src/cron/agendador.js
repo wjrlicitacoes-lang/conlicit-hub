@@ -15,33 +15,34 @@ async function verificarSaldoAnthropic() {
   if (!apiKey) return;
 
   try {
-    // /v1/usage não existe na API pública da Anthropic — usa /v1/models como ping
-    const resp = await axios.get('https://api.anthropic.com/v1/models', {
+    const resp = await axios.get('https://api.anthropic.com/v1/usage', {
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       timeout: 10000,
     });
 
-    if (resp.status === 200) {
-      console.log('[Cron] Verificação Anthropic ok — API key válida e ativa');
-    }
-  } catch (e) {
-    const status = e.response?.status;
-    const resendKey = process.env.RESEND_API_KEY;
+    const creditos = resp.data?.remaining_credits ?? resp.data?.balance ?? null;
+    const saldoUSD = creditos != null ? parseFloat(creditos) : null;
 
-    // 401 = key inválida ou sem créditos — envia alerta
-    if (status === 401 && resendKey) {
+    if (saldoUSD !== null && saldoUSD < LIMITE_SALDO_USD) {
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        console.warn('[Cron] Saldo Anthropic baixo mas RESEND_API_KEY não configurada');
+        return;
+      }
       const resend = new Resend(resendKey);
       await resend.emails.send({
         from: 'Conlicit Hub <noreply@hub.conlicit.com>',
         to: ALERTA_EMAIL,
-        subject: '⚠️ Conlicit Hub — API key Anthropic inválida ou sem créditos',
-        html: `<p>A API key da Anthropic retornou erro <strong>401</strong>.</p>
-               <p>O Edson pode estar fora do ar. Verifique em <a href="https://console.anthropic.com">console.anthropic.com</a>.</p>`,
-      }).catch(err => console.error('[Cron] Falha ao enviar alerta Anthropic:', err.message));
-      console.warn('[Cron] Alerta enviado — API key Anthropic com problema (401)');
+        subject: '⚠️ Conlicit Hub — Créditos Anthropic baixos',
+        html: `<p>Saldo atual: <strong>$${saldoUSD.toFixed(2)}</strong>.</p>
+               <p>O Edson pode parar de funcionar. Recarregue em <a href="https://console.anthropic.com">console.anthropic.com</a>.</p>`,
+      });
+      console.warn(`[Cron] Alerta enviado — saldo Anthropic: $${saldoUSD}`);
     } else {
-      console.warn(`[Cron] Verificação Anthropic falhou: ${status || e.message}`);
+      console.log(`[Cron] Saldo Anthropic ok: $${saldoUSD}`);
     }
+  } catch (e) {
+    console.error('[Cron] Erro ao verificar saldo Anthropic:', e.message);
   }
 }
 
@@ -152,6 +153,52 @@ function iniciarAgendador() {
       console.error('[Cron] Erro no job de cobranças:', e.message);
     }
   }, { timezone: 'America/Sao_Paulo' });
+
+
+  // Alerta de documentos vencendo — todo dia às 08:00 (Brasília)
+  cron.schedule('0 8 * * *', async () => {
+    console.log('[Cron] Verificando vencimento de documentos...');
+    try {
+      const { rows } = await db.query(`
+        SELECT dc.*, c.nome AS cliente_nome, c.whatsapp AS cliente_wpp
+        FROM documentos_cliente dc
+        JOIN clientes c ON c.id = dc.cliente_id
+        WHERE dc.data_vencimento IS NOT NULL
+          AND dc.status IN ('enviado','aprovado')
+          AND dc.data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+        ORDER BY dc.data_vencimento
+      `);
+
+      const TIPO_LABEL = {
+        contrato_social:'Contrato Social',
+        certidao_federal:'Certidão Federal',
+        certidao_estadual:'Certidão Estadual',
+        certidao_municipal:'Certidão Municipal',
+        atestado_capacidade_tecnica:'Atestado Técnico',
+        balanco_patrimonial:'Balanço Patrimonial',
+        rg_socio:'RG dos Sócios',
+        cpf_socio:'CPF dos Sócios',
+      };
+
+      for (const doc of rows) {
+        const venc = new Date(doc.data_vencimento);
+        const dias = Math.ceil((venc - new Date()) / 86400000);
+        const label = TIPO_LABEL[doc.tipo] || doc.tipo;
+        const dtStr = venc.toLocaleDateString('pt-BR');
+
+        if (dias <= 7) {
+          console.warn(`⚠️  VENCIMENTO: ${doc.cliente_nome} — ${label} vence em ${dias} dias (${dtStr})`);
+          // TODO: integrar Z-API quando configurado para enviar WPP ao cliente
+        } else {
+          console.log(`[Docs] ${doc.cliente_nome} — ${label}: ${dias} dias (${dtStr})`);
+        }
+      }
+    } catch (e) {
+      console.error('[Cron] Erro no alerta de vencimento:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
+  console.log('[Cron] Alerta de vencimento de documentos agendado: 0 8 * * * (America/Sao_Paulo)');
 
   console.log(`[Cron] Sync PNCP agendado: "${cronSync}" (America/Sao_Paulo)`);
   console.log(`[Cron] Boletim agendado: "${cronBoletim}" (America/Sao_Paulo)`);

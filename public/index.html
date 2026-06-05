@@ -2204,7 +2204,33 @@
         <div class="section-header">
           <h1>Calendário de Pregões</h1>
           <div class="section-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="abrirNovoPregaoCalendario()">+ Pregão</button>
             <button class="btn btn-ghost btn-sm" onclick="carregarCalendario()">↻ Atualizar</button>
+          </div>
+        </div>
+        <div id="form-novo-pregao-cal" class="inline-form" style="margin-bottom:1rem;display:none">
+          <div class="inline-form-grid">
+            <div class="form-group" style="margin:0"><label>Cliente *</label><select id="cal-cliente-id"></select></div>
+            <div class="form-group" style="margin:0"><label>Número do pregão *</label><input id="cal-numero" placeholder="001/2026" /></div>
+            <div class="form-group" style="margin:0"><label>Data e hora de abertura</label><input type="datetime-local" id="cal-data" /></div>
+            <div class="form-group" style="margin:0"><label>Órgão</label><input id="cal-orgao" placeholder="Prefeitura de..." /></div>
+          </div>
+          <div class="form-row" style="margin-top:.4rem">
+            <div class="form-group" style="margin:0"><label>Portal de disputa</label>
+              <select id="cal-portal">
+                <option value="">Selecione</option>
+                <option>PNCP</option><option>ComprasNet</option><option>BLL</option>
+                <option>Licitações-e</option><option>ComprasBR</option><option>Licitar Digital</option><option>Outro</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0"><label>Lance mínimo (R$)</label>
+              <input type="number" id="cal-lance-min" placeholder="Definir com cliente" min="0" step="0.01" />
+            </div>
+            <div class="form-group" style="margin:0"><label>Objeto</label><input id="cal-objeto" placeholder="Descrição do pregão..." /></div>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-top:.5rem">
+            <button class="btn btn-primary btn-sm" onclick="salvarPregaoCalendario()">Salvar pregão</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('form-novo-pregao-cal').style.display='none'">Cancelar</button>
           </div>
         </div>
 
@@ -2420,6 +2446,37 @@
           <input type="text" id="cliente-keywords" placeholder="limpeza, informática, obras (separadas por vírgula)" />
           <p style="font-size:.75rem;color:var(--text-muted);margin-top:.3rem">Separe cada termo com vírgula.</p>
         </div>
+        <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);padding:.5rem 0;border-bottom:1px solid var(--sec-border);margin-bottom:.75rem">Dados jurídicos</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cliente-cnpj">CNPJ</label>
+            <input type="text" id="cliente-cnpj" placeholder="00.000.000/0001-00" />
+          </div>
+          <div class="form-group">
+            <label for="cliente-razao-social">Razão Social</label>
+            <input type="text" id="cliente-razao-social" placeholder="Nome completo da empresa" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cliente-responsavel-legal">Responsável Legal</label>
+            <input type="text" id="cliente-responsavel-legal" placeholder="Nome completo" />
+          </div>
+          <div class="form-group">
+            <label for="cliente-cargo-responsavel">Cargo</label>
+            <input type="text" id="cliente-cargo-responsavel" placeholder="CEO, Diretor, Sócio..." />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cliente-cpf-responsavel">CPF do Responsável</label>
+            <input type="text" id="cliente-cpf-responsavel" placeholder="000.000.000-00" />
+          </div>
+          <div class="form-group">
+            <label for="cliente-endereco">Endereço completo</label>
+            <input type="text" id="cliente-endereco" placeholder="Rua, nº, Bairro, Cidade/UF" />
+          </div>
+        </div>
         <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);padding:.5rem 0;border-bottom:1px solid var(--sec-border);margin-bottom:.75rem">Contato na empresa</p>
         <div class="form-row">
           <div class="form-group">
@@ -2515,6 +2572,8 @@
         <button class="tab-btn"        data-tab="documentos"   onclick="switchTab2('documentos')">Documentos</button>
         <button class="tab-btn"        data-tab="interesses"   onclick="switchTab2('interesses')">Interesses</button>
         <button class="tab-btn"        data-tab="acessos"      onclick="switchTab2('acessos')">🔑 Acessos</button>
+        <button class="tab-btn"        data-tab="docs-hub"     onclick="switchTab2('docs-hub')">📋 Docs Onboarding</button>
+        <button class="tab-btn"        data-tab="geradores"    onclick="switchTab2('geradores')">📄 Geradores</button>
       </div>
       <div id="tab-dados"        class="tab-pane active"></div>
       <div id="tab-pregoes"      class="tab-pane"></div>
@@ -2522,6 +2581,8 @@
       <div id="tab-documentos"   class="tab-pane"></div>
       <div id="tab-interesses"   class="tab-pane"></div>
       <div id="tab-acessos"       class="tab-pane"></div>
+      <div id="tab-docs-hub"     class="tab-pane"></div>
+      <div id="tab-geradores"    class="tab-pane"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="fecharDetalheCliente()">Fechar</button>
@@ -3001,6 +3062,8 @@
       else if (name === 'mensalidades') carregarMensalidadesTab();
       else if (name === 'documentos')   carregarDocumentosTab();
       else if (name === 'acessos')        carregarAcessosTab();
+      else if (name === 'docs-hub')      carregarDocsHubTab();
+      else if (name === 'geradores')     carregarGeradoresTab();
       else if (name === 'interesses')   preencherTabInteresses(clienteAtual);
     }
   }
@@ -3670,6 +3733,304 @@
     } catch { toast('Erro ao atualizar status', 'error'); }
   }
 
+
+  // ── TAB: DOCS ONBOARDING (Hub interno) ──────────────────────────────
+  async function carregarDocsHubTab() {
+    if (!clienteAtual) return;
+    const tab = document.getElementById('tab-docs-hub');
+    tab.innerHTML = '<div class="spinner" style="margin:1rem auto"></div>';
+    try {
+      const r = await fetch(`${API}/documentos-cliente/cliente/${clienteAtual.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [], resumo = {} } = await r.json();
+
+      const ST = { pendente:'⏳ Pendente', enviado:'📤 Enviado', aprovado:'✅ Aprovado', rejeitado:'❌ Rejeitado', vencido:'⚠️ Vencido' };
+      const ST_COR = { pendente:'var(--text-muted)', enviado:'#f59e0b', aprovado:'var(--success,#10b981)', rejeitado:'var(--danger,#ef4444)', vencido:'#f59e0b' };
+      const TIPO_LABEL = {
+        contrato_social:'Contrato Social / CNPJ', certidao_federal:'Certidão Federal',
+        certidao_estadual:'Certidão Estadual', certidao_municipal:'Certidão Municipal',
+        atestado_capacidade_tecnica:'Atestado Técnico', balanco_patrimonial:'Balanço Patrimonial',
+        rg_socio:'RG dos Sócios', cpf_socio:'CPF dos Sócios', logo_empresa:'Logo da Empresa (PNG)',
+      };
+
+      const vencendo = dados.filter(d => {
+        if (!d.data_vencimento) return false;
+        const dias = Math.ceil((new Date(d.data_vencimento) - new Date()) / 86400000);
+        return dias <= 30 && dias >= 0;
+      });
+
+      tab.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <span style="font-size:.85rem;color:var(--text-muted)">${resumo.enviados || 0} de ${resumo.total || 0} enviados</span>
+            ${vencendo.length ? `<span style="margin-left:.5rem;font-size:.75rem;color:#f59e0b;font-weight:600">⚠️ ${vencendo.length} vencendo em 30 dias</span>` : ''}
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" id="btn-gerar-link-docs" onclick="gerarLinkDocs()">🔗 Gerar link de envio</button>
+          </div>
+        </div>
+        <div id="link-docs-area"></div>
+        ${dados.length === 0
+          ? '<p style="font-size:.85rem;color:var(--text-muted)">Nenhum documento. Clique em "Gerar link de envio" para criar o checklist e enviar ao cliente.</p>'
+          : `<div style="display:flex;flex-direction:column;gap:.5rem">
+            ${dados.map(d => {
+              const venc = d.data_vencimento ? new Date(d.data_vencimento) : null;
+              const diasVenc = venc ? Math.ceil((venc - new Date()) / 86400000) : null;
+              const alertaVenc = diasVenc !== null && diasVenc <= 30
+                ? `<span style="font-size:.7rem;color:${diasVenc < 0 ? 'var(--danger,#ef4444)' : '#f59e0b'}">${diasVenc < 0 ? 'Vencido' : diasVenc + 'd p/ vencer'}</span>`
+                : '';
+              return `<div style="background:var(--bg-secondary,rgba(0,0,0,.15));border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:.65rem .9rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <div style="flex:1;min-width:140px">
+                  <div style="font-size:.85rem;font-weight:600">${TIPO_LABEL[d.tipo] || d.tipo}</div>
+                  <div style="font-size:.75rem;margin-top:2px;display:flex;gap:.5rem;align-items:center">
+                    <span style="color:${ST_COR[d.status] || 'var(--text-muted)'}">${ST[d.status] || d.status}</span>
+                    ${alertaVenc}
+                    ${d.data_vencimento ? `<span style="color:var(--text-muted)">venc: ${new Date(d.data_vencimento).toLocaleDateString('pt-BR')}</span>` : ''}
+                  </div>
+                  ${d.observacoes && d.status === 'rejeitado' ? `<div style="font-size:.72rem;color:var(--danger,#ef4444);margin-top:3px">${esc(d.observacoes)}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+                  <input type="date" value="${d.data_vencimento ? d.data_vencimento.split('T')[0] : ''}"
+                    style="font-size:.72rem;padding:3px 6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:var(--text);width:130px"
+                    onchange="atualizarVencDocHub(${d.id}, this.value)" title="Data de vencimento">
+                  ${d.caminho_arquivo ? `<a class="btn btn-ghost btn-sm" href="/uploads/documentos/${clienteAtual.id}/${d.nome_arquivo}" target="_blank" rel="noopener">Ver</a>` : ''}
+                  ${d.status === 'enviado' ? `
+                    <button class="btn btn-primary btn-sm" onclick="aprovarDoc(${d.id})">✓ Aprovar</button>
+                    <button class="btn btn-danger btn-sm" onclick="rejeitarDoc(${d.id})">✗ Rejeitar</button>` : ''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`}`;
+    } catch {
+      tab.innerHTML = '<p style="color:var(--text-muted)">Erro ao carregar documentos.</p>';
+    }
+  }
+
+  async function gerarLinkDocs() {
+    if (!clienteAtual) return;
+    const btn = document.getElementById('btn-gerar-link-docs');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Gerando...'; }
+    try {
+      const r = await fetch(`${API}/documentos-cliente/gerar-link/${clienteAtual.id}`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      const area = document.getElementById('link-docs-area');
+      if (area) {
+        area.innerHTML = `<div style="background:rgba(76,197,215,.07);border:1px solid rgba(76,197,215,.2);border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <span style="font-size:.8rem;color:var(--support);flex:1;word-break:break-all">${esc(d.link)}</span>
+          <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${esc(d.link)}').then(()=>toast('Link copiado!','success'))">Copiar</button>
+        </div>`;
+      }
+      toast('Link gerado com sucesso!', 'success');
+      tabsLoaded['docs-hub'] = false;
+      setTimeout(() => switchTab2('docs-hub'), 800);
+    } catch (e) { toast(e.message, 'error'); }
+    finally { if (btn) { btn.disabled = false; btn.textContent = '🔗 Gerar link de envio'; } }
+  }
+
+  async function aprovarDoc(did) {
+    try {
+      await fetch(`${API}/documentos-cliente/${did}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'aprovado' }),
+      });
+      toast('Documento aprovado!', 'success');
+      tabsLoaded['docs-hub'] = false;
+      switchTab2('docs-hub');
+    } catch { toast('Erro ao aprovar', 'error'); }
+  }
+
+  async function rejeitarDoc(did) {
+    const motivo = prompt('Motivo da rejeição (será visível ao cliente):');
+    if (motivo === null) return;
+    try {
+      await fetch(`${API}/documentos-cliente/${did}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'rejeitado', observacoes: motivo }),
+      });
+      toast('Documento rejeitado.', 'success');
+      tabsLoaded['docs-hub'] = false;
+      switchTab2('docs-hub');
+    } catch { toast('Erro ao rejeitar', 'error'); }
+  }
+
+  async function atualizarVencDocHub(did, data) {
+    try {
+      await fetch(`${API}/documentos-cliente/${did}/vencimento`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ data_vencimento: data || null }),
+      });
+      tabsLoaded['docs-hub'] = false;
+      switchTab2('docs-hub');
+    } catch { toast('Erro ao atualizar vencimento', 'error'); }
+  }
+
+  // ── TAB: GERADORES (Proposta Readequada + Recurso) ───────────────────
+  async function carregarGeradoresTab() {
+    if (!clienteAtual) return;
+    const tab = document.getElementById('tab-geradores');
+
+    // Buscar pregões vencidos do cliente para proposta readequada
+    const pregoes = (pregoesMap[clienteAtual.id] || []).filter(p => ['vencido','a_disputar'].includes(p.status));
+
+    tab.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+        <!-- PROPOSTA READEQUADA -->
+        <div style="background:var(--bg-secondary,rgba(0,0,0,.12));border-radius:10px;padding:1rem">
+          <h4 style="font-size:.9rem;font-weight:700;margin-bottom:.75rem;color:var(--text)">📄 Proposta Comercial Readequada</h4>
+          <div class="form-row" style="margin-bottom:.5rem">
+            <div class="form-group" style="margin:0">
+              <label>Pregão</label>
+              <select id="pr-pregao-sel">
+                <option value="">Selecione o pregão</option>
+                ${pregoes.map(p => `<option value="${p.id}">${esc(p.numero || '—')} — ${esc(p.orgao || '—')}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Prazo de validade (dias)</label>
+              <input type="number" id="pr-prazo" value="90" min="1" max="365" style="width:100%" />
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:.5rem">
+            <label>Itens (cole os dados no formato: nº | descrição | unidade | marca | qtd | valor_unit | valor_total — um por linha)</label>
+            <textarea id="pr-itens" rows="5" placeholder="4 | Amendoim torrado... | Pacote | Pachá | 1110 | 6,67 | 7.403,70&#10;10 | Batata palha... | Pacote | Pachá | 150 | 5,97 | 895,50" style="width:100%;font-size:12px;font-family:monospace"></textarea>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="gerarPropostaReadequada()">Gerar Proposta</button>
+          <div id="pr-resultado" style="margin-top:.75rem"></div>
+        </div>
+
+        <!-- RECURSO ADMINISTRATIVO -->
+        <div style="background:var(--bg-secondary,rgba(0,0,0,.12));border-radius:10px;padding:1rem">
+          <h4 style="font-size:.9rem;font-weight:700;margin-bottom:.75rem;color:var(--text)">⚖️ Recurso / Impugnação</h4>
+          <div class="form-row" style="margin-bottom:.5rem">
+            <div class="form-group" style="margin:0">
+              <label>Pregão (opcional)</label>
+              <select id="rc-pregao-sel">
+                <option value="">Nenhum</option>
+                ${(pregoesMap[clienteAtual.id] || []).map(p => `<option value="${p.id}">${esc(p.numero || '—')} — ${esc(p.orgao || '—')}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Tipo</label>
+              <select id="rc-tipo">
+                <option value="recurso">Recurso Administrativo</option>
+                <option value="impugnacao">Impugnação ao Edital</option>
+                <option value="contrarrazoes">Contrarrazões</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:.5rem">
+            <label>Motivo / Fato que originou o recurso *</label>
+            <textarea id="rc-motivo" rows="4" placeholder="Descreva o motivo da desclassificação, inabilitação ou impugnação. Quanto mais detalhes, melhor o recurso gerado pelo Edson." style="width:100%;font-size:13px"></textarea>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="gerarRecurso()" id="btn-gerar-recurso">⚖️ Gerar com Edson</button>
+          <div id="rc-resultado" style="margin-top:.75rem"></div>
+        </div>
+
+      </div>`;
+  }
+
+  async function gerarPropostaReadequada() {
+    if (!clienteAtual) return;
+    const pregaoId = document.getElementById('pr-pregao-sel').value;
+    const prazo    = parseInt(document.getElementById('pr-prazo').value) || 90;
+    const raw      = document.getElementById('pr-itens').value.trim();
+
+    if (!pregaoId) { toast('Selecione o pregão', 'error'); return; }
+    if (!raw) { toast('Informe os itens', 'error'); return; }
+
+    // Parse itens: nº | desc | unidade | marca | qtd | valor_unit | valor_total
+    const itens = raw.split('\n').filter(l => l.trim()).map(l => {
+      const parts = l.split('|').map(p => p.trim());
+      const parseBRL = s => parseFloat((s || '0').replace(/\./g,'').replace(',','.')) || 0;
+      return {
+        numero: parts[0], descricao: parts[1], unidade: parts[2],
+        marca: parts[3], quantidade: parseBRL(parts[4]),
+        valor_unitario: parseBRL(parts[5]), valor_total: parseBRL(parts[6]),
+      };
+    });
+    const valorTotal = itens.reduce((s, i) => s + i.valor_total, 0);
+
+    const area = document.getElementById('pr-resultado');
+    area.innerHTML = '<div class="spinner" style="margin:.5rem auto;width:24px;height:24px;border-width:2px"></div>';
+
+    try {
+      const r = await fetch(`${API}/propostas-readequadas/gerar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pregao_id: parseInt(pregaoId), cliente_id: clienteAtual.id, itens, valor_total_geral: valorTotal, prazo_validade: prazo }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+
+      area.innerHTML = `
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:.75rem 1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <span style="font-size:.82rem;color:var(--success,#10b981);font-weight:600">✓ Proposta gerada</span>
+            <div style="display:flex;gap:.4rem">
+              <button class="btn btn-primary btn-sm" onclick="imprimirHTML(document.getElementById('pr-preview').innerHTML)">🖨️ Imprimir</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pr-preview-wrap').style.display=document.getElementById('pr-preview-wrap').style.display==='none'?'block':'none'">👁 Ver</button>
+            </div>
+          </div>
+          <div id="pr-preview-wrap" style="display:none">
+            <div id="pr-preview" style="max-height:400px;overflow-y:auto;background:#fff;border-radius:6px;padding:.5rem">${d.html}</div>
+          </div>
+        </div>`;
+    } catch (e) { area.innerHTML = `<p style="color:var(--danger,#ef4444);font-size:.82rem">${e.message}</p>`; }
+  }
+
+  async function gerarRecurso() {
+    if (!clienteAtual) return;
+    const motivo = document.getElementById('rc-motivo').value.trim();
+    if (!motivo) { toast('Informe o motivo do recurso', 'error'); return; }
+    const pregaoId = document.getElementById('rc-pregao-sel').value;
+    const tipo     = document.getElementById('rc-tipo').value;
+    const btn      = document.getElementById('btn-gerar-recurso');
+    btn.disabled   = true; btn.textContent = '⏳ Gerando com Edson...';
+    const area     = document.getElementById('rc-resultado');
+    area.innerHTML = '<div class="spinner" style="margin:.5rem auto;width:24px;height:24px;border-width:2px"></div>';
+    try {
+      const r = await fetch(`${API}/recursos/gerar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cliente_id: clienteAtual.id, pregao_id: pregaoId ? parseInt(pregaoId) : null, tipo, motivo }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      area.innerHTML = `
+        <div style="background:rgba(76,197,215,.07);border:1px solid rgba(76,197,215,.2);border-radius:8px;padding:.75rem 1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <span style="font-size:.82rem;color:var(--primary);font-weight:600">✓ Recurso gerado pelo Edson</span>
+            <div style="display:flex;gap:.4rem">
+              <button class="btn btn-primary btn-sm" onclick="imprimirHTML(document.getElementById('rc-preview').innerHTML)">🖨️ Imprimir</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rc-preview-wrap').style.display=document.getElementById('rc-preview-wrap').style.display==='none'?'block':'none'">👁 Ver</button>
+            </div>
+          </div>
+          <div id="rc-preview-wrap" style="display:none">
+            <div id="rc-preview" style="max-height:400px;overflow-y:auto;background:#fff;border-radius:6px;padding:.5rem;color:#222;font-family:Arial,sans-serif;font-size:12px">${d.recurso?.conteudo_html || ''}</div>
+          </div>
+        </div>`;
+    } catch (e) { area.innerHTML = `<p style="color:var(--danger,#ef4444);font-size:.82rem">${e.message}</p>`; }
+    finally { btn.disabled = false; btn.textContent = '⚖️ Gerar com Edson'; }
+  }
+
+  function imprimirHTML(conteudo) {
+    const w = window.open('', '_blank', 'width=900,height:1100');
+    if (!w) { toast('Popup bloqueado pelo navegador. Permita popups e tente novamente.', 'error'); return; }
+    w.document.open();
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+      <style>body{font-family:Arial,sans-serif;margin:0}@media print{body{-webkit-print-color-adjust:exact}}</style>
+      </head><body>${conteudo}</body></html>`);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 1500);
+  }
+
   // ── TAB: INTERESSES ──
   function preencherTabInteresses(c) {
     if (!c) return;
@@ -3884,7 +4245,13 @@
           palavras_chave, ativo, valor_contrato, percentual_comissao, dia_vencimento,
           origem, sdr_nome, sdr_comissao,
           contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit,
-          whatsapp_grupo: document.getElementById('cliente-whatsapp-grupo').value || null }),
+          whatsapp_grupo: document.getElementById('cliente-whatsapp-grupo').value || null,
+          cnpj: document.getElementById('cliente-cnpj')?.value.trim() || null,
+          razao_social: document.getElementById('cliente-razao-social')?.value.trim() || null,
+          responsavel_legal: document.getElementById('cliente-responsavel-legal')?.value.trim() || null,
+          cargo_responsavel: document.getElementById('cliente-cargo-responsavel')?.value.trim() || null,
+          cpf_responsavel: document.getElementById('cliente-cpf-responsavel')?.value.trim() || null,
+          endereco: document.getElementById('cliente-endereco')?.value.trim() || null }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');

@@ -476,6 +476,69 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
 
+
+  // Campos para timbrado e proposta readequada
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS razao_social VARCHAR(255)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_legal VARCHAR(255)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cargo_responsavel VARCHAR(100)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cpf_responsavel VARCHAR(14)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS endereco TEXT`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_base64 TEXT`);
+
+  // Tabelas para módulo de documentação
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS documentos_cliente (
+      id               SERIAL PRIMARY KEY,
+      cliente_id       INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+      token_upload     VARCHAR(64) UNIQUE,
+      tipo             VARCHAR(100) NOT NULL,
+      nome_arquivo     VARCHAR(255),
+      caminho_arquivo  TEXT,
+      data_vencimento  DATE,
+      status           VARCHAR(50) NOT NULL DEFAULT 'pendente',
+      observacoes      TEXT,
+      enviado_em       TIMESTAMP,
+      created_at       TIMESTAMP DEFAULT NOW(),
+      updated_at       TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE TABLE IF NOT EXISTS tokens_upload (
+    id         SERIAL PRIMARY KEY,
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    token      VARCHAR(64) UNIQUE NOT NULL,
+    usado      BOOLEAN DEFAULT FALSE,
+    expira_em  TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_cliente_id ON documentos_cliente(cliente_id)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_status ON documentos_cliente(status)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_vencimento ON documentos_cliente(data_vencimento)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens_upload(token)');
+
+  // Tabela para recursos licitatórios
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS recursos_licitatorios (
+      id            SERIAL PRIMARY KEY,
+      pregao_id     INTEGER REFERENCES pregoes(id) ON DELETE CASCADE,
+      cliente_id    INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+      tipo          VARCHAR(50) NOT NULL DEFAULT 'recurso',
+      motivo        TEXT,
+      conteudo_html TEXT,
+      status        VARCHAR(30) NOT NULL DEFAULT 'rascunho',
+      criado_por    INTEGER REFERENCES usuarios(id),
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+
+  // Colunas de alerta 48h e 24h nos pregões
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_48h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_24h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
+
+  // Coluna whatsapp nos usuários (para alertas diretos aos sócios)
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(20)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

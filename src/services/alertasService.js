@@ -85,6 +85,8 @@ function montarHtmlAlerta(p, tipoLabel) {
 // Windows (min/max hours before the pregão opens) where each alert fires
 const JANELAS = [
   { campo: 'alerta_vespera_enviado', minH: 18, maxH: 26, label: 'Véspera' },
+  { campo: 'alerta_48h_enviado',     minH: 47, maxH: 49, label: '48 horas' },
+  { campo: 'alerta_24h_enviado',     minH: 23, maxH: 25, label: '24 horas' },
   { campo: 'alerta_2h_enviado',      minH: 1.5, maxH: 2.5, label: '2 horas' },
   { campo: 'alerta_1h_enviado',      minH: 0.5, maxH: 1.5, label: '1 hora' },
 ];
@@ -113,19 +115,34 @@ async function processarAlertas() {
     for (const p of pregoes) {
       const subject = `⏰ Alerta ${janela.label} — Pregão ${p.numero} (${p.cliente_nome})`;
 
-      for (const email of adminEmails) {
+      // Buscar emails de admins e sócios fundadores
+      const { rows: destinatarios } = await db.query(
+        `SELECT email, whatsapp FROM usuarios
+         WHERE role IN ('admin','socio_fundador')
+           AND email IS NOT NULL AND email <> ''`
+      );
+
+      for (const dest of destinatarios) {
         try {
-          await enviarEmailAlerta(email, subject, montarHtmlAlerta(p, janela.label));
+          await enviarEmailAlerta(dest.email, subject, montarHtmlAlerta(p, janela.label));
         } catch (e) {
-          console.error(`[Alertas] Email ${email}:`, e.message);
+          console.error(`[Alertas] Email ${dest.email}:`, e.message);
+        }
+        if (dest.whatsapp) {
+          try {
+            await enviarWhatsApp(dest.whatsapp, montarMensagemWpp(p, janela.label));
+          } catch (e) {
+            console.error(`[Alertas] WhatsApp sócio:`, e.message);
+          }
         }
       }
 
-      if (adminWhatsapp) {
+      // Fallback: admin WPP da env
+      if (adminWhatsapp && !destinatarios.find(d => d.whatsapp === adminWhatsapp)) {
         try {
           await enviarWhatsApp(adminWhatsapp, montarMensagemWpp(p, janela.label));
         } catch (e) {
-          console.error(`[Alertas] WhatsApp:`, e.message);
+          console.error(`[Alertas] WhatsApp env:`, e.message);
         }
       }
 
