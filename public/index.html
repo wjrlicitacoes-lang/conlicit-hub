@@ -2244,15 +2244,17 @@
               <button class="tab-btn"        data-etab="habilitacao" onclick="switchEdsonTab('habilitacao')">Habilitação</button>
               <button class="tab-btn"        data-etab="riscos"     onclick="switchEdsonTab('riscos')">Riscos</button>
               <button class="tab-btn"        data-etab="checklist"  onclick="switchEdsonTab('checklist')">Checklist</button>
-              <button class="tab-btn"        data-etab="chat"       onclick="switchEdsonTab('chat')">💬 Pergunte ao Edson</button>
+              <button class="tab-btn"        data-etab="chat"            onclick="switchEdsonTab('chat')">💬 Pergunte ao Edson</button>
+              <button class="tab-btn"        data-etab="planilha-precos" onclick="switchEdsonTab('planilha-precos')">📊 Planilha de Preços</button>
             </div>
             <div id="etab-rapido"></div>
-            <div id="etab-resumo"      style="display:none"></div>
-            <div id="etab-itens"       style="display:none"></div>
-            <div id="etab-habilitacao" style="display:none"></div>
-            <div id="etab-riscos"      style="display:none"></div>
-            <div id="etab-checklist"   style="display:none"></div>
-            <div id="etab-chat"        style="display:none"></div>
+            <div id="etab-resumo"          style="display:none"></div>
+            <div id="etab-itens"           style="display:none"></div>
+            <div id="etab-habilitacao"     style="display:none"></div>
+            <div id="etab-riscos"          style="display:none"></div>
+            <div id="etab-checklist"       style="display:none"></div>
+            <div id="etab-chat"            style="display:none"></div>
+            <div id="etab-planilha-precos" style="display:none"></div>
 
             <!-- Uploads complementares -->
             <div style="margin-top:1rem;padding:.75rem 1rem;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary)">
@@ -5349,7 +5351,7 @@
   let edsonAtualPregaoId = null;
   let edsonPollingTimer  = null;
   let edsonAnaliseAtual  = null;
-  const EDSON_TABS = ['rapido','resumo','itens','habilitacao','riscos','checklist','chat'];
+  const EDSON_TABS = ['rapido','resumo','itens','habilitacao','riscos','checklist','chat','planilha-precos'];
 
   function scoreClass(s) {
     return s >= 85 ? 'score-verde' : s >= 70 ? 'score-verde' : s >= 40 ? 'score-amarelo' : 'score-vermelho';
@@ -5757,7 +5759,8 @@
     else if (tabName === 'habilitacao') document.getElementById('etab-habilitacao').innerHTML = renderEdsonHabilitacao(a.habilitacao);
     else if (tabName === 'riscos')      document.getElementById('etab-riscos').innerHTML = renderEdsonRiscos(a.riscos);
     else if (tabName === 'checklist')   document.getElementById('etab-checklist').innerHTML = renderEdsonChecklist(a.checklist, pid);
-    else if (tabName === 'chat')        iniciarEdsonChat(pid, aid);
+    else if (tabName === 'chat')           iniciarEdsonChat(pid, aid);
+    else if (tabName === 'planilha-precos') carregarPlanilhaPrecos(aid);
   }
 
   function renderEdsonModoRapido(a, pid, aid) {
@@ -6684,6 +6687,279 @@
   function verEdsonMinhaArea(pid) {
     navTo('edson');
     verEdson(pid);
+  }
+
+  // ── Edson: Planilha de Preços ─────────────────────────────────────────────
+
+  let planilhaPollingTimer = null;
+  let planilhaEstadoAtual  = null;
+
+  async function carregarPlanilhaPrecos(analise_id) {
+    if (!analise_id) return;
+    const el = document.getElementById('etab-planilha-precos');
+    el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted)">Carregando…</div>`;
+    try {
+      const r = await fetch(`${API}/edson/analise/${analise_id}/planilha-precos`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao carregar');
+      const d = await r.json();
+      planilhaEstadoAtual = d;
+      renderPlanilhaPrecos(analise_id, d);
+    } catch (e) {
+      el.innerHTML = `<div style="padding:1.5rem;color:#f87171">Erro: ${e.message}</div>`;
+    }
+  }
+
+  function renderPlanilhaPrecos(analise_id, d) {
+    const el = document.getElementById('etab-planilha-precos');
+    const temItens    = d.itens_edital && d.itens_edital.length > 0;
+    const temSelecao  = d.itens_selecao && d.itens_selecao.length > 0;
+    const temPesquisa = d.itens_pesquisa && d.itens_pesquisa.length > 0;
+
+    let html = `<div style="padding:1rem 0">`;
+
+    // Cabeçalho
+    html += `<div style="margin-bottom:1.25rem">
+      <h3 style="margin:0 0 .25rem;font-size:1rem">Planilha de Preços</h3>
+      <p style="margin:0;font-size:.82rem;color:var(--text-muted)">${d.pregao_numero ? `Pregão ${d.pregao_numero}` : ''} ${d.orgao ? '— ' + d.orgao : ''}</p>
+    </div>`;
+
+    // ETAPA 1: Itens do edital
+    if (!temItens) {
+      html += `<div style="padding:1.5rem;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;margin-bottom:1rem">
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:.85rem">Nenhum item extraído ainda. Clique para extrair os itens do edital.</p>
+        <button class="btn btn-primary btn-sm" onclick="extrairItensPlanilha(${analise_id})">🔍 Extrair itens do edital</button>
+        <div id="planilha-extraindo" style="display:none;margin-top:.75rem;font-size:.82rem;color:var(--text-muted)">Extraindo itens…</div>
+      </div>`;
+    } else {
+      // ETAPA 2: Seleção de itens
+      const jaTemSelecao = temSelecao;
+      html += `<div style="margin-bottom:1.25rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+          <span style="font-size:.82rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Itens do edital (${d.itens_edital.length})</span>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-ghost btn-sm" onclick="selecionarTodosPlanilha()">Selecionar todos</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarSelecaoPlanilha(${analise_id})">✓ Salvar seleção</button>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">`;
+
+      d.itens_edital.forEach((item, idx) => {
+        const selecionado = jaTemSelecao
+          ? d.itens_selecao.some(s => s.numero === item.numero)
+          : true;
+        const vlr = item.valor_referencia ? `R$ ${parseFloat(item.valor_referencia).toFixed(2).replace('.',',')}` : '—';
+        const vtotal = item.valor_total_estimado ? `R$ ${parseFloat(item.valor_total_estimado).toFixed(2).replace('.',',')}` : '—';
+        html += `<label style="display:flex;align-items:flex-start;gap:.7rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;${idx % 2 === 0 ? '' : 'background:var(--bg-secondary)'}">
+          <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''} style="margin-top:.15rem;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.85rem;font-weight:500">${item.numero}. ${item.descricao}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${item.unidade} · Qtd: ${item.quantidade} · Ref: ${vlr} · Total: ${vtotal}</div>
+          </div>
+        </label>`;
+      });
+
+      html += `</div></div>`;
+
+      // ETAPA 3: Pesquisa de preços
+      if (temSelecao) {
+        if (!temPesquisa) {
+          html += `<div style="margin-bottom:1.25rem;padding:1rem;border:1px solid rgba(76,197,215,.25);border-radius:var(--radius-sm);background:rgba(76,197,215,.06)">
+            <p style="font-size:.85rem;margin:0 0 .75rem;color:var(--text-secondary)">${d.itens_selecao.length} itens selecionados. Clique para pesquisar preços de mercado (pode demorar 1–3 min).</p>
+            <button class="btn btn-primary btn-sm" id="btn-pesquisar-precos" onclick="iniciarPesquisaPrecos(${analise_id})">🔎 Pesquisar preços no mercado</button>
+            <div id="planilha-pesquisando" style="display:none;margin-top:.6rem;font-size:.82rem;color:var(--text-muted)">
+              Pesquisando preços… <span id="planilha-poll-status"></span>
+            </div>
+          </div>`;
+        } else {
+          // ETAPA 4: Resultados + escolha de opção
+          html += `<div style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+            <span style="font-size:.82rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Resultados da pesquisa</span>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-ghost btn-sm" id="btn-pesquisar-precos" onclick="iniciarPesquisaPrecos(${analise_id})">↻ Refazer pesquisa</button>
+              <button class="btn btn-primary btn-sm" onclick="baixarCSVPlanilha(${analise_id})">📥 Baixar CSV</button>
+            </div>
+          </div>`;
+
+          d.itens_pesquisa.forEach(p => {
+            const alerta = p.alerta ? `<div style="margin-top:.5rem;font-size:.75rem;color:#fbbf24;padding:.35rem .6rem;background:rgba(251,191,36,.08);border-radius:4px">⚠ ${p.alerta}</div>` : '';
+            const vlrRef = p.valor_referencia_edital ? `R$ ${parseFloat(p.valor_referencia_edital).toFixed(2).replace('.',',')}` : '—';
+            html += `<div style="margin-bottom:1rem;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="padding:.65rem 1rem;background:var(--bg-secondary);display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.35rem">
+                <span style="font-size:.85rem;font-weight:600">Item ${p.item_numero} — ${p.descricao_edital}</span>
+                <span style="font-size:.75rem;color:var(--text-muted)">Ref: ${vlrRef}</span>
+              </div>
+              ${alerta ? `<div style="padding:.4rem 1rem">${alerta}</div>` : ''}`;
+
+            if (!p.opcoes || p.opcoes.length === 0) {
+              html += `<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--text-muted)">Nenhuma opção encontrada.</div>`;
+            } else {
+              p.opcoes.forEach((op, oi) => {
+                const preco = op.preco_unitario ? `R$ ${parseFloat(op.preco_unitario).toFixed(2).replace('.',',')}` : '—';
+                const tagMap = { menor_preco: '🏷 Menor preço', melhor_custo_beneficio: '⭐ Melhor custo-benefício', melhor_marca: '🏆 Melhor marca' };
+                const tagLabel = tagMap[op.tag] || '';
+                const atende = op.atende_especificacao === 'completo' ? '' : `<span style="font-size:.72rem;color:#fbbf24;margin-left:.4rem">(${op.atende_especificacao})</span>`;
+                html += `<label style="display:flex;align-items:flex-start;gap:.7rem;padding:.6rem 1rem;border-top:1px solid var(--border);cursor:pointer">
+                  <input type="radio" name="pp-opcao-${p.item_numero}" value="${oi}" ${oi === 0 ? 'checked' : ''} style="margin-top:.25rem;flex-shrink:0">
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+                      <span style="font-size:.85rem;font-weight:600">${op.marca}${atende}</span>
+                      ${tagLabel ? `<span style="font-size:.7rem;padding:.15rem .4rem;border-radius:3px;background:rgba(76,197,215,.12);color:var(--primary)">${tagLabel}</span>` : ''}
+                    </div>
+                    <div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${op.modelo || ''} — ${op.descricao_produto || ''}</div>
+                    <div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem;flex-wrap:wrap">
+                      <span style="font-size:.92rem;font-weight:700;color:var(--primary)">${preco}</span>
+                      <span style="font-size:.72rem;color:var(--text-muted)">${op.fonte_preco || ''}</span>
+                    </div>
+                    ${op.observacoes ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.15rem">${op.observacoes}</div>` : ''}
+                  </div>
+                </label>`;
+              });
+            }
+
+            const rec = p.recomendacao ? `<div style="padding:.5rem 1rem;font-size:.78rem;color:var(--text-secondary);border-top:1px solid var(--border);background:var(--bg-secondary)">💡 ${p.recomendacao}</div>` : '';
+            html += `${rec}</div>`;
+          });
+
+          html += `<div style="margin-top:.75rem;text-align:right">
+            <button class="btn btn-primary" onclick="baixarCSVPlanilha(${analise_id})">📥 Gerar e baixar CSV</button>
+          </div>`;
+        }
+      }
+    }
+
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+
+  async function extrairItensPlanilha(analise_id) {
+    document.getElementById('planilha-extraindo').style.display = 'block';
+    document.querySelectorAll('#etab-planilha-precos button').forEach(b => b.disabled = true);
+    try {
+      const r = await fetch(`${API}/edson/analise/${analise_id}/planilha-precos/itens-edital`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao extrair');
+      await carregarPlanilhaPrecos(analise_id);
+    } catch (e) {
+      toast(e.message, 'error');
+      document.getElementById('planilha-extraindo').style.display = 'none';
+      document.querySelectorAll('#etab-planilha-precos button').forEach(b => b.disabled = false);
+    }
+  }
+
+  function selecionarTodosPlanilha() {
+    document.querySelectorAll('input[name="pp-item"]').forEach(cb => cb.checked = true);
+  }
+
+  async function salvarSelecaoPlanilha(analise_id) {
+    const checkboxes = document.querySelectorAll('input[name="pp-item"]:checked');
+    if (checkboxes.length === 0) { toast('Selecione pelo menos um item', 'error'); return; }
+
+    const itensEdital = (planilhaEstadoAtual?.itens_edital) || (edsonAnaliseAtual?.itens) || [];
+    const itensSelecionados = [];
+    checkboxes.forEach(cb => {
+      const item = itensEdital.find(i => String(i.numero) === cb.value);
+      if (item) itensSelecionados.push(item);
+    });
+
+    try {
+      const r = await fetch(`${API}/edson/analise/${analise_id}/planilha-precos/selecao`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itens_selecionados: itensSelecionados }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+      toast(`${itensSelecionados.length} itens salvos`, 'success');
+      await carregarPlanilhaPrecos(analise_id);
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function iniciarPesquisaPrecos(analise_id) {
+    const btn = document.getElementById('btn-pesquisar-precos');
+    const status = document.getElementById('planilha-pesquisando');
+    const pollEl = document.getElementById('planilha-poll-status');
+    if (btn) btn.disabled = true;
+    if (status) status.style.display = 'block';
+
+    try {
+      const r = await fetch(`${API}/edson/analise/${analise_id}/planilha-precos/pesquisar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao pesquisar');
+
+      // Polling até pesquisa terminar
+      if (planilhaPollingTimer) clearInterval(planilhaPollingTimer);
+      let tentativas = 0;
+      planilhaPollingTimer = setInterval(async () => {
+        tentativas++;
+        if (pollEl) pollEl.textContent = `(${tentativas * 5}s)`;
+        try {
+          const rp = await fetch(`${API}/edson/analise/${analise_id}/planilha-precos`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}` },
+          });
+          const dp = await rp.json();
+          if (dp.itens_pesquisa && dp.itens_pesquisa.length > 0) {
+            clearInterval(planilhaPollingTimer);
+            planilhaPollingTimer = null;
+            renderPlanilhaPrecos(analise_id, dp);
+          }
+        } catch (_) {}
+        if (tentativas > 36) { clearInterval(planilhaPollingTimer); planilhaPollingTimer = null; }
+      }, 5000);
+    } catch (e) {
+      toast(e.message, 'error');
+      if (btn) btn.disabled = false;
+      if (status) status.style.display = 'none';
+    }
+  }
+
+  async function baixarCSVPlanilha(analise_id) {
+    // Coleta opções escolhidas (radio buttons) se presentes
+    const itensBody = [];
+    const analise = edsonAnaliseAtual;
+    const aid = analise_id;
+
+    try {
+      // Primeiro carrega estado atual para ter pesquisa
+      const rState = await fetch(`${API}/edson/analise/${aid}/planilha-precos`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}` },
+      });
+      const state = await rState.json();
+      const pesquisa = state.itens_pesquisa || [];
+      const selecao  = state.itens_selecao  || [];
+
+      pesquisa.forEach(p => {
+        const radioSelecionado = document.querySelector(`input[name="pp-opcao-${p.item_numero}"]:checked`);
+        const idx = radioSelecionado ? parseInt(radioSelecionado.value) : 0;
+        const opcao = p.opcoes && p.opcoes[idx] ? p.opcoes[idx] : p.opcoes?.[0];
+        if (!opcao) return;
+        const item = selecao.find(s => s.numero === p.item_numero) || { numero: p.item_numero, descricao: p.descricao_edital, unidade: 'un', quantidade: 1 };
+        itensBody.push({ item, opcaoEscolhida: opcao });
+      });
+
+      const body = itensBody.length > 0 ? { itens: itensBody } : {};
+      const r = await fetch(`${API}/edson/analise/${aid}/planilha-precos/gerar-csv`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('ch_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao gerar CSV');
+
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `planilha-precos-${aid}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('CSV gerado com sucesso', 'success');
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   // ── Edson Avulso ──────────────────────────────────────────────────────────
