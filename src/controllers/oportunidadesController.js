@@ -122,15 +122,14 @@ async function gerarResumo(req, res) {
     };
 
     // Tenta buscar dataAberturaProposta (sessão) e linkSistemaOrigem (plataforma real) do PNCP
-    let dataSessao    = op.data_abertura;   // fallback: o que está no banco
-    let portalReal    = op.portal || '—';
+    let dataSessao    = op.data_abertura;
+    let portalReal    = op.portal && op.portal !== '—' ? op.portal : null;
     let linkDisputa   = op.link_edital || op.link_pncp || '';
 
     if (op.numero_controle_pncp) {
       try {
         const axios  = require('axios');
         const partes = op.numero_controle_pncp.split('-');
-        // Formato: CNPJ-MODALIDADE-SEQUENCIAL/ANO
         const cnpj   = partes[0];
         const ultimo = partes[partes.length - 1];
         const [seqStr, ano] = ultimo.split('/');
@@ -138,10 +137,10 @@ async function gerarResumo(req, res) {
         const url = `${process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1'}/orgaos/${cnpj}/compras/${ano}/${seq}`;
         const { data: pncp } = await axios.get(url, { timeout: 8000 });
 
-        // dataAberturaProposta = data/hora de início da sessão de disputa
-        if (pncp.dataAberturaProposta) dataSessao  = pncp.dataAberturaProposta;
-        // linkSistemaOrigem = URL da plataforma onde ocorre o pregão
+        if (pncp.dataAberturaProposta) dataSessao = pncp.dataAberturaProposta;
         if (pncp.linkSistemaOrigem)    linkDisputa = pncp.linkSistemaOrigem;
+
+        console.log(`[gerarResumo] PNCP ok — linkSistemaOrigem="${pncp.linkSistemaOrigem}" dataAbertura="${pncp.dataAberturaProposta}"`);
       } catch (ePncp) {
         console.warn('[gerarResumo] PNCP lookup falhou:', ePncp.message);
       }
@@ -154,7 +153,7 @@ async function gerarResumo(req, res) {
         const host = new URL(link).hostname.replace(/^www\./, '');
         if (host.includes('compras.gov.br'))      return 'Compras.gov.br';
         if (host.includes('comprasnet.gov.br'))   return 'ComprasNet';
-        if (host.includes('pncp.gov.br'))         return 'PNCP';
+        if (host.includes('pncp.gov.br'))         return 'Compras.gov.br';
         if (host.includes('bec.sp.gov.br'))       return 'BEC/SP';
         if (host.includes('licitacoes-e.com.br')) return 'Licitações-e';
         if (host.includes('bll.org.br'))          return 'BLL';
