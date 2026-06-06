@@ -106,42 +106,118 @@ async function gerarResumo(req, res) {
     );
     if (!op) return res.status(404).json({ erro: 'Oportunidade não encontrada' });
 
-    const dataFormatada = (() => {
-      const dt = op.data_abertura;
+    // ── Busca dados atualizados do PNCP (data da sessão + plataforma real) ────────
+    const formatarDataBR = (dt) => {
       if (!dt) return '—';
       try {
         const d = new Date(dt);
         if (isNaN(d.getTime())) return '—';
-        const data = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
-        const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
-        return `${data} às ${hora}`;
+        // Formata sempre em America/Sao_Paulo — evita offset UTC
+        return d.toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false,
+        }).replace(',', ' às');
       } catch { return '—'; }
-    })();
+    };
+
+    // Tenta buscar dataAberturaProposta (sessão) e linkSistemaOrigem (plataforma real) do PNCP
+    let dataSessao    = op.data_abertura;   // fallback: o que está no banco
+    let portalReal    = op.portal || '—';
+    let linkDisputa   = op.link_edital || op.link_pncp || '';
+
+    if (op.numero_controle_pncp) {
+      try {
+        const axios  = require('axios');
+        const partes = op.numero_controle_pncp.split('-');
+        // Formato: CNPJ-MODALIDADE-SEQUENCIAL/ANO
+        const cnpj   = partes[0];
+        const ultimo = partes[partes.length - 1];
+        const [seqStr, ano] = ultimo.split('/');
+        const seq = parseInt(seqStr, 10);
+        const url = `${process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1'}/orgaos/${cnpj}/compras/${ano}/${seq}`;
+        const { data: pncp } = await axios.get(url, { timeout: 8000 });
+
+        // dataAberturaProposta = data/hora de início da sessão de disputa
+        if (pncp.dataAberturaProposta) dataSessao  = pncp.dataAberturaProposta;
+        // linkSistemaOrigem = URL da plataforma onde ocorre o pregão
+        if (pncp.linkSistemaOrigem)    linkDisputa = pncp.linkSistemaOrigem;
+      } catch (ePncp) {
+        console.warn('[gerarResumo] PNCP lookup falhou:', ePncp.message);
+      }
+    }
+
+    // Detecta portal real a partir do link de disputa
+    const detectarPortalBE = (link) => {
+      if (!link) return null;
+      try {
+        const host = new URL(link).hostname.replace(/^www\./, '');
+        if (host.includes('compras.gov.br'))      return 'Compras.gov.br';
+        if (host.includes('comprasnet.gov.br'))   return 'ComprasNet';
+        if (host.includes('pncp.gov.br'))         return 'PNCP';
+        if (host.includes('bec.sp.gov.br'))       return 'BEC/SP';
+        if (host.includes('licitacoes-e.com.br')) return 'Licitações-e';
+        if (host.includes('bll.org.br'))          return 'BLL';
+        if (host.includes('bbmnet.com.br'))       return 'BBMNet';
+        if (host.includes('banrisul.com.br'))     return 'Banrisul';
+        if (host.includes('caixa.gov.br'))        return 'Caixa';
+        if (host.includes('gov.br'))              return 'Compras.gov.br';
+        return host;
+      } catch { return null; }
+    };
+
+    const PORTAL_INFO_BE = {
+      'Compras.gov.br': { gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+      'ComprasNet':     { gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+      'BEC/SP':         { gratuita: true,  prazo: 'Cadastro prévio obrigatório' },
+      'Licitações-e':   { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+      'BLL':            { gratuita: false, prazo: 'Cadastro pago — prazo 48h' },
+      'BBMNet':         { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+      'Banrisul':       { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+      'Caixa':          { gratuita: true,  prazo: 'Cadastro em até 5 dias úteis' },
+      'ComprasBR':      { gratuita: true,  prazo: 'Cadastro em até 2 dias úteis' },
+    };
+
+    if (linkDisputa) portalReal = detectarPortalBE(linkDisputa) || portalReal;
+    const infoPortal   = PORTAL_INFO_BE[portalReal] || null;
+    const portalTexto  = infoPortal
+      ? `${portalReal} (${infoPortal.gratuita ? 'gratuita' : 'paga'}) — ${infoPortal.prazo}`
+      : portalReal;
+
+    const dataFormatada = formatarDataBR(dataSessao);
 
     const prompt = `Você é o Edson, especialista em licitações da Conlicit.
-Gere um resumo desta licitação para disparar ao cliente via WhatsApp.
+Gere o resumo desta licitação para disparar ao cliente via WhatsApp.
 
-DADOS:
+DADOS DA LICITAÇÃO:
 Objeto: ${op.objeto || '—'}
 Órgão: ${op.orgao || '—'}
 Valor estimado: ${op.valor_estimado ? `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'Verificar no edital'}
-Data fim de recebimento de propostas (dataEncerramentoProposta): ${dataFormatada}
-Plataforma: ${op.portal || '—'}
-Cidade/UF: ${op.municipio ? `${op.municipio}/${op.uf}` : '—'}
+Data da sessão de disputa: ${dataFormatada}
+Plataforma de disputa: ${portalTexto}
+Cidade/UF: ${op.municipio ? `${op.municipio}/${op.uf}` : (op.uf || '—')}
 Cliente: ${op.cliente_nome || '—'}
-Link PNCP: ${op.link_pncp || op.link_edital || '—'}
 
-Responda APENAS com este JSON (sem markdown):
+REGRAS ABSOLUTAS:
+1. "resumo_whatsapp": APENAS 2 frases — o que é a licitação e quem está comprando. Sem data, valor ou plataforma.
+2. "documentos_principais": retorne [] — sem análise do edital disponível, NÃO invente documentos.
+3. "valor_formatado": use o valor acima exatamente. NUNCA escreva "sigiloso".
+4. "data_formatada": copie EXATAMENTE "${dataFormatada}" — não altere.
+5. "plataforma": copie EXATAMENTE "${portalReal}" — não altere.
+6. "forma_entrega": se não houver info clara, escreva "Conforme edital".
+7. "recomendacao": PARTICIPAR, AVALIAR ou NÃO PARTICIPAR.
+
+Responda APENAS com este JSON (sem markdown, sem bloco de código):
 {
-  "resumo_whatsapp": "<máximo 2 linhas descrevendo o objeto e a oportunidade — NÃO repita data, valor, plataforma nem localização, pois esses campos já aparecem separados na mensagem>",
-  "valor_formatado": "<R$ X.XXX,XX — NUNCA use 'sigiloso' se houver valor nos dados acima>",
+  "resumo_whatsapp": "<2 frases: o que é e quem compra>",
+  "valor_formatado": "<R$ X.XXX,XX>",
   "data_formatada": "${dataFormatada}",
-  "plataforma": "<nome da plataforma>",
+  "plataforma": "${portalReal}",
   "cidade_uf": "<Cidade/UF>",
-  "tipo_julgamento": "<Por Item|Por Lote|Global — inferir pelo objeto>",
-  "tipo_entrega": "<Integral|Parcelada|Imediata — inferir pelo objeto>",
-  "documentos_principais": <array com APENAS documentos reais mencionados no edital (certidões, atestados, contratos sociais, etc.). Se não houver texto do edital ou documentos explícitos nos dados acima, retorne []. NÃO invente documentos genéricos.>,
-  "forma_entrega": "<descrição resumida do local e prazo de entrega>",
+  "tipo_julgamento": "<Por Item|Por Lote|Global>",
+  "tipo_entrega": "<Integral|Parcelada|Imediata>",
+  "documentos_principais": [],
+  "forma_entrega": "<conforme edital ou descrição real>",
   "score_rapido": <0-100>,
   "recomendacao": "<PARTICIPAR|AVALIAR|NÃO PARTICIPAR>"
 }`;
@@ -157,12 +233,26 @@ Responda APENAS com este JSON (sem markdown):
       resumo = m ? JSON.parse(m[0]) : { resumo_whatsapp: raw };
     }
 
-    if (resumo.valor_formatado && resumo.valor_formatado.toLowerCase().includes('sigiloso')) {
-      if (op.valor_estimado && Number(op.valor_estimado) > 0) {
-        resumo.valor_formatado = `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
-      }
+    // Garante campos críticos — o modelo não pode substituir
+    resumo.data_formatada = dataFormatada;
+    resumo.plataforma     = portalReal;
+
+    // Valor nunca pode ser sigiloso
+    if (!resumo.valor_formatado || resumo.valor_formatado.toLowerCase().includes('sigiloso')) {
+      resumo.valor_formatado = op.valor_estimado && Number(op.valor_estimado) > 0
+        ? `R$ ${Number(op.valor_estimado).toLocaleString('pt-BR', {minimumFractionDigits:2})}`
+        : 'Verificar no edital';
     }
-    resumo.valor_db = op.valor_estimado;
+
+    // Zera documentos inventados — sem edital não há base
+    if (Array.isArray(resumo.documentos_principais) && resumo.documentos_principais.length > 0) {
+      const genericos = ['edital completo','termo de referência','anexos técnicos','contrato social','certidão','declaração'];
+      if (resumo.documentos_principais.every(d => genericos.some(g => d.toLowerCase().includes(g))))
+        resumo.documentos_principais = [];
+    }
+
+    resumo.valor_db     = op.valor_estimado;
+    resumo.link_disputa = linkDisputa || null;
 
     await db.query(
       `UPDATE oportunidades_fila SET resumo_edson=$1, resumo_gerado_em=NOW(), status='aguardando_disparo' WHERE id=$2`,
@@ -195,17 +285,39 @@ async function disparar(req, res) {
       ? JSON.parse(op.resumo_edson)
       : op.resumo_edson;
 
+    const docsBloco = Array.isArray(resumo.documentos_principais) && resumo.documentos_principais.length > 0
+      ? `\n📋 *Documentos necessários:*\n${resumo.documentos_principais.map(d => `• ${d}`).join('\n')}\n`
+      : '';
+
+  // Info de plataformas: gratuita e prazo de cadastro
+  const PORTAL_INFO_BE = {
+    'Compras.gov.br': { gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+    'ComprasNet':     { gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+    'PNCP':           { gratuita: true,  prazo: 'Acesso imediato (consulta)' },
+    'BEC/SP':         { gratuita: true,  prazo: 'Cadastro prévio obrigatório' },
+    'Licitações-e':   { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'BLL':            { gratuita: false, prazo: 'Cadastro pago — prazo 48h' },
+    'BBMNet':         { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'Banrisul':       { gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'Caixa':          { gratuita: true,  prazo: 'Cadastro em até 5 dias úteis' },
+    'ComprasBR':      { gratuita: true,  prazo: 'Cadastro em até 2 dias úteis' },
+  };
+  const nomePortal = resumo.plataforma || op.portal || '—';
+  const infoPlat   = PORTAL_INFO_BE[nomePortal];
+  const blocoPlat  = infoPlat
+    ? `🌐 *Plataforma:* ${nomePortal} (${infoPlat.gratuita ? 'gratuita' : 'paga'})\n⏱ *Cadastro:* ${infoPlat.prazo}`
+    : `🌐 *Plataforma:* ${nomePortal}`;
+
     const msgGrupo =
       `🔔 *Nova Oportunidade — Conlicit*\n\n` +
-      `${resumo.resumo_whatsapp || op.objeto}\n\n` +
-      `📅 *Data:* ${resumo.data_formatada || '—'}\n` +
+      `📢 ${resumo.resumo_whatsapp || op.objeto}\n\n` +
+      `🏢 *Órgão:* ${op.orgao || '—'}\n` +
       `💰 *Valor:* ${resumo.valor_formatado || '—'}\n` +
-      `🏛️ *Plataforma:* ${resumo.plataforma || op.portal || '—'}\n` +
-      `📍 *Local:* ${resumo.cidade_uf || '—'}\n\n` +
-      `📋 *Documentos principais:*\n` +
-      (resumo.documentos_principais || []).map(d => `• ${d}`).join('\n') + '\n\n' +
-      `📦 *Entrega:* ${resumo.forma_entrega || '—'}\n\n` +
-      `⚡ *Recomendação Edson:* ${resumo.recomendacao || '—'}\n\n` +
+      `📅 *Sessão:* ${resumo.data_formatada || '—'}\n` +
+      blocoPlat + `\n` +
+      `📍 *Local:* ${resumo.cidade_uf || '—'}\n` +
+      docsBloco +
+      `\n⚡ *Recomendação Edson:* ${resumo.recomendacao || '—'}\n\n` +
       `_Responda diretamente nesta conversa: confirmar interesse ou não participar._`;
 
     const msgDM =
@@ -213,7 +325,7 @@ async function disparar(req, res) {
       `*${op.objeto}*\n\n` +
       `💰 Valor: ${resumo.valor_formatado || '—'}\n` +
       `📅 Sessão: ${resumo.data_formatada || '—'}\n` +
-      `🏛️ Plataforma: ${resumo.plataforma || '—'}\n\n` +
+      `🏛️ Plataforma: ${nomePortal}\n\n` +
       `Você tem interesse em participar desta licitação?`;
 
     const erros = [];

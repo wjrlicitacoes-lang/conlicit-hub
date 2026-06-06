@@ -4897,11 +4897,14 @@
     const e = editaisResultados[idx];
     if (!e) return;
 
-    // Parse data encerramento para datetime-local
+    // Usa dataAberturaProposta = data da SESSÃO de disputa (não o encerramento de propostas)
     let dhaValue = '';
-    if (e.dataEncerramento) {
+    const dtSessao = e.dataAberturaProposta || e.data_hora_abertura || null;
+    const dtFallback = e.dataEncerramento || null;
+    const dtUsar = dtSessao || dtFallback;
+    if (dtUsar) {
       try {
-        const d = new Date(e.dataEncerramento);
+        const d = new Date(dtUsar);
         if (!isNaN(d.getTime())) dhaValue = toLocalInput(d.toISOString());
       } catch {}
     }
@@ -4962,6 +4965,7 @@
         fd.append('data_hora_abertura',   document.getElementById('of-dha').value             || '');
         fd.append('numero_controle_pncp', document.getElementById('of-controle').value.trim() || '');
         fd.append('link_pncp',            ofLink   || '');
+        fd.append('link_edital',           ofLink   || '');
         fd.append('portal_disputa',       ofPortal || '');
         fd.append('status',               'sugerido');
         fd.append('acionar_edson',        String(acionar));
@@ -5091,22 +5095,29 @@
           : e.valorEstimado)
       : '—';
     const local  = [e.municipio, e.uf || e.estado].filter(Boolean).join(' · ') || '—';
-    const portal = e.portal_disputa || detectarPortal(e.linkSistemaOrigem);
-    const link   = e.link || e.linkSistemaOrigem || '';
+    // Plataforma onde VAI ACONTECER o pregão (linkSistemaOrigem = link da disputa real)
+    const linkDisputa = e.linkSistemaOrigem || e.link_sistema_origem || '';
+    const linkPNCP    = e.link || e.linkSistemaOrigem || '';
+    const portal = e.portal_disputa || detectarPortal(linkDisputa) || detectarPortal(e.link) || '—';
+    const link   = linkDisputa || e.link || '';
+    const infoPortal = PORTAL_INFO[portal];
 
-    // Urgência baseada no encerramento — comparação no nível do dia (sem horário)
-    const dataEnc = e.dataEncerramentoProposta || e.data_encerramento_proposta || e.dataEncerramento || null;
+    // Urgência baseada na data da SESSÃO (dataAberturaProposta) — o que importa para disputar
+    const dataSessao = e.dataAberturaProposta || e.data_hora_abertura || null;
+    const dataEnc    = e.dataEncerramentoProposta || e.data_encerramento_proposta || e.dataEncerramento || null;
+    const dataBase   = dataSessao || dataEnc; // prioridade: sessão > encerramento
     let urgBadge = '';
-    if (dataEnc) {
-      const enc  = new Date(dataEnc);
+    if (dataBase) {
+      const dt   = new Date(dataBase);
       const hoje = new Date();
-      enc.setHours(0, 0, 0, 0);
-      hoje.setHours(0, 0, 0, 0);
-      const dias = Math.round((enc - hoje) / (1000 * 60 * 60 * 24));
+      // Zera horário para comparar só datas (sem UTC offset)
+      const dtDia   = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      const hojeDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      const dias = Math.round((dtDia - hojeDia) / (1000 * 60 * 60 * 24));
       if (dias < 0)       urgBadge = `<span class="badge-dias encerrado">Encerrado</span>`;
-      else if (dias === 0)urgBadge = `<span class="badge-dias urgente">Encerra hoje</span>`;
-      else if (dias <= 3) urgBadge = `<span class="badge-dias urgente">${dias}d restantes</span>`;
-      else                urgBadge = `<span class="badge-dias normal">${dias}d restantes</span>`;
+      else if (dias === 0)urgBadge = `<span class="badge-dias urgente">Sessão hoje</span>`;
+      else if (dias <= 3) urgBadge = `<span class="badge-dias urgente">${dias}d p/ sessão</span>`;
+      else                urgBadge = `<span class="badge-dias normal">${dias}d p/ sessão</span>`;
     }
 
     // Botão de preview de itens via PNCP
@@ -5273,19 +5284,35 @@
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // Info de cada plataforma: nome, gratuita, prazo de cadastro
+  const PORTAL_INFO = {
+    'Compras.gov.br': { nome: 'Compras.gov.br', gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+    'ComprasNet':     { nome: 'ComprasNet',      gratuita: true,  prazo: 'Cadastro em até 3 dias úteis' },
+    'PNCP':           { nome: 'PNCP',            gratuita: true,  prazo: 'Acesso imediato (consulta)' },
+    'BEC/SP':         { nome: 'BEC/SP',          gratuita: true,  prazo: 'Cadastro prévio obrigatório' },
+    'Licitações-e':   { nome: 'Licitações-e',    gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'BLL':            { nome: 'BLL',             gratuita: false, prazo: 'Cadastro pago — prazo 48h' },
+    'BBMNet':         { nome: 'BBMNet',          gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'Banrisul':       { nome: 'Banrisul',        gratuita: false, prazo: 'Cadastro pago — verificar prazo' },
+    'Caixa':          { nome: 'Caixa',           gratuita: true,  prazo: 'Cadastro em até 5 dias úteis' },
+    'ComprasBR':      { nome: 'ComprasBR',       gratuita: true,  prazo: 'Cadastro em até 2 dias úteis' },
+  };
+
   function detectarPortal(link) {
     if (!link) return null;
     try {
       const host = new URL(link).hostname.replace(/^www\./, '');
-      if (host.includes('pncp.gov.br'))        return 'PNCP';
+      if (host.includes('compras.gov.br'))      return 'Compras.gov.br';
       if (host.includes('comprasnet.gov.br'))   return 'ComprasNet';
+      if (host.includes('pncp.gov.br'))         return 'PNCP';
       if (host.includes('bec.sp.gov.br'))       return 'BEC/SP';
       if (host.includes('licitacoes-e.com.br')) return 'Licitações-e';
+      if (host.includes('bll.org.br'))          return 'BLL';
       if (host.includes('comprasbr.gov.br'))    return 'ComprasBR';
       if (host.includes('bbmnet.com.br'))       return 'BBMNet';
       if (host.includes('banrisul.com.br'))     return 'Banrisul';
       if (host.includes('caixa.gov.br'))        return 'Caixa';
-      if (host.includes('gov.br'))             return 'Gov.br';
+      if (host.includes('gov.br'))              return 'Compras.gov.br';
       return host;
     } catch { return null; }
   }
@@ -9121,39 +9148,48 @@ function renderCardOportunidade(op) {
   </div>`;
 }
 
-function verResumoOportunidade(id, resumoJson) {
+function verResumoOportunidade(id, resumoJson, opDados) {
   let resumo = resumoJson;
   if (typeof resumo === 'string') {
     try { resumo = JSON.parse(resumo); } catch { resumo = {}; }
   }
   if (!resumo) { toast('Resumo não disponível', 'error'); return; }
 
+  // Monta a mensagem exata que vai para o WhatsApp do grupo
+  const docsBloco = Array.isArray(resumo.documentos_principais) && resumo.documentos_principais.length > 0
+    ? '\n📋 *Documentos necessários:*\n' + resumo.documentos_principais.map(d => '• ' + d).join('\n') + '\n'
+    : '';
+
+  const orgao = (opDados && opDados.orgao) || resumo.cidade_uf || '—';
+  const nomePortal = resumo.plataforma || '—';
+  const infoPlat   = (typeof PORTAL_INFO !== 'undefined' && PORTAL_INFO[nomePortal]) || null;
+  const blocoPlat  = infoPlat
+    ? `🌐 *Plataforma:* ${nomePortal} (${infoPlat.gratuita ? 'gratuita' : 'paga'})\n⏱ *Cadastro:* ${infoPlat.prazo}`
+    : `🌐 *Plataforma:* ${nomePortal}`;
+
+  const msgWhatsApp =
+    '🔔 *Nova Oportunidade — Conlicit*\n\n' +
+    '📢 ' + (resumo.resumo_whatsapp || '—') + '\n\n' +
+    '🏢 *Órgão:* ' + orgao + '\n' +
+    '💰 *Valor:* ' + (resumo.valor_formatado || '—') + '\n' +
+    '📅 *Sessão:* ' + (resumo.data_formatada || '—') + '\n' +
+    blocoPlat + '\n' +
+    '📍 *Local:* ' + (resumo.cidade_uf || '—') +
+    docsBloco +
+    '\n⚡ *Recomendação Edson:* ' + (resumo.recomendacao || '—') + '\n\n' +
+    '_Responda diretamente nesta conversa: confirmar interesse ou não participar._';
+
+  const corRec = resumo.recomendacao === 'PARTICIPAR' ? '#4ade80'
+    : resumo.recomendacao === 'NÃO PARTICIPAR' ? '#f87171' : '#facc15';
+
   const body = document.getElementById('modal-resumo-body');
   body.innerHTML = `
     <div style="background:rgba(76,197,215,0.08);border:1px solid rgba(76,197,215,0.2);border-radius:8px;padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4CC5D7;margin-bottom:8px">
-        Mensagem que será enviada ao cliente
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4CC5D7;margin-bottom:10px">
+        📱 Mensagem que será enviada ao cliente
       </div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.85);white-space:pre-wrap;line-height:1.6">
-        ${esc(resumo.resumo_whatsapp || 'Sem resumo gerado')}
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Valor</div>
-        <div style="font-size:13px;color:#4CC5D7;font-weight:600">${esc(resumo.valor_formatado || '—')}</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Data da sessão</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(resumo.data_formatada || '—')}</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Plataforma</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.8)">${esc(resumo.plataforma || '—')}</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Recomendação</div>
-        <div style="font-size:13px;font-weight:600;color:${resumo.recomendacao==='PARTICIPAR'?'#4ade80':resumo.recomendacao==='NÃO PARTICIPAR'?'#f87171':'#facc15'}">${esc(resumo.recomendacao || '—')}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.9);white-space:pre-wrap;line-height:1.7;font-family:inherit">
+        ${esc(msgWhatsApp)}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
@@ -9165,23 +9201,15 @@ function verResumoOportunidade(id, resumoJson) {
         <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Tipo de entrega</div>
         <div style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${esc(resumo.tipo_entrega || '—')}</div>
       </div>
-    </div>
-    ${resumo.documentos_principais?.length ? `
-      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:14px">
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Documentos principais</div>
-        ${resumo.documentos_principais.map(d => `
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);padding:3px 0;display:flex;gap:6px;align-items:flex-start">
-            <span style="color:#4CC5D7;flex-shrink:0">•</span>${esc(d)}
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-    ${resumo.forma_entrega ? `
       <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
         <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Forma de entrega</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7)">${esc(resumo.forma_entrega)}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7)">${esc(resumo.forma_entrega || '—')}</div>
       </div>
-    ` : ''}
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Recomendação</div>
+        <div style="font-size:13px;font-weight:700;color:${corRec}">${esc(resumo.recomendacao || '—')}</div>
+      </div>
+    </div>
   `;
   document.getElementById('modal-resumo-oportunidade').classList.add('visible');
 }
@@ -9196,7 +9224,7 @@ async function verResumoById(id) {
     let resumo = op.resumo_edson;
     if (typeof resumo === 'string') { try { resumo = JSON.parse(resumo); } catch { resumo = {}; } }
     if (!resumo || !resumo.resumo_whatsapp) { toast('Resumo ainda não gerado', 'error'); return; }
-    verResumoOportunidade(id, resumo);
+    verResumoOportunidade(id, resumo, { orgao: op.orgao });
   } catch(e) { toast('Erro ao carregar resumo: ' + e.message, 'error'); }
 }
 
@@ -9367,11 +9395,11 @@ function expandirEdital(idx) {
     ['Local', local],
     ['Plataforma', portal],
     ['Publicação', e.dataPublicacao || '—'],
-    ['Abertura', e.dataAberturaProposta
-      ? new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+    ['Sessão de disputa', e.dataAberturaProposta
+      ? new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : '—'],
-    ['Encerramento', e.dataEncerramentoProposta
-      ? new Date(e.dataEncerramentoProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+    ['Enc. propostas', e.dataEncerramentoProposta
+      ? new Date(e.dataEncerramentoProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : '—'],
   ];
   document.getElementById('exp-meta').innerHTML = metaItems.map(([l,v]) => `
