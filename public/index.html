@@ -1690,11 +1690,11 @@
               </div>
             </div>
             <div class="busca-campo busca-campo-sm">
-              <label class="busca-label">Abertura de</label>
+              <label class="busca-label">Encerramento de</label>
               <input type="date" id="dataInicial" />
             </div>
             <div class="busca-campo busca-campo-sm">
-              <label class="busca-label">Abertura até</label>
+              <label class="busca-label">Encerramento até</label>
               <input type="date" id="dataFinal" />
             </div>
           </div>
@@ -5180,9 +5180,9 @@
     const infoPortal = PORTAL_INFO[portal];
 
     // Urgência baseada na data da SESSÃO (dataAberturaProposta) — o que importa para disputar
-    const dataSessao = e.dataAberturaProposta || e.data_hora_abertura || null;
     const dataEnc    = e.dataEncerramentoProposta || e.data_encerramento_proposta || e.dataEncerramento || null;
-    const dataBase   = dataSessao || dataEnc; // prioridade: sessão > encerramento
+    const dataSessao = e.dataAberturaProposta || e.data_hora_abertura || null;
+    const dataBase   = dataEnc || dataSessao; // prioridade: encerramento > abertura
     let urgBadge = '';
     if (dataBase) {
       const dt   = new Date(dataBase);
@@ -5237,12 +5237,8 @@
           <span class="edital-meta-value">${esc(local)}</span>
         </div>
         <div class="edital-meta-item">
-          <span class="edital-meta-label">Publicação</span>
-          <span class="edital-meta-value">${esc(e.dataPublicacao || '—')}</span>
-        </div>
-        <div class="edital-meta-item">
           <span class="edital-meta-label">Encerramento</span>
-          <span class="edital-meta-value">${esc(e.dataEncerramentoProposta || '—')}</span>
+          <span class="edital-meta-value">${dataEnc ? new Date(dataEnc).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}) : '—'}</span>
         </div>
       </div>
       <div class="edital-acoes">
