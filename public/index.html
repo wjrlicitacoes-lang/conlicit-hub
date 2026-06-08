@@ -5148,15 +5148,31 @@
       </div>`;
       return;
     }
-    const total = d.total ?? d.dados.length;
+    // Filtra por encerramento se datas informadas
+    let dadosFiltrados = d.dados;
+    const diVal = document.getElementById('dataInicial')?.value;
+    const dfVal = document.getElementById('dataFinal')?.value;
+    if (diVal || dfVal) {
+      const dtIni = diVal ? new Date(diVal + 'T00:00:00') : null;
+      const dtFim = dfVal ? new Date(dfVal + 'T23:59:59') : null;
+      dadosFiltrados = d.dados.filter(e => {
+        const enc = e.dataEncerramentoProposta || e.dataEncerramento || e.data_encerramento_proposta || null;
+        if (!enc) return true;
+        const dtEnc = new Date(enc);
+        if (dtIni && dtEnc < dtIni) return false;
+        if (dtFim && dtEnc > dtFim) return false;
+        return true;
+      });
+    }
+    const total = dadosFiltrados.length;
     const totalPages = Math.ceil(total / 12);
     const fonteLabel = d.fonte ? `<span class="fonte-badge">${esc(String(d.fonte))}</span>` : '';
     let html = `<div class="results-header">
-      <div class="results-count"><strong>${total}</strong> edital${total !== 1 ? 'is' : ''} encontrado${total !== 1 ? 's' : ''} ${fonteLabel}</div>
+      <div class="results-count"><strong>${total}</strong> edital${total !== 1 ? 'is' : ''} encontrado${total !== 1 ? 's' : ''} com encerramento no período ${fonteLabel}</div>
     </div>`;
-    editaisResultados = d.dados;
+    editaisResultados = dadosFiltrados;
     html += '<div class="cards-grid">';
-    d.dados.forEach((e, idx) => { html += renderCard(e, idx); });
+    dadosFiltrados.forEach((e, idx) => { html += renderCard(e, idx); });
     html += '</div>';
     if (totalPages > 1) html += renderPagination(pagina, totalPages);
     area.innerHTML = html;
