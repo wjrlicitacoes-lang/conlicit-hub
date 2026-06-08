@@ -24,6 +24,8 @@ router.post('/analise/:analise_id/planilha-precos/selecao',          planilhaCtr
 router.post('/analise/:analise_id/planilha-precos/pesquisar',        planilhaCtrl.pesquisarPrecos);
 router.post('/analise/:analise_id/planilha-precos/gerar-csv',        planilhaCtrl.gerarCSV);
 
+router.patch('/analises/:analise_id/revisao',                        ctrl.revisaoAnalise);
+
 router.post('/:pregao_id',                                           ctrl.disparar);
 router.post('/:pregao_id/upload-pdf', ctrl.upload.single('edital'),  ctrl.uploadPDF);
 router.get('/:pregao_id/planilha',                                   ctrl.planilha);

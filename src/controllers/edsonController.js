@@ -609,6 +609,28 @@ async function uploadComplementar(req, res) {
   }
 }
 
+async function revisaoAnalise(req, res) {
+  try {
+    const { analise_id } = req.params;
+    const { numero_pregao, orgao, valor_estimado, data_abertura, uf } = req.body;
+    await db.query(
+      `UPDATE analises_edson SET
+         numero_pregao  = COALESCE(NULLIF($2,''), numero_pregao),
+         orgao          = COALESCE(NULLIF($3,''), orgao),
+         valor_estimado = CASE WHEN $4 IS NOT NULL AND $4 != '' THEN $4::numeric ELSE valor_estimado END,
+         data_abertura  = COALESCE(NULLIF($5,''), data_abertura),
+         uf             = COALESCE(NULLIF($6,''), uf),
+         atualizado_em  = NOW()
+       WHERE id = $1`,
+      [analise_id, numero_pregao || null, orgao || null, valor_estimado || null, data_abertura || null, uf || null],
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Revisão] Erro ao salvar:', e.message);
+    res.status(500).json({ erro: e.message });
+  }
+}
+
 module.exports = {
   listar, disparar, avulso, obter, obterPorId,
   chat, chatPorId, getChatHistorico, getChatHistoricoPorId,
@@ -616,4 +638,5 @@ module.exports = {
   uploadImagemMulter, uploadImagemPNCP, uploadComplementar,
   vincularCliente, descartarAnalise,
   relatorioSimplesAvulso, planilhaAvulso, relatorioAvulso,
+  revisaoAnalise,
 };
