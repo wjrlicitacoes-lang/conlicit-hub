@@ -82,19 +82,24 @@ async function criar(req, res) {
   const {
     nome, email, whatsapp, empresa, segmento, status, notas, responsavel,
     indicado_por, edital, obs, origem,
+    cnpj, cargo, cidade, estado, valor_potencial, data_proximo_contato, canal_origem,
   } = req.body ?? {};
   if (!nome?.trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
   try {
     const { rows: [p] } = await db.query(
       `INSERT INTO prospects
          (nome, email, whatsapp, empresa, segmento, status, notas, responsavel,
-          indicado_por, edital, obs, origem)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+          indicado_por, edital, obs, origem,
+          cnpj, cargo, cidade, estado, valor_potencial, data_proximo_contato, canal_origem)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
       [
         nome.trim(), email || null, whatsapp || null, empresa || null,
         segmento || null, status || 'novo_lead', notas || null,
         responsavel || null, indicado_por || null,
-        edital || null, obs || null, origem || 'manual',
+        edital || null, obs || null, origem || canal_origem || 'manual',
+        cnpj || null, cargo || null, cidade || null, estado || null,
+        valor_potencial ? parseFloat(valor_potencial) : null,
+        data_proximo_contato || null, canal_origem || 'manual',
       ],
     );
     await registrarEvento(p.id, 'lead_criado', `Lead criado manualmente por ${req.usuario.email}`);
@@ -110,6 +115,7 @@ async function atualizar(req, res) {
   const {
     nome, email, whatsapp, empresa, segmento, status, notas, responsavel,
     indicado_por, edital, obs, origem, brevo_email_id,
+    cnpj, cargo, cidade, estado, valor_potencial, data_proximo_contato, canal_origem,
   } = req.body ?? {};
   try {
     const { rows: [antes] } = await db.query(`SELECT status FROM prospects WHERE id=$1`, [id]);
@@ -121,6 +127,11 @@ async function atualizar(req, res) {
          status=$6, notas=$7, responsavel=$8, indicado_por=$9,
          edital=$10, obs=$11, origem=COALESCE($12, origem),
          brevo_email_id=COALESCE($13, brevo_email_id),
+         cnpj=COALESCE($15, cnpj), cargo=COALESCE($16, cargo),
+         cidade=COALESCE($17, cidade), estado=COALESCE($18, estado),
+         valor_potencial=COALESCE(NULLIF($19,'')::numeric, valor_potencial),
+         data_proximo_contato=COALESCE(NULLIF($20,'')::date, data_proximo_contato),
+         canal_origem=COALESCE($21, canal_origem),
          updated_at=NOW()
        WHERE id=$14 RETURNING *`,
       [
@@ -128,6 +139,8 @@ async function atualizar(req, res) {
         status || antes.status, notas || null, responsavel || null,
         indicado_por || null, edital || null, obs || null,
         origem || null, brevo_email_id || null, id,
+        cnpj || null, cargo || null, cidade || null, estado || null,
+        valor_potencial ?? null, data_proximo_contato ?? null, canal_origem || null,
       ],
     );
 
@@ -139,6 +152,18 @@ async function atualizar(req, res) {
     return res.json(p);
   } catch (e) {
     console.error('[Prospects] atualizar:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function obterPorId(req, res) {
+  const { id } = req.params;
+  try {
+    const { rows: [p] } = await db.query(`SELECT * FROM prospects WHERE id=$1`, [id]);
+    if (!p) return res.status(404).json({ erro: 'Prospect não encontrado' });
+    return res.json(p);
+  } catch (e) {
+    console.error('[Prospects] obterPorId:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
   }
 }
@@ -404,4 +429,91 @@ async function webhookBrevo(req, res) {
   return res.json({ ok: true });
 }
 
-module.exports = { listar, criar, atualizar, remover, eventos, analisar, receberLanding, webhookBrevo };
+// ── Interações ────────────────────────────────────────────────────────────────
+
+async function registrarInteracao(req, res) {
+  const { id } = req.params;
+  const { tipo, descricao } = req.body ?? {};
+  if (!tipo || !descricao) return res.status(400).json({ erro: 'tipo e descricao são obrigatórios' });
+  try {
+    const { rows: [p] } = await db.query(
+      `SELECT historico_interacoes, numero_interacoes FROM prospects WHERE id=$1`, [id],
+    );
+    if (!p) return res.status(404).json({ erro: 'Prospect não encontrado' });
+
+    const historico = Array.isArray(p.historico_interacoes) ? p.historico_interacoes : [];
+    historico.unshift({
+      id:         Date.now(),
+      tipo,
+      descricao,
+      usuario:    req.usuario?.nome || req.usuario?.email || 'Sistema',
+      created_at: new Date().toISOString(),
+    });
+
+    await db.query(
+      `UPDATE prospects SET
+         historico_interacoes = $1,
+         numero_interacoes    = $2,
+         ultimo_contato       = NOW(),
+         updated_at           = NOW()
+       WHERE id=$3`,
+      [JSON.stringify(historico), (p.numero_interacoes || 0) + 1, id],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[Prospects] registrarInteracao:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function followup(req, res) {
+  const hoje = new Date().toISOString().split('T')[0];
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM prospects
+       WHERE data_proximo_contato <= $1
+         AND status NOT IN ('convertido','perdido')
+       ORDER BY data_proximo_contato ASC`,
+      [hoje],
+    );
+    return res.json(rows);
+  } catch (e) {
+    console.error('[Prospects] followup:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function kpis(req, res) {
+  const hoje = new Date().toISOString().split('T')[0];
+  try {
+    const { rows } = await db.query(
+      `SELECT status, valor_potencial, canal_origem FROM prospects`,
+    );
+    const { rows: fu } = await db.query(
+      `SELECT count(*) FROM prospects
+       WHERE data_proximo_contato <= $1 AND status NOT IN ('convertido','perdido')`,
+      [hoje],
+    );
+
+    const funil       = rows.filter(p => !['convertido','perdido'].includes(p.status));
+    const convertidos = rows.filter(p => p.status === 'convertido');
+    const por_status  = rows.reduce((acc, p) => { acc[p.status]  = (acc[p.status]  || 0) + 1; return acc; }, {});
+    const por_canal   = rows.reduce((acc, p) => { const c = p.canal_origem || 'manual'; acc[c] = (acc[c] || 0) + 1; return acc; }, {});
+
+    return res.json({
+      total:               rows.length,
+      funil:               funil.length,
+      valor_pipeline:      funil.reduce((s, p) => s + (parseFloat(p.valor_potencial) || 0), 0),
+      valor_ganho:         convertidos.reduce((s, p) => s + (parseFloat(p.valor_potencial) || 0), 0),
+      taxa_conversao:      rows.length > 0 ? ((convertidos.length / rows.length) * 100).toFixed(1) : '0.0',
+      por_status,
+      por_canal,
+      follow_ups_vencidos: parseInt(fu[0].count),
+    });
+  } catch (e) {
+    console.error('[Prospects] kpis:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = { listar, obterPorId, criar, atualizar, remover, eventos, analisar, receberLanding, webhookBrevo, registrarInteracao, followup, kpis };

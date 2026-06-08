@@ -1051,6 +1051,26 @@
     .doc-exp-warn { background: rgba(240,168,64,.15); color: var(--warning); border: 1px solid rgba(240,168,64,.3); font-size: .65rem; padding: .15rem .4rem; border-radius: 99px; display: inline-block; margin-top: .3rem; }
     .doc-exp-late { background: rgba(224,92,92,.15); color: #f08080; border: 1px solid rgba(224,92,92,.3); font-size: .65rem; padding: .15rem .4rem; border-radius: 99px; display: inline-block; margin-top: .3rem; }
 
+    /* ── DOCUMENTAÇÃO INTERNA ── */
+    .doc-int-filtro-btn {
+      padding: 6px 14px; border-radius: 99px; border: 1px solid #2a4a63;
+      background: transparent; color: #8aa4b8; font-size: 12px;
+      cursor: pointer; transition: all .15s;
+    }
+    .doc-int-filtro-btn.active, .doc-int-filtro-btn:hover {
+      background: #4CC5D7; color: #162A39; border-color: #4CC5D7; font-weight: 600;
+    }
+    .doc-int-card {
+      background: var(--card-bg); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--bd); cursor: pointer; transition: border-color .15s;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .doc-int-card:hover { border-color: var(--primary); }
+    .doc-int-card-icon { font-size: 28px; }
+    .doc-int-card-nome { font-size: 13px; font-weight: 600; color: var(--t1); line-height: 1.3; }
+    .doc-int-card-desc { font-size: 12px; color: var(--t2); }
+    .doc-int-card-meta { font-size: 11px; color: var(--t3); margin-top: auto; }
+
     /* ── DETALHE METRICS (above tabs) ── */
     .detalhe-metrics {
       display: grid; grid-template-columns: repeat(4,1fr); gap: .75rem; margin-bottom: 1.25rem;
@@ -1620,6 +1640,10 @@
           <span class="nav-icon"><i class="ti ti-target"></i></span>
           <span class="nav-label">Prospects</span>
         </button>
+        <button class="nav-item" data-nav="documentacao" onclick="navTo('documentacao')" id="nav-documentacao" hidden>
+          <span class="nav-icon"><i class="ti ti-folder"></i></span>
+          <span class="nav-label">Documentação</span>
+        </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
@@ -1964,6 +1988,41 @@
 
         <div id="prospects-area">
           <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </section>
+
+      <!-- ── DOCUMENTAÇÃO INTERNA ── -->
+      <section id="section-documentacao" class="section" style="display:none;">
+        <div class="section-header">
+          <div>
+            <h1>Documentação Interna</h1>
+            <p style="font-size:13px;color:var(--t2);margin:2px 0 0;">Central de arquivos, templates e recursos da Conlicit</p>
+          </div>
+          <div class="section-header-actions">
+            <button class="btn btn-primary btn-sm" id="btn-upload-doc" onclick="abrirModalUploadDoc()">+ Adicionar arquivo</button>
+          </div>
+        </div>
+
+        <!-- Filtros por categoria -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="doc-int-filtros">
+          <button class="doc-int-filtro-btn active" data-cat="" onclick="filtrarDocsInternos('')">Todos</button>
+          <button class="doc-int-filtro-btn" data-cat="identidade_visual" onclick="filtrarDocsInternos('identidade_visual')">Identidade Visual</button>
+          <button class="doc-int-filtro-btn" data-cat="templates_comerciais" onclick="filtrarDocsInternos('templates_comerciais')">Templates Comerciais</button>
+          <button class="doc-int-filtro-btn" data-cat="emails_mkt" onclick="filtrarDocsInternos('emails_mkt')">E-mails Marketing</button>
+          <button class="doc-int-filtro-btn" data-cat="planilhas" onclick="filtrarDocsInternos('planilhas')">Planilhas</button>
+          <button class="doc-int-filtro-btn" data-cat="processos" onclick="filtrarDocsInternos('processos')">Processos Internos</button>
+          <button class="doc-int-filtro-btn" data-cat="licitacoes" onclick="filtrarDocsInternos('licitacoes')">Licitações</button>
+          <button class="doc-int-filtro-btn" data-cat="conteudo" onclick="filtrarDocsInternos('conteudo')">Conteúdo</button>
+        </div>
+
+        <!-- Grid de documentos -->
+        <div id="docs-int-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;"></div>
+
+        <!-- Estado vazio -->
+        <div id="docs-int-vazio" style="display:none;text-align:center;padding:48px;color:var(--t2);">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:12px;display:block;margin:0 auto 12px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <div style="font-size:14px;margin-top:12px;">Nenhum documento encontrado</div>
+          <div style="font-size:12px;margin-top:4px;">Adicione arquivos clicando em "+ Adicionar arquivo"</div>
         </div>
       </section>
 
@@ -2952,6 +3011,7 @@
     document.getElementById('nav-usuarios').hidden      = !permiteModulo('usuarios') || cliente;
     document.getElementById('nav-pregoes-todos').hidden = !admin || cliente;
     document.getElementById('nav-prospects').hidden     = !permiteModulo('prospects') || cliente;
+    document.getElementById('nav-documentacao').hidden   = !permiteModulo('prospects') || cliente;
     document.getElementById('nav-proposta').hidden      = !permiteModulo('gerador_proposta') || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
@@ -2991,6 +3051,7 @@
     else if (section === 'minha-area')     carregarMinhaArea();
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
     else if (section === 'prospects')       carregarProspects();
+    else if (section === 'documentacao')    carregarDocumentosInternos();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
@@ -7601,6 +7662,198 @@
     return `<span style="display:inline-block;padding:2px 7px;border-radius:12px;font-size:.7rem;font-weight:600;background:${b.bg};color:${b.cor}" title="${dt}">${b.label}</span>`;
   }
 
+  // ── Prospects: Interações ─────────────────────────────────────────────────
+
+  async function salvarInteracaoProspect() {
+    const id = document.getElementById('pr-id').value;
+    if (!id) return;
+    const tipo = document.getElementById('pr-interacao-tipo')?.value;
+    const desc = document.getElementById('pr-interacao-desc')?.value.trim();
+    if (!desc) return;
+    try {
+      const r = await fetch(`${API}/prospects/${id}/interacoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tipo, descricao: desc }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      document.getElementById('pr-interacao-desc').value = '';
+      await carregarHistoricoProspect(id);
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function carregarHistoricoProspect(id) {
+    const lista = document.getElementById('pr-historico-lista');
+    if (!lista) return;
+    try {
+      const r = await fetch(`${API}/prospects/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { lista.innerHTML = ''; return; }
+      const p = await r.json();
+      const historico = Array.isArray(p.historico_interacoes) ? p.historico_interacoes : [];
+      const icones = { ligacao:'📞', whatsapp:'💬', email:'📧', reuniao:'🤝', proposta:'📄', nota:'📝' };
+      lista.innerHTML = historico.length === 0
+        ? '<p style="color:var(--t3);font-size:13px;">Nenhuma interação ainda.</p>'
+        : historico.map(h => `
+          <div style="display:flex;gap:10px;padding:9px 11px;background:var(--bg);border-radius:7px;border-left:3px solid var(--primary);">
+            <span style="font-size:16px;">${icones[h.tipo] || '💬'}</span>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;color:var(--t1)">${esc(h.descricao)}</div>
+              <div style="font-size:.7rem;color:var(--t3);margin-top:2px">${esc(h.usuario||'')} · ${new Date(h.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}</div>
+            </div>
+          </div>`).join('');
+    } catch (e) { lista.innerHTML = ''; }
+  }
+
+  async function verFollowUpsVencidos() {
+    try {
+      const r = await fetch(`${API}/prospects/followup`, { headers: { Authorization: `Bearer ${token}` } });
+      const dados = await r.json();
+      if (!dados.length) { toast('Nenhum follow-up vencido!', 'success'); return; }
+      const nomes = dados.slice(0, 5).map(p => `• ${esc(p.nome)} (${p.data_proximo_contato?.slice(0,10)})`).join('
+');
+      alert(`Follow-ups vencidos (${dados.length}):
+
+${nomes}${dados.length > 5 ? `
+…e mais ${dados.length - 5}` : ''}`);
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Documentação Interna ───────────────────────────────────────────────────
+
+  let _docCategAtual = '';
+
+  const _DOC_ICONES = {
+    pdf: '📄', xlsx: '📊', xls: '📊', docx: '📝', doc: '📝',
+    png: '🖼️', jpg: '🖼️', jpeg: '🖼️', csv: '📋', link: '🔗', default: '📁'
+  };
+  const _CAT_LABELS = {
+    identidade_visual: 'Identidade Visual', templates_comerciais: 'Templates',
+    emails_mkt: 'E-mail Mkt', planilhas: 'Planilhas', acessos_internos: 'Acessos',
+    processos: 'Processos', licitacoes: 'Licitações', conteudo: 'Conteúdo'
+  };
+
+  async function carregarDocumentosInternos(categoria) {
+    if (categoria === undefined) categoria = _docCategAtual;
+    try {
+      const url = `${API}/documentos` + (categoria ? `?categoria=${encodeURIComponent(categoria)}` : '');
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const docs = await r.json();
+      const grid = document.getElementById('docs-int-grid');
+      const vazio = document.getElementById('docs-int-vazio');
+      if (!grid) return;
+      if (!Array.isArray(docs) || !docs.length) {
+        grid.innerHTML = '';
+        if (vazio) vazio.style.display = 'block';
+        return;
+      }
+      if (vazio) vazio.style.display = 'none';
+      grid.innerHTML = docs.map(d => {
+        const ext    = d.tipo_arquivo || 'default';
+        const icone  = _DOC_ICONES[ext] || _DOC_ICONES.default;
+        const tam    = d.tamanho_bytes ? (d.tamanho_bytes / 1048576).toFixed(1) + ' MB' : '';
+        const podeDel = _canDeleteDoc();
+        return `<div class="doc-int-card" onclick="abrirDocumentoInterno('${esc(d.url_arquivo||'')}')">
+          <div class="doc-int-card-icon">${icone}</div>
+          <div class="doc-int-card-nome">${esc(d.nome)}</div>
+          ${d.descricao ? `<div class="doc-int-card-desc">${esc(d.descricao)}</div>` : ''}
+          <div class="doc-int-card-meta">${_CAT_LABELS[d.categoria] || d.categoria}${tam ? ' · ' + tam : ''}</div>
+          ${podeDel ? `<button onclick="event.stopPropagation();deletarDocInterno('${d.id}')"
+            style="align-self:flex-end;background:transparent;border:none;color:var(--t3);font-size:.72rem;cursor:pointer;padding:0;margin-top:4px;">Remover</button>` : ''}
+        </div>`;
+      }).join('');
+    } catch (e) { console.error('Docs internos:', e); }
+  }
+
+  function filtrarDocsInternos(cat) {
+    _docCategAtual = cat;
+    document.querySelectorAll('.doc-int-filtro-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    carregarDocumentosInternos(cat);
+  }
+
+  function abrirDocumentoInterno(url) {
+    if (!url) return;
+    window.open(url, '_blank');
+  }
+
+  function _canDeleteDoc() {
+    try {
+      const t = localStorage.getItem('ch_token') || '';
+      const payload = JSON.parse(atob(t.split('.')[1] || 'e30='));
+      return ['socio_fundador','admin'].includes(payload.role || '');
+    } catch { return false; }
+  }
+
+  async function deletarDocInterno(id) {
+    if (!confirm('Remover este documento?')) return;
+    try {
+      const r = await fetch(`${API}/documentos/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      carregarDocumentosInternos();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function abrirModalUploadDoc() {
+    document.getElementById('modal-upload-doc').style.display = 'flex';
+  }
+
+  function fecharModalUploadDoc() {
+    document.getElementById('modal-upload-doc').style.display = 'none';
+    ['doc-int-nome','doc-int-descricao','doc-int-url'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const fa = document.getElementById('doc-int-arquivo'); if (fa) fa.value = '';
+  }
+
+  function toggleUploadTipoDoc(tipo) {
+    const isArq = tipo === 'arquivo';
+    document.getElementById('doc-int-upload-area').style.display = isArq ? 'block' : 'none';
+    document.getElementById('doc-int-link-area').style.display   = isArq ? 'none'  : 'block';
+    const bA = document.getElementById('btn-tipo-arquivo');
+    const bL = document.getElementById('btn-tipo-link');
+    if (bA) { bA.style.background = isArq ? 'var(--primary)' : 'var(--input-bg)'; bA.style.color = isArq ? 'var(--bg)' : 'var(--t2)'; }
+    if (bL) { bL.style.background = isArq ? 'var(--input-bg)' : 'var(--primary)'; bL.style.color = isArq ? 'var(--t2)' : 'var(--bg)'; }
+  }
+
+  async function salvarDocInternos() {
+    const nome      = document.getElementById('doc-int-nome')?.value.trim();
+    const categoria = document.getElementById('doc-int-categoria')?.value;
+    if (!nome || !categoria) { toast('Nome e categoria são obrigatórios', 'error'); return; }
+
+    const fd = new FormData();
+    fd.append('nome',         nome);
+    fd.append('categoria',    categoria);
+    fd.append('descricao',    document.getElementById('doc-int-descricao')?.value || '');
+    fd.append('acesso_minimo', document.getElementById('doc-int-acesso')?.value || 'assistente');
+
+    const arqInput = document.getElementById('doc-int-arquivo');
+    const urlInput = document.getElementById('doc-int-url');
+    if (arqInput?.files?.length > 0) {
+      fd.append('arquivo', arqInput.files[0]);
+    } else if (urlInput?.value?.trim()) {
+      fd.append('url_arquivo',  urlInput.value.trim());
+      fd.append('tipo_arquivo', 'link');
+    } else {
+      toast('Adicione um arquivo ou um link', 'error'); return;
+    }
+
+    try {
+      const r = await fetch(`${API}/documentos`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!r.ok) throw new Error(await r.text());
+      fecharModalUploadDoc();
+      toast('Documento salvo!', 'success');
+      carregarDocumentosInternos();
+    } catch (e) { toast('Erro ao salvar: ' + e.message, 'error'); }
+  }
+
   async function carregarProspects() {
     const area = document.getElementById('prospects-area');
     area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
@@ -7628,15 +7881,19 @@
         const novos         = dados.filter(p => p.status === 'novo_lead').length;
         const formPreen     = dados.filter(p => p.formulario_preenchido).length;
         const convertidos   = dados.filter(p => p.status === 'convertido').length;
+        const hoje = new Date().toISOString().split('T')[0];
+        const fuVencido = dados.filter(p => p.data_proximo_contato && p.data_proximo_contato.slice(0,10) <= hoje && !['convertido','perdido'].includes(p.status)).length;
+        const valorPipeline = dados.filter(p => !['convertido','perdido'].includes(p.status)).reduce((s,p) => s + (parseFloat(p.valor_potencial) || 0), 0);
         const statItems = [
           { label: 'Total', val: dados.length, cor: 'var(--primary)' },
           { label: 'Ativos no funil', val: totalAtivos, cor: '#F59E0B' },
-          { label: 'Novos leads', val: novos, cor: '#4CC5D7' },
-          { label: 'Formulário preenchido', val: formPreen, cor: '#8B5CF6' },
+          { label: 'Pipeline (R$)', val: valorPipeline > 0 ? 'R$ ' + valorPipeline.toLocaleString('pt-BR',{maximumFractionDigits:0}) : '—', cor: '#4CC5D7' },
           { label: 'Convertidos', val: convertidos, cor: '#10B981' },
+          { label: 'Taxa conversão', val: dados.length > 0 ? ((convertidos/dados.length)*100).toFixed(0)+'%' : '0%', cor: '#EF9F27' },
+          { label: 'Follow-ups', val: fuVencido, cor: fuVencido > 0 ? '#E24B4A' : 'var(--t2)', click: fuVencido > 0 ? 'verFollowUpsVencidos()' : '' },
         ];
         statsEl.innerHTML = statItems.map(s =>
-          `<div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;min-width:110px">
+          `<div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;min-width:110px${s.click?' cursor:pointer;':''}" ${s.click?`onclick="${s.click}"`:''}">
             <div style="font-size:.7rem;color:var(--t2);margin-bottom:2px">${s.label}</div>
             <div style="font-size:1.3rem;font-weight:700;color:${s.cor}">${s.val}</div>
           </div>`
@@ -7671,8 +7928,11 @@
           <div style="display:flex;flex-direction:column;gap:6px">
             ${cards.map(p => {
               const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
+              const hoje2 = new Date().toISOString().split('T')[0];
+              const fuVen = p.data_proximo_contato && p.data_proximo_contato.slice(0,10) <= hoje2;
               return `<div style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:pointer" onclick='abrirEditarProspect(${JSON.stringify(p)})'>
                 <div style="font-size:.83rem;font-weight:600;color:var(--t1);margin-bottom:1px">${esc(p.nome)}</div>
+                ${fuVen ? '<span style="background:#E24B4A;color:#fff;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:99px;display:inline-block;margin-bottom:2px;">Follow-up vencido</span>' : ''}
                 ${p.empresa ? `<div style="font-size:.7rem;color:var(--t2)">${esc(p.empresa)}</div>` : ''}
                 ${p.segmento ? `<div style="font-size:.67rem;color:var(--primary);margin-top:2px">${esc(p.segmento)}</div>` : ''}
                 <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;align-items:center">
@@ -7753,11 +8013,15 @@
   function abrirModalProspect() {
     document.getElementById('prospect-modal-titulo').textContent = 'Novo Lead';
     document.getElementById('pr-id').value = '';
-    ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas','pr-indicado-por','pr-edital'].forEach(fid => {
+    ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas','pr-indicado-por','pr-edital',
+      'pr-cnpj','pr-cargo','pr-cidade','pr-valor-potencial','pr-proximo-contato','pr-interacao-desc'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
     });
     const seg = document.getElementById('pr-segmento'); if(seg) seg.value = '';
+    const est = document.getElementById('pr-estado'); if(est) est.value = '';
+    const can = document.getElementById('pr-canal-origem'); if(can) can.value = 'manual';
     document.getElementById('pr-status').value = 'novo_lead';
+    const hsec = document.getElementById('pr-historico-section'); if(hsec) hsec.style.display = 'none';
     hideAlert('alert-prospect');
     document.getElementById('modal-prospect').classList.add('visible');
   }
@@ -7775,6 +8039,20 @@
     const edEl = document.getElementById('pr-edital');       if(edEl) edEl.value = p.edital||'';
     const sgEl = document.getElementById('pr-segmento');     if(sgEl) sgEl.value = p.segmento||'';
     document.getElementById('pr-status').value = p.status||'novo_lead';
+    // Novos campos CRM
+    const cnEl = document.getElementById('pr-cnpj');             if(cnEl) cnEl.value = p.cnpj||'';
+    const cgEl = document.getElementById('pr-cargo');            if(cgEl) cgEl.value = p.cargo||'';
+    const cdEl = document.getElementById('pr-cidade');           if(cdEl) cdEl.value = p.cidade||'';
+    const stEl = document.getElementById('pr-estado');           if(stEl) stEl.value = p.estado||'';
+    const vpEl = document.getElementById('pr-valor-potencial');  if(vpEl) vpEl.value = p.valor_potencial||'';
+    const pcEl = document.getElementById('pr-proximo-contato');  if(pcEl) pcEl.value = p.data_proximo_contato ? p.data_proximo_contato.slice(0,10) : '';
+    const coEl = document.getElementById('pr-canal-origem');     if(coEl) coEl.value = p.canal_origem||'manual';
+    // Mostrar histórico de interações
+    const hsec = document.getElementById('pr-historico-section');
+    if (hsec) {
+      hsec.style.display = 'block';
+      carregarHistoricoProspect(p.id);
+    }
 
     // Mostrar dados do formulário da landing se existirem
     const obsArea = document.getElementById('pr-obs-landing');
@@ -7801,10 +8079,17 @@
       whatsapp:     document.getElementById('pr-whatsapp').value.trim()||null,
       status:       document.getElementById('pr-status').value,
       responsavel:  document.getElementById('pr-responsavel').value.trim()||null,
-      notas:        document.getElementById('pr-notas').value.trim()||null,
-      indicado_por: document.getElementById('pr-indicado-por')?.value.trim()||null,
-      edital:       document.getElementById('pr-edital')?.value.trim()||null,
-      segmento:     document.getElementById('pr-segmento')?.value||null,
+      notas:                document.getElementById('pr-notas').value.trim()||null,
+      indicado_por:         document.getElementById('pr-indicado-por')?.value.trim()||null,
+      edital:               document.getElementById('pr-edital')?.value.trim()||null,
+      segmento:             document.getElementById('pr-segmento')?.value||null,
+      cnpj:                 document.getElementById('pr-cnpj')?.value.trim()||null,
+      cargo:                document.getElementById('pr-cargo')?.value.trim()||null,
+      cidade:               document.getElementById('pr-cidade')?.value.trim()||null,
+      estado:               document.getElementById('pr-estado')?.value||null,
+      valor_potencial:      document.getElementById('pr-valor-potencial')?.value||null,
+      data_proximo_contato: document.getElementById('pr-proximo-contato')?.value||null,
+      canal_origem:         document.getElementById('pr-canal-origem')?.value||'manual',
     };
     try {
       const r = await fetch(`${API}/prospects${id ? `/${id}` : ''}`, {
@@ -9166,6 +9451,61 @@ img { max-height: 22px !important; width: auto !important; display: block; }
         <div class="form-group"><label>Indicado por</label><input type="text" id="pr-indicado-por" placeholder="Fonte ou indicação" /></div>
       </div>
       <div class="form-group"><label>Notas internas</label><textarea id="pr-notas" rows="2" placeholder="Observações internas sobre o lead…"></textarea></div>
+      <!-- Novos campos CRM -->
+      <div class="form-row" style="margin-top:10px;">
+        <div class="form-group"><label>CNPJ</label><input type="text" id="pr-cnpj" placeholder="00.000.000/0001-00" /></div>
+        <div class="form-group"><label>Cargo</label><input type="text" id="pr-cargo" placeholder="Ex: Gerente de compras" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cidade</label><input type="text" id="pr-cidade" placeholder="Ex: Belo Horizonte" /></div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="pr-estado">
+            <option value="">— UF —</option>
+            <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+            <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+            <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+            <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+            <option>SE</option><option>SP</option><option>TO</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor potencial (R$)</label><input type="number" id="pr-valor-potencial" placeholder="0" min="0" step="0.01" /></div>
+        <div class="form-group"><label>Próximo contato</label><input type="date" id="pr-proximo-contato" /></div>
+      </div>
+      <div class="form-group">
+        <label>Canal de origem</label>
+        <select id="pr-canal-origem">
+          <option value="manual">Manual</option>
+          <option value="pncp">Busca PNCP</option>
+          <option value="indicacao">Indicação</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="site">Site / Formulário</option>
+          <option value="email">E-mail marketing</option>
+        </select>
+      </div>
+      <!-- Histórico de interações (somente ao editar) -->
+      <div id="pr-historico-section" style="display:none;margin-top:16px;border-top:1px solid var(--bd);padding-top:14px;">
+        <div style="font-size:.75rem;font-weight:700;color:var(--primary);letter-spacing:.05em;margin-bottom:10px;">HISTÓRICO DE INTERAÇÕES</div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px;">
+          <select id="pr-interacao-tipo" style="padding:7px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);font-size:13px;">
+            <option value="ligacao">Ligação</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">E-mail</option>
+            <option value="reuniao">Reunião</option>
+            <option value="proposta">Proposta enviada</option>
+            <option value="nota">Nota interna</option>
+          </select>
+          <input type="text" id="pr-interacao-desc" placeholder="Descreva o que aconteceu…"
+            style="padding:7px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);font-size:13px;">
+        </div>
+        <button onclick="salvarInteracaoProspect()" class="btn btn-ghost btn-sm" style="margin-bottom:10px;">+ Registrar</button>
+        <div id="pr-historico-lista" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
       <div id="pr-obs-landing" style="display:none;background:rgba(76,197,215,.07);border:1px solid var(--primary);border-radius:8px;padding:10px;margin-top:8px">
         <div style="font-size:.72rem;color:var(--primary);font-weight:600;margin-bottom:4px">📋 Dados da landing page</div>
         <div style="font-size:.78rem;color:var(--t2)"><strong>Origem:</strong> <span id="pr-origem-texto"></span></div>
@@ -9176,6 +9516,85 @@ img { max-height: 22px !important; width: auto !important; display: block; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-prospect').classList.remove('visible')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarProspect()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal upload de documento interno -->
+<div id="modal-upload-doc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="color:var(--t1);font-size:16px;margin:0;">Adicionar Documento</h3>
+      <button onclick="fecharModalUploadDoc()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:600;">Nome *</label>
+        <input type="text" id="doc-int-nome" placeholder="Ex: Brand Book Conlicit 2025"
+          style="width:100%;margin-top:4px;padding:9px 12px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t1);font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:600;">Categoria *</label>
+        <select id="doc-int-categoria"
+          style="width:100%;margin-top:4px;padding:9px 12px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t1);font-size:13px;">
+          <option value="">— Selecione —</option>
+          <option value="identidade_visual">Identidade Visual</option>
+          <option value="templates_comerciais">Templates Comerciais</option>
+          <option value="emails_mkt">E-mails de Marketing</option>
+          <option value="planilhas">Planilhas Modelo</option>
+          <option value="acessos_internos">Acessos Internos</option>
+          <option value="processos">Processos Internos</option>
+          <option value="licitacoes">Licitações</option>
+          <option value="conteudo">Conteúdo e Social</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:600;">Descrição</label>
+        <input type="text" id="doc-int-descricao" placeholder="Breve descrição do arquivo"
+          style="width:100%;margin-top:4px;padding:9px 12px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t1);font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:600;">Acesso mínimo</label>
+        <select id="doc-int-acesso"
+          style="width:100%;margin-top:4px;padding:9px 12px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t1);font-size:13px;">
+          <option value="todos">Todos</option>
+          <option value="assistente_junior">Assistente Jr.+</option>
+          <option value="sdr">SDR / Dir. Comercial+</option>
+          <option value="assistente" selected>Assistente+</option>
+          <option value="socio">Somente sócios</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:600;">Arquivo ou Link</label>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button onclick="toggleUploadTipoDoc('arquivo')" id="btn-tipo-arquivo"
+            style="flex:1;padding:8px;background:var(--primary);border:none;border-radius:6px;color:var(--bg);font-size:12px;font-weight:600;cursor:pointer;">
+            Upload arquivo
+          </button>
+          <button onclick="toggleUploadTipoDoc('link')" id="btn-tipo-link"
+            style="flex:1;padding:8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t2);font-size:12px;cursor:pointer;">
+            Link externo
+          </button>
+        </div>
+        <div id="doc-int-upload-area" style="margin-top:10px;">
+          <input type="file" id="doc-int-arquivo" accept=".pdf,.xlsx,.xls,.docx,.png,.jpg,.jpeg,.csv"
+            style="width:100%;padding:9px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t2);font-size:13px;">
+        </div>
+        <div id="doc-int-link-area" style="margin-top:10px;display:none;">
+          <input type="url" id="doc-int-url" placeholder="https://drive.google.com/..."
+            style="width:100%;padding:9px 12px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--t1);font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button onclick="fecharModalUploadDoc()"
+        style="padding:9px 20px;background:transparent;border:1px solid var(--input-border);border-radius:8px;color:var(--t2);font-size:13px;cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="salvarDocInternos()"
+        style="padding:9px 20px;background:var(--primary);border:none;border-radius:8px;color:var(--bg);font-weight:600;font-size:13px;cursor:pointer;">
+        Salvar documento
+      </button>
     </div>
   </div>
 </div>
