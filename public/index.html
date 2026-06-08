@@ -5696,6 +5696,7 @@
         <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pregaoId})">📄 Relatório PDF</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${pregaoId},null)">📋 Relatório para Reunião</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirRevisao(edsonAnaliseAtual)">✏ Revisar dados</button>
         <button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${pregaoId})">↻ Reanalisar</button>
       `;
       switchEdsonTab('rapido');
@@ -7287,6 +7288,7 @@
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarRelatorioEdson(${_pid})` : `baixarRelatorioAvulso(${analiseId})`}">📄 Relatório PDF</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid||'null'},${analiseId})">📋 Relatório para Reunião</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirRevisao(edsonAnaliseAtual)">✏ Revisar dados</button>
         ${_pid ? `<button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>` : ''}
       `;
 
@@ -8108,6 +8110,7 @@
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarRelatorioEdson(${_pid})` : `baixarRelatorioAvulso(${analiseId})`}">📄 Relatório PDF</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioSimples(${_pid||'null'},${analiseId})">📋 Relatório para Reunião</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirRevisao(edsonAnaliseAtual)">✏ Revisar dados</button>
         ${_pid ? `<button class="btn btn-ghost btn-sm" onclick="reanalisarEdson(${_pid})">↻ Reanalisar</button>` : ''}
       `;
 
