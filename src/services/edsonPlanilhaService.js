@@ -153,13 +153,28 @@ Retorne APENAS o conteúdo CSV. Nenhum texto antes ou depois.`;
 
 // ── Função 1: Extrair itens do edital ─────────────────────────────────────────
 
-async function extrairItensDoEdital(textoEdital) {
+async function extrairItensDoEdital(textoEdital, paginasItens) {
+  let textoParaAnalise = textoEdital;
+  if (paginasItens && paginasItens.trim()) {
+    const pagRange = paginasItens.replace(/\s/g,'').split(/[-,]/).map(Number).filter(Boolean);
+    if (pagRange.length >= 2) {
+      const [ini, fim] = [Math.min(...pagRange), Math.max(...pagRange)];
+      const matches = [...textoEdital.matchAll(/(?:p[aá]g(?:ina)?\.?\s*\d+|^\f)/gim)];
+      if (matches.length > 0) {
+        const start = matches.find(m => parseInt(m[0].replace(/\D/g,'')) >= ini);
+        const end   = matches.find(m => parseInt(m[0].replace(/\D/g,'')) > fim);
+        if (start) textoParaAnalise = textoEdital.slice(start.index, end ? end.index : undefined);
+      }
+    }
+    console.log(`[Planilha] Páginas indicadas: ${paginasItens} — texto filtrado: ${textoParaAnalise.length} chars`);
+  }
+
   const { data } = await axios.post(ANTHROPIC_URL, {
     model:      ANTHROPIC_MODEL,
     max_tokens: 4000,
     messages: [{
       role:    'user',
-      content: `${PROMPT_EXTRACAO}\n\n---\nTEXTO DO EDITAL:\n${textoEdital.slice(0, 80000)}`,
+      content: `${PROMPT_EXTRACAO}\n\n---\nTEXTO DO EDITAL:\n${textoParaAnalise.slice(0, 80000)}`,
     }],
   }, { headers: headers(), timeout: 120000 });
 

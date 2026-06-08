@@ -95,7 +95,8 @@ async function extrairItens(req, res) {
       });
     }
 
-    const resultado = await svc.extrairItensDoEdital(texto_edital);
+    const paginasItens = req.body?.paginas_itens || req.query?.paginas_itens || null;
+    const resultado = await svc.extrairItensDoEdital(texto_edital, paginasItens);
 
     // Persiste os itens na análise
     await db.query(

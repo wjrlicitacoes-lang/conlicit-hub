@@ -1492,36 +1492,18 @@
     #etab-planilha-precos input[type="checkbox"] {
       appearance: none;
       -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      min-width: 16px;
-      border: 1.5px solid rgba(76,197,215,.4);
-      border-radius: 4px;
-      background: transparent;
-      cursor: pointer;
-      position: relative;
-      flex-shrink: 0;
-      transition: all .15s;
-      margin-top: 2px;
-    }
-    #etab-planilha-precos input[type="checkbox"]:checked {
-      background: #4CC5D7;
-      border-color: #4CC5D7;
     }
     #etab-planilha-precos input[type="checkbox"]:checked::after {
       content: '';
       position: absolute;
-      left: 4px;
-      top: 1px;
+      left: 3px;
+      top: 0px;
       width: 5px;
       height: 9px;
       border: 2px solid #182A39;
       border-top: none;
       border-left: none;
       transform: rotate(45deg);
-    }
-    #etab-planilha-precos label:hover {
-      background: rgba(76,197,215,.04) !important;
     }
   </style>
 </head>
@@ -2243,6 +2225,10 @@
                 <input type="file" id="edson-upload-input" accept=".pdf" style="display:none" onchange="selecionarPDFEdson(this)">
                 <button class="btn btn-primary" onclick="document.getElementById('edson-upload-input').click()">📎 Selecionar PDF</button>
                 <span id="edson-upload-filename" style="font-size:.85rem;color:var(--text-muted)"></span>
+              </div>
+              <div style="margin-top:.75rem">
+                <label style="color:var(--text-muted);font-size:.78rem;display:block;margin-bottom:.3rem">Páginas com os itens <span style="color:var(--text-muted);font-weight:400">(opcional — ex: 8-15 ou 8,9,10)</span></label>
+                <input id="edson-paginas-itens" type="text" placeholder="Ex: 8-15" style="width:160px;background:var(--bg-secondary);border:1px solid rgba(76,197,215,.2);border-radius:6px;padding:.4rem .65rem;color:#fff;font-size:.85rem">
               </div>
               <div id="edson-upload-preview" style="display:none;margin-top:1rem;align-items:center;gap:.75rem">
                 <span id="edson-upload-preview-name" style="font-size:.88rem;font-weight:600"></span>
@@ -5758,6 +5744,9 @@
     erroEl.style.display = 'none';
     const fd = new FormData();
     fd.append('edital', edsonArquivoPDF);
+    const paginasInput = document.getElementById('edson-paginas-itens');
+    const paginas = paginasInput ? paginasInput.value.trim() : '';
+    if (paginas) fd.append('paginas_itens', paginas);
     try {
       let url;
       if (edsonAtualPregaoId) {
@@ -6924,24 +6913,46 @@
             <button class="btn btn-primary btn-sm" onclick="salvarSelecaoPlanilha(${analise_id})">✓ Salvar seleção</button>
           </div>
         </div>
-        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">`;
+        <div`;
+
+      html += `<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <thead>
+          <tr style="background:rgba(76,197,215,.08);border-bottom:2px solid rgba(76,197,215,.2)">
+            <th style="padding:.5rem .75rem;text-align:left;width:32px;color:var(--text-muted);font-weight:600"></th>
+            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Nº</th>
+            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Descrição</th>
+            <th style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Unid.</th>
+            <th style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Qtd</th>
+            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Ref. Unit.</th>
+            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Total</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
       d.itens_edital.forEach((item, idx) => {
         const selecionado = jaTemSelecao
           ? d.itens_selecao.some(s => s.numero === item.numero)
           : true;
-        const vlr = item.valor_referencia ? `R$ ${parseFloat(item.valor_referencia).toFixed(2).replace('.',',')}` : '—';
-        const vtotal = item.valor_total_estimado ? `R$ ${parseFloat(item.valor_total_estimado).toFixed(2).replace('.',',')}` : '—';
-        html += `<label style="display:flex;align-items:flex-start;gap:.7rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;${idx % 2 === 0 ? '' : 'background:var(--bg-secondary)'}">
-          <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''} style="margin-top:.15rem;flex-shrink:0">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.85rem;font-weight:500">${item.numero}. ${item.descricao}</div>
-            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${item.unidade} · Qtd: ${item.quantidade} · Ref: ${vlr} · Total: ${vtotal}</div>
-          </div>
-        </label>`;
+        const vlr   = item.valor_referencia       ? `R$ ${parseFloat(item.valor_referencia).toFixed(2).replace('.',',')}` : '—';
+        const vtotal = item.valor_total_estimado  ? `R$ ${parseFloat(item.valor_total_estimado).toFixed(2).replace('.',',')}` : '—';
+        const qtd   = (item.quantidade != null && item.quantidade !== 'null') ? item.quantidade : '—';
+        const und   = item.unidade || '—';
+        html += `<tr style="border-bottom:1px solid var(--border);${idx % 2 !== 0 ? 'background:rgba(255,255,255,.02)' : ''}">
+          <td style="padding:.5rem .75rem;text-align:center">
+            <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}
+              style="appearance:none;-webkit-appearance:none;width:15px;height:15px;min-width:15px;border:1.5px solid rgba(76,197,215,.4);border-radius:3px;background:${selecionado ? '#4CC5D7' : 'transparent'};cursor:pointer;position:relative;flex-shrink:0;transition:all .15s;vertical-align:middle"
+              onchange="this.style.background=this.checked?'#4CC5D7':'transparent';this.style.borderColor=this.checked?'#4CC5D7':'rgba(76,197,215,.4)'">
+          </td>
+          <td style="padding:.5rem .75rem;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${item.numero}</td>
+          <td style="padding:.5rem .75rem;font-size:.83rem;line-height:1.4">${esc(item.descricao || '—')}</td>
+          <td style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-size:.8rem">${esc(und)}</td>
+          <td style="padding:.5rem .75rem;text-align:center;font-weight:600;font-size:.85rem">${qtd}</td>
+          <td style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${vlr}</td>
+          <td style="padding:.5rem .75rem;text-align:right;font-weight:600;font-size:.83rem;white-space:nowrap;color:${vtotal !== '—' ? 'var(--primary)' : 'var(--text-muted)'}">${vtotal}</td>
+        </tr>`;
       });
 
-      html += `</div></div>`;
+      html += `</tbody></table></div>`;
 
       // ETAPA 3: Pesquisa de preços
       if (temSelecao) {
