@@ -216,8 +216,6 @@ Responda APENAS com o JSON abaixo, preenchido com a análise do pregão:
 ${JSON_SCHEMA_INSTRUCAO}
 
 === DADOS DO PREGÃO ===
-ATENÇÃO: Os campos Número, Órgão, Valor estimado, Data da sessão e UF já estão preenchidos abaixo com dados oficiais do PNCP. NÃO tente reextrair esses campos do texto do edital. Use EXATAMENTE os valores fornecidos. Extraia do edital apenas: itens, habilitação, riscos, checklist, prazos, cláusulas restritivas e demais campos de análise.
-ATENÇÃO: Os campos Número, Órgão, Valor estimado, Data da sessão e UF já estão preenchidos abaixo com dados oficiais do PNCP. NÃO tente reextrair esses campos do texto do edital. Use EXATAMENTE os valores fornecidos. Extraia do edital apenas: itens, habilitação, riscos, checklist, prazos, cláusulas restritivas e demais campos de análise.
 Número: ${pregao.numero || '—'}
 Órgão: ${pregao.orgao || '—'}
 Objeto: ${pregao.objeto || '—'}
@@ -260,8 +258,6 @@ Responda APENAS com o JSON abaixo, preenchido com a análise do edital:
 ${JSON_SCHEMA_INSTRUCAO}
 
 === DADOS DO PREGÃO ===
-ATENÇÃO: Os campos Número, Órgão, Valor estimado, Data da sessão e UF já estão preenchidos abaixo com dados oficiais do PNCP. NÃO tente reextrair esses campos do texto do edital. Use EXATAMENTE os valores fornecidos. Extraia do edital apenas: itens, habilitação, riscos, checklist, prazos, cláusulas restritivas e demais campos de análise.
-ATENÇÃO: Os campos Número, Órgão, Valor estimado, Data da sessão e UF já estão preenchidos abaixo com dados oficiais do PNCP. NÃO tente reextrair esses campos do texto do edital. Use EXATAMENTE os valores fornecidos. Extraia do edital apenas: itens, habilitação, riscos, checklist, prazos, cláusulas restritivas e demais campos de análise.
 Número: ${pregao.numero || '—'}
 Órgão: ${pregao.orgao || '—'}
 Objeto: ${pregao.objeto || '—'}
@@ -513,7 +509,6 @@ async function callClaude(prompt, maxTokens = 6000, extraContent = []) {
 function finalizarParse(parsed) {
   if (!parsed.criterios_score) parsed.criterios_score = {};
   if (!parsed.itens) parsed.itens = [];
-  parsed.itens_ausentes = (!parsed.itens || parsed.itens.length === 0);
   if (!parsed.habilitacao) parsed.habilitacao = [];
   if (!parsed.riscos) parsed.riscos = [];
   if (!parsed.clausulas_restritivas) parsed.clausulas_restritivas = [];
@@ -579,14 +574,14 @@ async function salvarAnalise(analiseId, parsed, criterios, score, itensPNCP = []
     }));
   }
 
-  // Campos estruturados — prioridade: contexto do banco (PNCP/JOIN) → Claude → null
-  const orgao         = (dadosContexto.orgao         && dadosContexto.orgao         !== '—') ? dadosContexto.orgao         : (parsed.orgao         || null);
-  const uf            = (dadosContexto.uf            && dadosContexto.uf            !== '—') ? dadosContexto.uf            : (parsed.uf            || null);
-  const numero_pregao = (dadosContexto.numero        && dadosContexto.numero        !== '—') ? dadosContexto.numero        : (parsed.numero_pregao || null);
-  const data_abertura = (dadosContexto.data_abertura && dadosContexto.data_abertura !== '—') ? dadosContexto.data_abertura : (parsed.data_abertura || null);
-  const valor_estimado = (dadosContexto.valor_estimado && dadosContexto.valor_estimado !== '—')
-    ? parseFloat(dadosContexto.valor_estimado) || null
-    : (parsed.valor_estimado != null ? parseFloat(parsed.valor_estimado) || null : null);
+  // Campos estruturados — prioridade: Claude → contexto do banco (JOIN) → null
+  const orgao         = parsed.orgao         || dadosContexto.orgao         || null;
+  const uf            = parsed.uf            || dadosContexto.uf            || null;
+  const numero_pregao = parsed.numero_pregao || dadosContexto.numero        || null;
+  const data_abertura = parsed.data_abertura || dadosContexto.data_abertura || null;
+  const valor_estimado = (parsed.valor_estimado != null && parsed.valor_estimado !== '')
+    ? parseFloat(parsed.valor_estimado) || null
+    : (dadosContexto.valor_estimado != null ? parseFloat(dadosContexto.valor_estimado) || null : null);
 
   await db.query(
     `UPDATE analises_edson SET
@@ -719,14 +714,6 @@ async function analisarPDF(analiseId, pregaoId, pdfBuffer, modo = 'reuniao') {
     }
     const raw = await callClaude(prompt, maxTok);
     const { parsed, criterios, score } = parsearRespostaEdson(raw);
-    if (parsed.itens_ausentes) {
-      await db.query(
-        `UPDATE analises_edson SET status = 'aguardando_itens', atualizado_em = NOW() WHERE id = $1`,
-        [analiseId],
-      );
-      console.log(`[Edson] Análise ${analiseId}: itens ausentes, aguardando Termo de Referência`);
-      return;
-    }
     await salvarAnalise(analiseId, parsed, criterios, score, [], {
       orgao: pregao.orgao, uf: pregao.uf, numero: pregao.numero,
       valor_estimado: pregao.valor_estimado, data_abertura: pregao.data_hora_abertura,
