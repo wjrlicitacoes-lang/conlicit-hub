@@ -2289,6 +2289,62 @@
               </div>
             </div>
           </div>
+
+          <!-- ── Tela de Revisão antes do PDF ── -->
+          <div id="edson-revisao" style="display:none">
+            <div style="background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.35);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+              <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem">
+                <span style="color:#4CC5D7;font-size:1.1rem">✦</span>
+                <strong style="color:#4CC5D7;font-size:.95rem">Revisar antes de gerar o relatório</strong>
+                <span style="color:#DEE6E9;font-size:.8rem;margin-left:auto">Campos vindos do PNCP — confirme ou corrija se necessário</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+                <div>
+                  <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">Nº do Pregão</label>
+                  <input id="rev-numero" type="text" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem">
+                </div>
+                <div>
+                  <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">Órgão</label>
+                  <input id="rev-orgao" type="text" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem">
+                </div>
+                <div>
+                  <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">Valor Estimado (R$)</label>
+                  <input id="rev-valor" type="text" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem">
+                </div>
+                <div>
+                  <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">Data de Abertura</label>
+                  <input id="rev-data" type="text" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem">
+                </div>
+                <div>
+                  <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">UF</label>
+                  <input id="rev-uf" type="text" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem;max-width:80px">
+                </div>
+              </div>
+              <div style="margin-top:.75rem">
+                <label style="color:#DEE6E9;font-size:.78rem;display:block;margin-bottom:.3rem">Objeto</label>
+                <textarea id="rev-objeto" rows="2" style="width:100%;background:#0d1f2d;border:1px solid rgba(76,197,215,.25);border-radius:6px;padding:.5rem .75rem;color:#fff;font-size:.88rem;resize:vertical"></textarea>
+              </div>
+              <div id="rev-aviso-itens" style="display:none;margin-top:.85rem;background:rgba(226,75,74,.08);border:1px solid rgba(226,75,74,.3);border-radius:6px;padding:.75rem 1rem">
+                <span style="color:#E24B4A;font-size:.85rem">⚠ Itens não encontrados no edital.</span>
+                <span style="color:#DEE6E9;font-size:.83rem;margin-left:.4rem">Anexe o Termo de Referência (PDF) ou planilha de itens (Excel/CSV) para completar a análise.</span>
+                <div style="margin-top:.6rem;display:flex;gap:.6rem;flex-wrap:wrap">
+                  <label style="cursor:pointer;background:#182A39;border:1px solid rgba(76,197,215,.3);border-radius:6px;padding:.4rem .85rem;color:#4CC5D7;font-size:.82rem">
+                    📄 Anexar PDF/TR
+                    <input id="rev-upload-tr" type="file" accept=".pdf" style="display:none" onchange="anexarTermoReferencia(this)">
+                  </label>
+                  <label style="cursor:pointer;background:#182A39;border:1px solid rgba(76,197,215,.3);border-radius:6px;padding:.4rem .85rem;color:#4CC5D7;font-size:.82rem">
+                    📊 Anexar Planilha
+                    <input id="rev-upload-planilha" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="anexarPlanilhaItens(this)">
+                  </label>
+                </div>
+              </div>
+              <div style="display:flex;gap:.75rem;margin-top:1rem;justify-content:flex-end">
+                <button onclick="cancelarRevisao()" style="background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:.5rem 1.1rem;color:#DEE6E9;font-size:.88rem;cursor:pointer">Cancelar</button>
+                <button onclick="confirmarRevisaoEGerarPDF()" style="background:#4CC5D7;border:none;border-radius:6px;padding:.5rem 1.25rem;color:#182A39;font-weight:600;font-size:.88rem;cursor:pointer">✓ Confirmar e Gerar PDF</button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -5410,6 +5466,77 @@
       .replace(/\n/g, '<br>');
   }
 
+  // ── Tela de Revisão ──────────────────────────────────────────────────────────
+
+  function abrirRevisao(analise) {
+    document.getElementById('rev-numero').value = analise.numero_pregao || analise.numero || '';
+    document.getElementById('rev-orgao').value  = analise.orgao || '';
+    document.getElementById('rev-valor').value  = analise.valor_estimado
+      ? Number(analise.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+      : '';
+    document.getElementById('rev-data').value   = analise.data_abertura || '';
+    document.getElementById('rev-uf').value      = analise.uf || '';
+    document.getElementById('rev-objeto').value  = analise.objeto || '';
+
+    const semItens = !analise.itens || analise.itens.length === 0;
+    document.getElementById('rev-aviso-itens').style.display = semItens ? 'block' : 'none';
+
+    document.getElementById('edson-resultado').style.display = 'none';
+    document.getElementById('edson-revisao').style.display   = 'block';
+
+    window._analiseEmRevisao = analise;
+  }
+
+  function cancelarRevisao() {
+    document.getElementById('edson-revisao').style.display  = 'none';
+    document.getElementById('edson-resultado').style.display = 'block';
+  }
+
+  async function confirmarRevisaoEGerarPDF() {
+    const analise = window._analiseEmRevisao;
+    if (!analise) return;
+
+    const dadosRevisados = {
+      numero_pregao:  document.getElementById('rev-numero').value.trim(),
+      orgao:          document.getElementById('rev-orgao').value.trim(),
+      valor_estimado: document.getElementById('rev-valor').value.replace(/\./g, '').replace(',', '.'),
+      data_abertura:  document.getElementById('rev-data').value.trim(),
+      uf:             document.getElementById('rev-uf').value.trim().toUpperCase(),
+      objeto:         document.getElementById('rev-objeto').value.trim(),
+    };
+
+    try {
+      await fetch(`${API}/edson/analise/${analise.id}/revisao`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('ch_token')}` },
+        body:    JSON.stringify(dadosRevisados),
+      });
+    } catch (e) {
+      console.warn('[Revisão] Falha ao salvar correções:', e.message);
+    }
+
+    Object.assign(analise, dadosRevisados);
+    document.getElementById('edson-revisao').style.display  = 'none';
+    document.getElementById('edson-resultado').style.display = 'block';
+
+    if (analise.pregao_id) baixarRelatorioEdson(analise.pregao_id);
+    else baixarRelatorioAvulso(analise.id);
+  }
+
+  function anexarTermoReferencia(input) {
+    const file = input.files[0];
+    if (!file) return;
+    console.log('[Revisão] Termo de Referência selecionado:', file.name);
+    alert(`Arquivo "${file.name}" selecionado. Funcionalidade de reanalise com TR será implementada em breve.`);
+  }
+
+  function anexarPlanilhaItens(input) {
+    const file = input.files[0];
+    if (!file) return;
+    console.log('[Revisão] Planilha selecionada:', file.name);
+    alert(`Planilha "${file.name}" selecionada. Funcionalidade será implementada em breve.`);
+  }
+
   async function carregarEdson() {
     const lista = document.getElementById('edson-lista');
     lista.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
@@ -5537,8 +5664,8 @@
         return;
       }
 
-      // pronto
-      document.getElementById('edson-resultado').style.display = 'block';
+      // pronto — abre tela de revisão antes do PDF
+      abrirRevisao(analise);
       document.getElementById('edson-detalhe-acoes').innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="baixarPlanilhaEdson(${pregaoId})">📊 Planilha XLSX</button>
         <button class="btn btn-ghost btn-sm" onclick="baixarRelatorioEdson(${pregaoId})">📄 Relatório PDF</button>
@@ -7128,7 +7255,7 @@
         return;
       }
 
-      document.getElementById('edson-resultado').style.display = 'block';
+      abrirRevisao(analise);
       const _pid = analise.pregao_id;
       document.getElementById('edson-detalhe-acoes').innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>
@@ -7949,7 +8076,7 @@
         return;
       }
 
-      document.getElementById('edson-resultado').style.display = 'block';
+      abrirRevisao(analise);
       const _pid = analise.pregao_id;
       document.getElementById('edson-detalhe-acoes').innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="${_pid ? `baixarPlanilhaEdson(${_pid})` : `baixarPlanilhaAvulso(${analiseId})`}">📊 Planilha XLSX</button>

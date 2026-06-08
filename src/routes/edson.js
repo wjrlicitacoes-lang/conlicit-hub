@@ -12,6 +12,7 @@ router.post('/analise/:analise_id/chat',                             ctrl.chatPo
 router.post('/analise/:analise_id/upload-pdf',          ctrl.upload.single('edital'),                ctrl.uploadPDFAvulso);
 router.post('/analise/:analise_id/upload-imagem',       ctrl.uploadImagemMulter.single('imagem'),    ctrl.uploadImagemPNCP);
 router.post('/analise/:analise_id/upload-complementar', ctrl.upload.single('arquivo'),               ctrl.uploadComplementar);
+router.patch('/analise/:analise_id/revisao',                         ctrl.revisaoAnalise);
 router.patch('/analise/:analise_id/vincular',                        ctrl.vincularCliente);
 router.delete('/analise/:analise_id',                                ctrl.descartarAnalise);
 router.get('/analise/:analise_id/relatorio-simples',                 ctrl.relatorioSimplesAvulso);
