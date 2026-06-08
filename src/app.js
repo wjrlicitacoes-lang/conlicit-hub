@@ -36,26 +36,30 @@ const { iniciarAgendador }    = require('./cron/agendador');
 
 const app = express();
 
-const origensPermitidas = [
-  'http://localhost:3000',
-  'https://web-production-18d79.up.railway.app',
-  'https://hub.conlicit.com',
-  'http://hub.conlicit.com',
-  'https://conlicit.com',
-  'https://www.conlicit.com',
-];
+const origensPermitidas = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'https://web-production-18d79.up.railway.app',
+      'https://hub.conlicit.com',
+      'http://hub.conlicit.com',
+      'https://conlicit.com',
+      'https://www.conlicit.com',
+    ];
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
     if (!origin || origensPermitidas.includes(origin)) cb(null, true);
-    else cb(new Error('Origem não permitida pelo CORS'));
+    else cb(new Error(`Origem não permitida pelo CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-}));
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
