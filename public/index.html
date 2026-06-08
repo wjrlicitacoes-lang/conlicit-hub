@@ -1487,6 +1487,27 @@
     }
     body:not(.tema-light) #btn-tema::after { content: '\eaf8'; }
     body.tema-light #btn-tema::after { content: '\eb30'; }
+
+    /* Planilha de Preços — checkbox check visual */
+    #etab-planilha-precos input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 9px;
+      border: 2px solid #182A39;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+    #etab-planilha-precos input[type="checkbox"]:checked {
+      background: #4CC5D7 !important;
+      border-color: #4CC5D7 !important;
+    }
+    #etab-planilha-precos label:hover {
+      background: rgba(76,197,215,.05) !important;
+    }
   </style>
 </head>
 <body>
@@ -6905,11 +6926,13 @@
           : true;
         const vlr = item.valor_referencia ? `R$ ${parseFloat(item.valor_referencia).toFixed(2).replace('.',',')}` : '—';
         const vtotal = item.valor_total_estimado ? `R$ ${parseFloat(item.valor_total_estimado).toFixed(2).replace('.',',')}` : '—';
-        html += `<label style="display:flex;align-items:flex-start;gap:.7rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;${idx % 2 === 0 ? '' : 'background:var(--bg-secondary)'}">
-          <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''} style="margin-top:.15rem;flex-shrink:0">
+        html += `<label style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;${idx % 2 === 0 ? '' : 'background:rgba(255,255,255,.02)'}">
+          <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}
+            style="appearance:none;-webkit-appearance:none;width:16px;height:16px;min-width:16px;border:1.5px solid rgba(76,197,215,.4);border-radius:4px;background:transparent;cursor:pointer;position:relative;transition:all .15s"
+            onchange="this.style.background=this.checked?'#4CC5D7':'transparent';this.style.borderColor=this.checked?'#4CC5D7':'rgba(76,197,215,.4)'">
           <div style="flex:1;min-width:0">
-            <div style="font-size:.85rem;font-weight:500">${item.numero}. ${item.descricao}</div>
-            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${item.unidade} · Qtd: ${item.quantidade} · Ref: ${vlr} · Total: ${vtotal}</div>
+            <div style="font-size:.85rem;font-weight:500;color:var(--text-primary)">${item.numero}. ${esc(item.descricao)}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">${esc(item.unidade||'un')} · Qtd: ${item.quantidade} · Ref: ${vlr} · Total: ${vtotal}</div>
           </div>
         </label>`;
       });
