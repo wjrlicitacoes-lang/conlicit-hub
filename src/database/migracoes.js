@@ -122,7 +122,7 @@ async function executarMigracoes() {
 
   // Sistema de roles
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255)`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente' CHECK (role IN ('admin','assistente'))`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente'`);
   await db.query(`UPDATE usuarios SET role = 'admin' WHERE email = 'wjrlicitacoes@gmail.com'`);
 
   // Edson — análise de IA por pregão
@@ -163,22 +163,8 @@ async function executarMigracoes() {
   // Role cliente — terceiro role com acesso restrito
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
 
-  // Expandir CHECK de role para incluir 'cliente' — drop + recreate idempotente
-  await db.query(`
-    DO $$
-    BEGIN
-      -- Remove qualquer constraint de role existente (com ou sem 'cliente')
-      IF EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
-      ) THEN
-        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
-      END IF;
-      -- Recria sempre com os três roles
-      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','cliente'));
-    END $$
-  `);
+  // Garantir que não existe constraint de role (validação é feita no código)
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Status 'oferta' no fluxo de duas etapas (admin oferece → cliente aceita/rejeita)
   await db.query(`
@@ -283,20 +269,7 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_economica_json JSONB`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS capacidade_tecnica_json   JSONB`);
 
-  // Expandir roles para incluir socio_fundador e diretor_comercial
-  await db.query(`
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
-      ) THEN
-        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
-      END IF;
-      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','cliente','socio_fundador','diretor_comercial'));
-    END $$
-  `);
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Tabela de propostas comerciais
   await db.query(`
@@ -326,20 +299,7 @@ async function executarMigracoes() {
     )
   `);
 
-  // Expandir roles para incluir assistente_junior
-  await db.query(`
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE table_name = 'usuarios' AND constraint_name = 'usuarios_role_check'
-      ) THEN
-        ALTER TABLE usuarios DROP CONSTRAINT usuarios_role_check;
-      END IF;
-      ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-        CHECK (role IN ('admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial'));
-    END $$
-  `);
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Novos campos Edson — Lei 14.133/2021
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS clausulas_restritivas JSONB DEFAULT '[]'`);
@@ -398,22 +358,7 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_id INTEGER REFERENCES usuarios(id)`);
   await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
 
-  // Garantir constraint de roles atualizada (inclui operador)
-  await db.query(`
-    DO $$
-    BEGIN
-      BEGIN
-        ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check;
-      EXCEPTION WHEN others THEN NULL;
-      END;
-      BEGIN
-        ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-          CHECK (role IN ('admin','assistente','assistente_junior','cliente',
-                          'socio_fundador','diretor_comercial','operador'));
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END;
-    END $$;
-  `);
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Colunas de operador nos pregões
   await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
