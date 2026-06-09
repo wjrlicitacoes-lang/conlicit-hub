@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../database/db');
 const { PERMISSOES_ROLE, TODOS_MODULOS } = require('../middleware/autenticar');
 
-const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador'];
+const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador','sdr','social_media'];
 const ROLES_GESTORES = ['admin','socio_fundador'];
 
 async function getPermissoesEfetivas(userId, role) {
@@ -128,11 +128,14 @@ async function listarUsuarios(req, res) {
 
   try {
     const { rows } = await db.query(
-      `SELECT u.id, u.nome, u.email, u.role, u.cliente_id, u.criado_em,
+      `SELECT u.id, u.nome, u.email, u.role, u.cargo, u.area, u.telefone, u.bio,
+              u.ativo, u.data_entrada, u.whatsapp, u.cliente_id, u.clientes_ids,
+              u.gestor_id, g.nome AS gestor_nome, u.criado_em,
               c.nome AS cliente_nome
        FROM usuarios u
        LEFT JOIN clientes c ON c.id = u.cliente_id
-       ORDER BY u.criado_em DESC`,
+       LEFT JOIN usuarios g ON g.id = u.gestor_id
+       ORDER BY u.role, u.nome`,
     );
     return res.json({ total: rows.length, dados: rows });
   } catch (erro) {
@@ -146,7 +149,7 @@ async function editarUsuario(req, res) {
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
-  const { nome, email, role, cliente_id } = req.body ?? {};
+  const { nome, email, role, cliente_id, cargo, area, gestor_id, clientes_ids, telefone, bio, ativo, data_entrada } = req.body ?? {};
 
   if (role && !ROLES_VALIDOS.includes(role))
     return res.status(400).json({ erro: `Role inválido. Valores aceitos: ${ROLES_VALIDOS.join(', ')}` });
@@ -155,10 +158,18 @@ async function editarUsuario(req, res) {
     const campos = [];
     const valores = [];
     let idx = 1;
-    if (nome !== undefined)  { campos.push(`nome = $${idx++}`);      valores.push(nome?.trim() || null); }
-    if (email !== undefined) { campos.push(`email = $${idx++}`);     valores.push(email.trim().toLowerCase()); }
-    if (role !== undefined)  { campos.push(`role = $${idx++}`);      valores.push(role); }
-    if (cliente_id !== undefined) { campos.push(`cliente_id = $${idx++}`); valores.push(cliente_id ? parseInt(cliente_id, 10) : null); }
+    if (nome         !== undefined) { campos.push(`nome = $${idx++}`);          valores.push(nome?.trim() || null); }
+    if (email        !== undefined) { campos.push(`email = $${idx++}`);         valores.push(email.trim().toLowerCase()); }
+    if (role         !== undefined) { campos.push(`role = $${idx++}`);          valores.push(role); }
+    if (cargo        !== undefined) { campos.push(`cargo = $${idx++}`);         valores.push(cargo || null); }
+    if (area         !== undefined) { campos.push(`area = $${idx++}`);          valores.push(area || null); }
+    if (telefone     !== undefined) { campos.push(`telefone = $${idx++}`);      valores.push(telefone || null); }
+    if (bio          !== undefined) { campos.push(`bio = $${idx++}`);           valores.push(bio || null); }
+    if (ativo        !== undefined) { campos.push(`ativo = $${idx++}`);         valores.push(ativo); }
+    if (gestor_id    !== undefined) { campos.push(`gestor_id = $${idx++}`);     valores.push(gestor_id || null); }
+    if (clientes_ids !== undefined) { campos.push(`clientes_ids = $${idx++}`);  valores.push(clientes_ids || []); }
+    if (cliente_id   !== undefined) { campos.push(`cliente_id = $${idx++}`);   valores.push(cliente_id ? parseInt(cliente_id, 10) : null); }
+    if (data_entrada !== undefined) { campos.push(`data_entrada = $${idx++}`);  valores.push(data_entrada || null); }
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
     valores.push(id);
     const { rows } = await db.query(
@@ -255,22 +266,26 @@ async function patchPermissao(req, res) {
 }
 
 // PUT /auth/usuarios/:id/permissoes — atualização em lote (só socio_fundador)
+// Aceita array [{modulo, liberado}] ou objeto {modulo: bool}
 async function atualizarPermissoes(req, res) {
   if (!['socio_fundador'].includes(req.usuario.role))
     return res.status(403).json({ erro: 'Apenas sócios fundadores podem alterar permissões' });
 
   const { id } = req.params;
   const { permissoes } = req.body ?? {};
-  if (!permissoes || typeof permissoes !== 'object')
-    return res.status(400).json({ erro: 'permissoes deve ser um objeto {modulo: bool}' });
+  if (!permissoes) return res.status(400).json({ erro: 'permissoes é obrigatório' });
 
   try {
-    for (const [modulo, liberado] of Object.entries(permissoes)) {
+    const entradas = Array.isArray(permissoes)
+      ? permissoes
+      : Object.entries(permissoes).map(([modulo, liberado]) => ({ modulo, liberado }));
+
+    for (const p of entradas) {
       await db.query(
         `INSERT INTO usuario_permissoes (usuario_id, modulo, liberado, alterado_por, alterado_em)
          VALUES ($1, $2, $3, $4, NOW())
          ON CONFLICT (usuario_id, modulo) DO UPDATE SET liberado=$3, alterado_por=$4, alterado_em=NOW()`,
-        [id, modulo, Boolean(liberado), req.usuario.id],
+        [id, p.modulo, Boolean(p.liberado), req.usuario.id],
       );
     }
     return res.json({ ok: true });

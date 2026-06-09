@@ -179,4 +179,47 @@ async function pregoesVencidos(req, res) {
   }
 }
 
-module.exports = { cadastrar, listar, atualizar, stats, pregoesVencidos };
+async function dashboardStats(req, res) {
+  try {
+    const { rows: [s] } = await db.query(`
+      SELECT
+        (SELECT COUNT(*)::INTEGER FROM clientes WHERE ativo = TRUE)                                      AS clientes_ativos,
+        (SELECT COUNT(*)::INTEGER FROM clientes)                                                         AS total_clientes,
+        (SELECT COALESCE(SUM(valor_contrato),0) FROM clientes WHERE ativo = TRUE)                        AS mrr,
+        (SELECT COUNT(*)::INTEGER FROM pregoes WHERE status = 'a_disputar')                              AS pregoes_abertos,
+        (SELECT COUNT(*)::INTEGER FROM pregoes WHERE status = 'vencido')                                 AS pregoes_vencidos,
+        (SELECT COUNT(*)::INTEGER FROM pregoes WHERE status = 'perdido')                                 AS pregoes_perdidos,
+        (SELECT COALESCE(SUM(valor_vencido),0) FROM pregoes WHERE status = 'vencido')                    AS valor_vencido_total,
+        (SELECT COUNT(*)::INTEGER FROM prospects WHERE status NOT IN ('convertido','perdido'))            AS prospects_ativos,
+        (SELECT COUNT(*)::INTEGER FROM prospects WHERE status = 'convertido')                            AS prospects_convertidos,
+        (SELECT COUNT(*)::INTEGER FROM usuarios WHERE role != 'cliente' AND ativo = TRUE)                AS total_equipe
+    `);
+
+    const { rows: pregoes_proximos } = await db.query(`
+      SELECT p.id, p.numero, p.orgao, p.data_abertura, p.data_hora_abertura,
+             p.valor_estimado, p.status, c.nome AS cliente_nome
+      FROM pregoes p
+      LEFT JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.status = 'a_disputar'
+        AND (p.data_hora_abertura >= NOW() OR p.data_abertura >= CURRENT_DATE)
+      ORDER BY COALESCE(p.data_hora_abertura::date, p.data_abertura) ASC
+      LIMIT 10
+    `);
+
+    const { rows: pendencias } = await db.query(`
+      SELECT p.id, p.numero, p.valor_vencido, c.id AS cliente_id, c.nome AS cliente_nome
+      FROM pregoes p
+      LEFT JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.status = 'vencido' AND (p.contrato_assinado IS NULL OR p.contrato_assinado = FALSE)
+      ORDER BY p.id DESC
+      LIMIT 5
+    `);
+
+    res.json({ stats: s, pregoes_proximos, pendencias });
+  } catch (e) {
+    console.error('[dashboardStats]', e.message);
+    res.status(500).json({ erro: e.message });
+  }
+}
+
+module.exports = { cadastrar, listar, atualizar, stats, pregoesVencidos, dashboardStats };

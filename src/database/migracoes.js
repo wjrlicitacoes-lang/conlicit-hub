@@ -529,6 +529,34 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_selecao  JSONB DEFAULT '[]'`);
   await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_pesquisa JSONB DEFAULT '[]'`);
 
+  // ── Gestão de pessoas ──────────────────────────────────────────────────────
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo        VARCHAR(100)`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area         VARCHAR(100)`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gestor_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS clientes_ids INTEGER[] DEFAULT '{}'`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone     VARCHAR(20)`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bio          TEXT`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo        BOOLEAN NOT NULL DEFAULT TRUE`);
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS data_entrada DATE DEFAULT CURRENT_DATE`);
+
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await db.query(`
+    ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
+    CHECK (role IN ('socio_fundador','assistente','assistente_junior','diretor_comercial','operador','sdr','social_media','cliente','admin'))
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS usuario_permissoes (
+      id           SERIAL PRIMARY KEY,
+      usuario_id   INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+      modulo       VARCHAR(50) NOT NULL,
+      liberado     BOOLEAN DEFAULT TRUE,
+      alterado_por INTEGER REFERENCES usuarios(id),
+      alterado_em  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(usuario_id, modulo)
+    )
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

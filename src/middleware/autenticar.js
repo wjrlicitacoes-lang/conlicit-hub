@@ -13,6 +13,9 @@ const PERMISSOES_ROLE = {
   assistente:        ['dashboard','clientes','editais','boletins','calendario','edson','monitor'],
   assistente_junior: ['dashboard','clientes','editais','boletins','calendario'],
   diretor_comercial: ['dashboard','editais','calendario','prospects','edson','gerador_proposta'],
+  operador:          ['dashboard','clientes','editais','boletins','edson','monitor','calendario'],
+  sdr:               ['dashboard','editais','boletins','prospects','calendario'],
+  social_media:      ['dashboard','documentacao'],
   cliente:           ['minha_area','meus_pregoes','edson'],
 };
 

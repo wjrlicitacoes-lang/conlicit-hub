@@ -1,6 +1,6 @@
 const express = require('express');
 const multer  = require('multer');
-const { cadastrar, listar, atualizar, stats, pregoesVencidos } = require('../controllers/clientesController');
+const { cadastrar, listar, atualizar, stats, pregoesVencidos, dashboardStats } = require('../controllers/clientesController');
 const pregoes          = require('../controllers/pregoesController');
 
 const mensalidades     = require('../controllers/mensalidadesController');
@@ -17,8 +17,9 @@ const _uploadPregao = multer({
 });
 
 // Rotas fixas antes de /:id para não capturar como parâmetro de ID
-router.get('/stats',    stats);
-router.get('/vencidos', pregoesVencidos);
+router.get('/stats',           stats);
+router.get('/vencidos',        pregoesVencidos);
+router.get('/dashboard-stats', dashboardStats);
 router.get('/pregoes',  pregoes.listarTodos);
 
 router.post('/',     cadastrar);

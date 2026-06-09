@@ -1661,18 +1661,23 @@
       <!-- ── DASHBOARD ── -->
       <section id="section-dashboard" class="section active">
         <div class="section-header">
-          <h1>Dashboard</h1>
+          <div>
+            <h1>Dashboard</h1>
+            <p style="font-size:13px;color:var(--t2);margin:2px 0 0" id="dashboard-saudacao">Carregando...</p>
+          </div>
           <div class="section-header-actions">
-            <button class="btn btn-ghost btn-sm" onclick="carregarDashboard()">↻ Atualizar</button>
+            <button class="btn btn-ghost btn-sm" onclick="carregarDashboard()"><i class="ti ti-refresh"></i> Atualizar</button>
           </div>
         </div>
-        <div id="dashboard-metrics" class="metrics-grid">
-          <div class="state-box" style="padding:2rem;grid-column:span 4">
-            <div class="spinner spinner-lg"></div>
-          </div>
+        <div id="dashboard-metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1.5rem">
+          <div style="grid-column:1/-1;padding:2rem;text-align:center"><div class="spinner spinner-lg"></div></div>
         </div>
-        <div id="dashboard-quick" class="quick-grid"></div>
-        <div id="dashboard-recentes"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem" id="dashboard-grid-principal">
+          <div id="dashboard-pregoes-proximos" style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem"></div>
+          <div id="dashboard-prospects-funil" style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem"></div>
+        </div>
+        <div id="dashboard-quick" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.5rem"></div>
+        <div id="dashboard-pendencias"></div>
       </section>
 
       <!-- ── EDITAIS ── -->
@@ -1905,15 +1910,34 @@
       <!-- ── USUÁRIOS ── -->
       <section id="section-usuarios" class="section">
         <div class="section-header">
-          <h1>Usuários</h1>
+          <div>
+            <h1>Gestão de Pessoas</h1>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-ghost btn-sm tab-usuarios-btn active" data-tab="lista" onclick="switchTabUsuarios('lista')">
+                <i class="ti ti-list"></i> Lista
+              </button>
+              <button class="btn btn-ghost btn-sm tab-usuarios-btn" data-tab="organograma" onclick="switchTabUsuarios('organograma')">
+                <i class="ti ti-hierarchy"></i> Organograma
+              </button>
+            </div>
+          </div>
           <div class="section-header-actions">
-            <button class="btn btn-ghost btn-sm" onclick="carregarUsuarios()">↻ Atualizar</button>
-            <button class="btn btn-primary btn-sm" onclick="abrirModalNovoUsuario()">＋ Novo usuário</button>
+            <button class="btn btn-ghost btn-sm" onclick="carregarUsuarios()"><i class="ti ti-refresh"></i> Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNovoUsuario()"><i class="ti ti-plus"></i> Novo usuário</button>
           </div>
         </div>
-        <div style="max-width:780px">
+
+        <!-- Tab: Lista -->
+        <div id="usuarios-tab-lista">
           <div id="usuarios-lista">
             <div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>
+          </div>
+        </div>
+
+        <!-- Tab: Organograma -->
+        <div id="usuarios-tab-organograma" style="display:none">
+          <div id="organograma-container" style="padding:1rem 0">
+            <div class="state-box"><div class="spinner"></div></div>
           </div>
         </div>
       </section>
@@ -2228,6 +2252,14 @@
         <div id="ma-tab-perdidos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
         <!-- tab pregoes ainda existe para compatibilidade -->
         <div id="ma-tab-pregoes" class="tab-pane" style="display:none"></div>
+
+        <!-- Equipe (visível apenas para sócio fundador) -->
+        <div id="minha-area-perfil-extra" style="display:none;margin-top:2rem">
+          <h3 style="font-size:.85rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1rem">
+            <i class="ti ti-users-group" style="margin-right:6px"></i>Minha equipe
+          </h3>
+          <div id="ma-equipe-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+        </div>
       </section>
 
       <!-- ── EDSON ── -->
@@ -3061,96 +3093,209 @@
   // DASHBOARD
   // ─────────────────────────────────────────
   async function carregarDashboard() {
+    const hora = new Date().getHours();
+    const saud = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const nomeUser = (usuarioLogado?.nome || '').split(' ')[0];
+    const elSaud = document.getElementById('dashboard-saudacao');
+    if (elSaud) elSaud.textContent = `${saud}${nomeUser ? ', ' + nomeUser : ''}! Aqui está o resumo de hoje.`;
+
     document.getElementById('dashboard-metrics').innerHTML =
-      '<div class="state-box" style="padding:1.5rem;grid-column:1/-1"><div class="spinner spinner-lg"></div></div>';
-    document.getElementById('dashboard-quick').innerHTML = '';
-    document.getElementById('dashboard-recentes').innerHTML = '';
+      '<div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>';
+    const ppEl = document.getElementById('dashboard-pregoes-proximos');
+    const pfEl = document.getElementById('dashboard-prospects-funil');
+    if (ppEl) ppEl.innerHTML = '<div class="spinner"></div>';
+    if (pfEl) pfEl.innerHTML = '<div class="spinner"></div>';
 
     try {
-      const [rStats, rClientes] = await Promise.all([
-        fetch(`${API}/clientes/stats`,  { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/clientes`,        { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      if (rStats.status === 401 || rClientes.status === 401) { logout(); return; }
-      const s = await rStats.json();
-      const { dados: lista = [] } = await rClientes.json();
-      clientesCache = lista;
+      const r = await fetch(`${API}/clientes/dashboard-stats`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return; }
+      const { stats: s, pregoes_proximos = [], pendencias = [] } = await r.json();
+
+      const adminOnly = (typeof permiteModulo === 'function' && permiteModulo('financeiro')) || usuarioLogado?.role === 'socio_fundador';
 
       document.getElementById('dashboard-metrics').innerHTML = `
+        <div class="metric-card" onclick="navTo('clientes')" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${s.clientes_ativos ?? 0}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Clientes ativos</div>
+            </div>
+            <i class="ti ti-users" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.total_clientes ?? 0} no total</div>
+        </div>
+        ${adminOnly ? `
         <div class="metric-card">
-          <div class="metric-icon">👥</div>
-          <div class="metric-value">${s.total_clientes ?? lista.length}</div>
-          <div class="metric-label">${s.clientes_ativos ?? 0} ativo${s.clientes_ativos !== 1 ? 's' : ''} · total de clientes</div>
-        </div>
-        <div class="metric-card" data-admin-only>
-          <div class="metric-icon">💰</div>
-          <div class="metric-value">${fmtBRL(s.mrr)}</div>
-          <div class="metric-label">MRR — contratos mensais ativos</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:#4ade80">${fmtBRL(s.mrr)}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">MRR</div>
+            </div>
+            <i class="ti ti-coin" style="font-size:1.4rem;color:#4ade80;opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">contratos ativos</div>
+        </div>` : ''}
+        <div class="metric-card" onclick="navTo('pregoes-todos')" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:var(--primary)">${s.pregoes_abertos ?? 0}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Pregões abertos</div>
+            </div>
+            <i class="ti ti-gavel" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.pregoes_vencidos ?? 0} vencidos · ${s.pregoes_perdidos ?? 0} perdidos</div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon">🏆</div>
-          <div class="metric-value">${s.pregoes_vencidos_total ?? 0}</div>
-          <div class="metric-label">Pregões vencidos · ${fmtBRL(s.valor_vencido_total)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:#f59e0b">${s.prospects_ativos ?? 0}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Prospects ativos</div>
+            </div>
+            <i class="ti ti-target" style="font-size:1.4rem;color:#f59e0b;opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.prospects_convertidos ?? 0} convertidos</div>
         </div>
-        <div class="metric-card" data-admin-only>
-          <div class="metric-icon">📅</div>
-          <div class="metric-value">${fmtBRL(s.comissoes_mes_pendentes)}</div>
-          <div class="metric-label">Mensalidades pendentes este mês</div>
+        ${adminOnly ? `
+        <div class="metric-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${fmtBRL(s.valor_vencido_total)}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Volume vencido</div>
+            </div>
+            <i class="ti ti-trophy" style="font-size:1.4rem;color:#4ade80;opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">total em pregões ganhos</div>
+        </div>` : ''}
+        <div class="metric-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${s.total_equipe ?? 0}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Equipe ativa</div>
+            </div>
+            <i class="ti ti-building-community" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
+          </div>
+          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">colaboradores no hub</div>
         </div>
-        ${s.comissoes_sdr_mes > 0 ? `<div class="metric-card" data-admin-only>
-          <div class="metric-icon">🤝</div>
-          <div class="metric-value">${fmtBRL(s.comissoes_sdr_mes)}</div>
-          <div class="metric-label">Comissões SDR (indicações ativas)</div>
-        </div>` : ''}`;
+      `;
+
+      if (ppEl) {
+        if (pregoes_proximos.length) {
+          ppEl.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">
+                <i class="ti ti-calendar-event" style="margin-right:4px"></i>Próximos pregões
+              </span>
+              <span style="font-size:.7rem;color:var(--t2)">${pregoes_proximos.length} sessão(ões)</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${pregoes_proximos.map(p => {
+                const dataStr = p.data_hora_abertura
+                  ? new Date(p.data_hora_abertura).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+                  : (p.data_abertura || '—');
+                return `<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.78rem;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente_nome||'—')}</div>
+                    <div style="font-size:.7rem;color:var(--t2)">${dataStr} · ${esc((p.orgao||'').slice(0,35))}</div>
+                  </div>
+                  ${p.valor_estimado ? `<div style="font-size:.72rem;font-weight:700;color:var(--primary);white-space:nowrap">${fmtBRL(p.valor_estimado)}</div>` : ''}
+                </div>`;
+              }).join('')}
+            </div>`;
+        } else {
+          ppEl.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-calendar-event" style="margin-right:4px"></i>Próximos pregões</span>
+            </div>
+            <div style="padding:2rem;text-align:center;color:var(--t2);font-size:.8rem">Nenhum pregão agendado nos próximos dias</div>`;
+        }
+      }
+
+      if (pfEl) {
+        const rProsp = await fetch(`${API}/prospects?limit=5`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
+        let prospectsRecentes = [];
+        if (rProsp?.ok) { const d = await rProsp.json(); prospectsRecentes = (d.dados||[]).slice(0,5); }
+        const fasesCores = {
+          novo_lead:'#94a3b8', em_negociacao:'#f59e0b', resumo_enviado:'#3b82f6',
+          em_followup:'#8b5cf6', proposta_enviada:'#f97316', aguardando:'#06b6d4',
+          convertido:'#4ade80', perdido:'#f87171'
+        };
+        pfEl.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">
+              <i class="ti ti-funnel" style="margin-right:4px"></i>Prospecção recente
+            </span>
+            <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="navTo('prospects')">Ver tudo</button>
+          </div>
+          ${prospectsRecentes.length ? `<div style="display:flex;flex-direction:column;gap:8px">
+            ${prospectsRecentes.map(p => `
+              <div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04)">
+                <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${fasesCores[p.status]||'#94a3b8'}"></div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:.78rem;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nome||'—')}</div>
+                  <div style="font-size:.7rem;color:var(--t2)">${esc(p.empresa||'')} · ${(p.status||'').replace(/_/g,' ')}</div>
+                </div>
+              </div>`).join('')}
+          </div>` : `<div style="padding:2rem;text-align:center;color:var(--t2);font-size:.8rem">Nenhum prospect ativo</div>`}`;
+      }
 
       const ativos = s.clientes_ativos ?? 0;
       document.getElementById('dashboard-quick').innerHTML = `
         <div class="quick-card" onclick="navTo('editais')">
-          <div class="quick-card-icon">🔍</div>
-          <div class="quick-card-info"><h4>Buscar editais</h4><p>Consultar PNCP por palavra-chave</p></div>
+          <div class="quick-card-icon"><i class="ti ti-search"></i></div>
+          <div class="quick-card-info"><h4>Buscar editais</h4><p>Consultar PNCP</p></div>
         </div>
         <div class="quick-card" onclick="navTo('clientes')">
-          <div class="quick-card-icon">👥</div>
-          <div class="quick-card-info"><h4>Gerenciar clientes</h4><p>${ativos} cliente${ativos !== 1 ? 's' : ''} ativo${ativos !== 1 ? 's' : ''}</p></div>
+          <div class="quick-card-icon"><i class="ti ti-users"></i></div>
+          <div class="quick-card-info"><h4>Clientes</h4><p>${ativos} ativo${ativos!==1?'s':''}</p></div>
         </div>
-        <div class="quick-card" onclick="navTo('boletins')">
-          <div class="quick-card-icon">📨</div>
-          <div class="quick-card-info"><h4>Ver boletins</h4><p>Editais do dia ranqueados</p></div>
+        <div class="quick-card" onclick="navTo('edson')">
+          <div class="quick-card-icon"><i class="ti ti-robot"></i></div>
+          <div class="quick-card-info"><h4>Edson IA</h4><p>Analisar edital</p></div>
         </div>
         <div class="quick-card" onclick="navTo('monitor')">
-          <div class="quick-card-icon">🔔</div>
-          <div class="quick-card-info"><h4>Monitor de pregões</h4><p>${monitorGetAll().length} sessão(ões) ativa(s)</p></div>
+          <div class="quick-card-icon"><i class="ti ti-bell"></i></div>
+          <div class="quick-card-info"><h4>Monitor</h4><p>Pregões ao vivo</p></div>
+        </div>
+        <div class="quick-card" onclick="navTo('boletins')">
+          <div class="quick-card-icon"><i class="ti ti-mail"></i></div>
+          <div class="quick-card-info"><h4>Boletins</h4><p>Alertas do dia</p></div>
+        </div>
+        <div class="quick-card" onclick="navTo('prospects')">
+          <div class="quick-card-icon"><i class="ti ti-target"></i></div>
+          <div class="quick-card-info"><h4>Prospects</h4><p>Pipeline comercial</p></div>
         </div>`;
 
-      // Pregões vencidos recentes sem contrato assinado
-      try {
-        const rVenc = await fetch(`${API}/clientes/vencidos`, { headers: { Authorization: `Bearer ${token}` } });
-        if (rVenc.ok) {
-          const { dados: vencidos = [] } = await rVenc.json();
-          if (vencidos.length > 0) {
-            document.getElementById('dashboard-recentes').innerHTML = `
-              <h3 style="font-family:var(--font-condensed);font-size:1rem;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.75rem">Pregões vencidos — contrato pendente</h3>
-              <div style="display:flex;flex-direction:column;gap:.6rem">
-                ${vencidos.map(p => `
-                <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-                  <div style="flex:1;min-width:0">
-                    <div style="font-size:.82rem;font-weight:700;color:var(--primary)">Pregão ${esc(p.numero||'—')}</div>
-                    <div style="font-size:.8rem;color:var(--t1);font-weight:600">${esc(p.cliente_nome||'—')}</div>
-                    <div style="font-size:.75rem;color:var(--t2)">${esc((p.orgao||'').slice(0,60))}</div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0">
-                    ${p.valor_vencido ? `<div style="color:var(--primary);font-weight:700;font-size:.9rem">${fmtBRL(p.valor_vencido)}</div>` : ''}
-                    <span class="s-badge s-vencido" style="font-size:.65rem">Vencido</span>
-                  </div>
-                  <button class="btn btn-primary btn-sm" onclick="marcarContratoAssinado(${p.id},${p.cliente_id},this)">✅ Contrato assinado</button>
-                </div>`).join('')}
-              </div>`;
-          }
+      const pendDiv = document.getElementById('dashboard-pendencias');
+      if (pendDiv) {
+        if (pendencias.length) {
+          pendDiv.innerHTML = `
+            <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:1.25rem;margin-top:.5rem">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
+                <i class="ti ti-alert-triangle" style="color:#f97316;font-size:1rem"></i>
+                <span style="font-size:.78rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.6px">Contratos pendentes de assinatura</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:.5rem">
+                ${pendencias.map(p => `
+                  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:.7rem 1rem">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:.78rem;font-weight:700;color:var(--t1)">Pregão ${esc(p.numero||'—')}</div>
+                      <div style="font-size:.75rem;color:var(--t2)">${esc(p.cliente_nome||'—')}</div>
+                    </div>
+                    ${p.valor_vencido ? `<div style="color:#4ade80;font-weight:700;font-size:.85rem">${fmtBRL(p.valor_vencido)}</div>` : ''}
+                    <button class="btn btn-primary btn-sm" onclick="marcarContratoAssinado(${p.id},${p.cliente_id},this)">
+                      <i class="ti ti-check"></i> Assinar
+                    </button>
+                  </div>`).join('')}
+              </div>
+            </div>`;
+        } else {
+          pendDiv.innerHTML = '';
         }
-      } catch { /* ignora */ }
-    } catch {
+      }
+
+    } catch (e) {
       document.getElementById('dashboard-metrics').innerHTML =
-        '<p style="color:var(--t2);grid-column:1/-1;padding:1rem">Erro ao carregar métricas.</p>';
+        `<p style="color:var(--danger);grid-column:1/-1;padding:1rem">Erro ao carregar métricas: ${e.message}</p>`;
     }
   }
 
@@ -4534,77 +4679,74 @@
     relatorios:       { icon:'📈', nome:'Relatórios' },
   };
 
-  let _permModalUsuario = null;
+  const MODULOS_DISPONIVEIS = [
+    { id:'dashboard',        label:'Dashboard',         icon:'ti-layout-dashboard' },
+    { id:'clientes',         label:'Clientes',          icon:'ti-users' },
+    { id:'editais',          label:'Editais / Busca',   icon:'ti-search' },
+    { id:'boletins',         label:'Boletins',          icon:'ti-mail' },
+    { id:'edson',            label:'Edson IA',          icon:'ti-robot' },
+    { id:'calendario',       label:'Calendário',        icon:'ti-calendar' },
+    { id:'monitor',          label:'Monitor Pregões',   icon:'ti-bell' },
+    { id:'prospects',        label:'Prospecção',        icon:'ti-target' },
+    { id:'usuarios',         label:'Gestão de Pessoas', icon:'ti-users-group' },
+    { id:'financeiro',       label:'Financeiro',        icon:'ti-coin' },
+    { id:'gerador_proposta', label:'Gerador Proposta',  icon:'ti-file-text' },
+    { id:'relatorios',       label:'Relatórios',        icon:'ti-chart-bar' },
+    { id:'documentacao',     label:'Documentação',      icon:'ti-file' },
+  ];
 
-  async function abrirModalPermissoes(u) {
-    _permModalUsuario = u;
-    document.getElementById('perm-modal-nome').textContent = u.nome || u.email;
-    document.getElementById('perm-modal-role').textContent = u.role;
-    document.getElementById('perm-modal-grid').innerHTML =
-      '<div class="state-box" style="padding:1.5rem"><div class="spinner"></div></div>';
+  let permUsuarioId = null;
+
+  async function abrirPermissoes(userId, nome) {
+    permUsuarioId = userId;
+    document.getElementById('perm-usuario-nome').textContent = nome || `Usuário #${userId}`;
+    document.getElementById('perm-lista').innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
     document.getElementById('modal-permissoes').classList.add('visible');
-    await carregarPermissoesModal(u.id);
-  }
-
-  function fecharModalPermissoes() {
-    document.getElementById('modal-permissoes').classList.remove('visible');
-    _permModalUsuario = null;
-  }
-
-  async function carregarPermissoesModal(userId) {
     try {
       const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error((await r.json()).erro);
       const { permissoes } = await r.json();
-      document.getElementById('perm-modal-grid').innerHTML = permissoes.map(p => {
-        const info = MODULOS_INFO[p.modulo] || { icon:'⚙️', nome: p.modulo };
-        const badgeClass = p.personalizado ? 'perm-badge-custom' : 'perm-badge-padrao';
-        const badgeText  = p.personalizado ? '⚠️ Personalizado' : `padrão: ${p.padrao_role ? '✅' : '❌'}`;
+      const permMap = Object.fromEntries(permissoes.map(p => [p.modulo, p]));
+      document.getElementById('perm-lista').innerHTML = MODULOS_DISPONIVEIS.map(m => {
+        const p = permMap[m.id] || { liberado: false, padrao_role: false, personalizado: false };
         return `
-          <div class="perm-item" id="perm-item-${p.modulo}">
-            <div class="perm-info">
-              <span class="perm-icon">${info.icon}</span>
-              <span class="perm-nome">${info.nome}</span>
-              <span class="perm-badge ${badgeClass}">${badgeText}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:var(--card-bg);border:1px solid var(--bd)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <i class="ti ${m.icon}" style="font-size:1rem;color:var(--primary);width:20px;text-align:center"></i>
+              <div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--t1)">${m.label}</div>
+                ${p.personalizado ? `<div style="font-size:.68rem;color:#f59e0b">Override personalizado</div>` : `<div style="font-size:.68rem;color:var(--t3)">Padrão do cargo: ${p.padrao_role?'sim':'não'}</div>`}
+              </div>
             </div>
-            <label class="toggle-switch" title="${p.liberado ? 'Liberado' : 'Bloqueado'}">
-              <input type="checkbox" ${p.liberado ? 'checked' : ''}
-                     onchange="alterarPermissao(${userId},'${p.modulo}',this.checked)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="perm-toggle-${m.id}" ${p.liberado?'checked':''}>
               <span class="toggle-slider"></span>
             </label>
           </div>`;
       }).join('');
     } catch (e) {
-      document.getElementById('perm-modal-grid').innerHTML =
-        `<p style="color:var(--danger);padding:1rem">${e.message}</p>`;
+      document.getElementById('perm-lista').innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
     }
   }
 
-  async function alterarPermissao(userId, modulo, liberado) {
+  async function salvarPermissoes() {
+    if (!permUsuarioId) return;
+    const permissoes = MODULOS_DISPONIVEIS.map(m => ({
+      modulo: m.id,
+      liberado: document.getElementById(`perm-toggle-${m.id}`)?.checked ?? false,
+    }));
     try {
-      const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
-        method: 'PATCH',
+      const r = await fetch(`${API}/auth/usuarios/${permUsuarioId}/permissoes`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ modulo, liberado }),
+        body: JSON.stringify({ permissoes }),
       });
-      if (!r.ok) throw new Error((await r.json()).erro);
-      // Recarrega só o item alterado para atualizar o badge de "personalizado"
-      await carregarPermissoesModal(userId);
-    } catch (e) { toast(e.message || 'Erro ao alterar permissão', 'error'); }
-  }
-
-  async function resetarPermissoes(userId) {
-    if (!confirm('Resetar todas as permissões para o padrão do cargo? Os overrides individuais serão removidos.')) return;
-    try {
-      const r = await fetch(`${API}/auth/usuarios/${userId}/permissoes`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
-      toast('Permissões resetadas para o padrão do cargo', 'success');
-      await carregarPermissoesModal(userId);
-    } catch (e) { toast(e.message || 'Erro ao resetar', 'error'); }
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+      document.getElementById('modal-permissoes').classList.remove('visible');
+      toast('Permissões salvas com sucesso!', 'success');
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   function abrirModalNovoUsuario() {
@@ -4618,6 +4760,38 @@
     document.getElementById('modal-novo-usuario').classList.remove('visible');
   }
 
+  const ROLE_LABEL = {
+    socio_fundador:    'Sócio Fundador',
+    admin:             'Admin',
+    diretor_comercial: 'Dir. Comercial',
+    assistente:        'Assistente',
+    assistente_junior: 'Assist. Júnior',
+    operador:          'Operador',
+    sdr:               'SDR',
+    social_media:      'Social Media',
+    cliente:           'Cliente',
+  };
+  const ROLE_COR = {
+    socio_fundador:    '#4CC5D7',
+    admin:             '#f87171',
+    diretor_comercial: '#f59e0b',
+    assistente:        '#60a5fa',
+    assistente_junior: '#94a3b8',
+    operador:          '#a78bfa',
+    sdr:               '#34d399',
+    social_media:      '#f472b6',
+    cliente:           '#94a3b8',
+  };
+
+  let usuariosCache = [];
+
+  function switchTabUsuarios(tab) {
+    document.querySelectorAll('.tab-usuarios-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('usuarios-tab-lista').style.display = tab === 'lista' ? '' : 'none';
+    document.getElementById('usuarios-tab-organograma').style.display = tab === 'organograma' ? '' : 'none';
+    if (tab === 'organograma') renderOrganograma(usuariosCache);
+  }
+
   async function carregarUsuarios() {
     const lista = document.getElementById('usuarios-lista');
     lista.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando…</p></div>';
@@ -4625,48 +4799,99 @@
       const r = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.status === 401) { logout(); return; }
       if (r.status === 403) {
-        lista.innerHTML = '<div class="state-box"><span class="icon">🔒</span><h3>Acesso negado</h3></div>';
+        lista.innerHTML = '<div class="state-box"><span class="icon"><i class="ti ti-lock"></i></span><h3>Acesso negado</h3></div>';
         return;
       }
       const { dados = [] } = await r.json();
-      if (dados.length === 0) {
-        lista.innerHTML = '<p style="color:var(--text-muted)">Nenhum usuário cadastrado.</p>';
-        return;
-      }
-      const roleBadge = role => {
-        const m = {
-          admin: ['s-vencido','Admin'],
-          socio_fundador: ['s-vencido','Sócio Fundador'],
-          diretor_comercial: ['s-oferta','Dir. Comercial'],
-          assistente: ['s-pendente','Assistente'],
-          assistente_junior: ['s-pendente','Assist. Júnior'],
-          cliente: ['s-oferta','Cliente'],
-        };
-        const [cls, label] = m[role] || ['s-pendente', role];
-        return `<span class="s-badge ${cls}">${label}</span>`;
-      };
-      const sf = isSocioFundador();
-      lista.innerHTML = `
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Cliente vinculado</th><th>Criado em</th><th></th></tr></thead>
-            <tbody>${dados.map(u => `<tr>
-              <td>${esc(u.nome || '—')}</td>
-              <td class="td-muted">${esc(u.email)}</td>
-              <td>${roleBadge(u.role)}</td>
-              <td class="td-muted">${u.cliente_nome ? esc(u.cliente_nome) : '—'}</td>
-              <td class="td-muted">${u.criado_em ? new Date(u.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
-              <td><div class="td-actions">
-                ${sf ? `<button class="btn-icon" title="Gerenciar acessos" onclick='abrirModalPermissoes(${JSON.stringify(u)})'>⚙️</button>` : ''}
-                <button class="btn-icon" title="Editar" onclick='abrirEditarUsuario(${JSON.stringify(u)})'>✏️</button>
-                <button class="btn-icon btn-danger" title="Excluir" onclick="excluirUsuario(${u.id},'${esc(u.email)}')">🗑️</button>
-              </div></td>
-            </tr>`).join('')}</tbody>
-          </table>
-        </div>`;
+      usuariosCache = dados;
+      renderListaUsuarios(dados);
     } catch {
-      lista.innerHTML = '<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3></div>';
+      lista.innerHTML = '<div class="state-box"><span class="icon"><i class="ti ti-alert-triangle"></i></span><h3>Erro ao carregar</h3></div>';
     }
+  }
+
+  function renderListaUsuarios(dados) {
+    const lista = document.getElementById('usuarios-lista');
+    if (dados.length === 0) {
+      lista.innerHTML = '<p style="color:var(--text-muted)">Nenhum usuário cadastrado.</p>';
+      return;
+    }
+    const sf = isSocioFundador();
+    lista.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:900px">
+        ${dados.filter(u => u.role !== 'cliente').map(u => `
+        <div style="display:flex;align-items:center;gap:14px;background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1.2rem;flex-wrap:wrap">
+          <div style="width:42px;height:42px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'}">
+            <span style="font-size:1rem;font-weight:700;color:${ROLE_COR[u.role]||'#94a3b8'}">${(u.nome||u.email||'?').charAt(0).toUpperCase()}</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:600;color:var(--t1)">${esc(u.nome||'—')}</span>
+              <span style="font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${ROLE_COR[u.role]||'#94a3b8'}22;color:${ROLE_COR[u.role]||'#94a3b8'}">${ROLE_LABEL[u.role]||u.role}</span>
+              ${!u.ativo ? '<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:rgba(248,113,113,.15);color:#f87171">Inativo</span>' : ''}
+            </div>
+            <div style="font-size:.75rem;color:var(--t2);margin-top:2px">${esc(u.email)}</div>
+            ${u.cargo||u.area ? `<div style="font-size:.72rem;color:var(--t3)">${[u.cargo,u.area].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+            ${u.gestor_nome ? `<div style="font-size:.7rem;color:var(--t3)"><i class="ti ti-arrow-up-right" style="font-size:.7rem"></i> ${esc(u.gestor_nome)}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${sf ? `<button class="btn btn-ghost btn-sm" title="Permissões" onclick="abrirPermissoes(${u.id},'${esc(u.nome||u.email)}')"><i class="ti ti-shield"></i></button>` : ''}
+            <button class="btn btn-ghost btn-sm" title="Editar" onclick='abrirEditarUsuario(${JSON.stringify(u)})'><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--danger)" title="Excluir" onclick="excluirUsuario(${u.id},'${esc(u.email)}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`).join('')}
+        ${dados.some(u=>u.role==='cliente') ? `
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:.8rem;color:var(--t2);padding:.5rem 0">Usuários clientes (${dados.filter(u=>u.role==='cliente').length})</summary>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            ${dados.filter(u=>u.role==='cliente').map(u=>`
+            <div style="display:flex;align-items:center;gap:14px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:.75rem 1rem;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <span style="font-weight:600;font-size:.85rem;color:var(--t1)">${esc(u.nome||'—')}</span>
+                <div style="font-size:.73rem;color:var(--t2)">${esc(u.email)} ${u.cliente_nome?`· ${esc(u.cliente_nome)}`:''}</div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick='abrirEditarUsuario(${JSON.stringify(u)})'><i class="ti ti-pencil"></i></button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="excluirUsuario(${u.id},'${esc(u.email)}')"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>`).join('')}
+          </div>
+        </details>` : ''}
+      </div>`;
+  }
+
+  function renderOrganograma(dados) {
+    const container = document.getElementById('organograma-container');
+    const equipe = dados.filter(u => u.role !== 'cliente');
+    if (!equipe.length) {
+      container.innerHTML = '<div class="state-box">Nenhum colaborador.</div>';
+      return;
+    }
+    const byGestor = {};
+    equipe.forEach(u => {
+      const gid = u.gestor_id || 0;
+      if (!byGestor[gid]) byGestor[gid] = [];
+      byGestor[gid].push(u);
+    });
+    function renderNo(u, nivel = 0) {
+      const subs = byGestor[u.id] || [];
+      return `
+        <div style="margin-left:${nivel*24}px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:.65rem 1rem;max-width:480px">
+            <div style="width:34px;height:34px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <span style="font-weight:700;color:${ROLE_COR[u.role]||'#94a3b8'};font-size:.85rem">${(u.nome||u.email||'?').charAt(0).toUpperCase()}</span>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(u.nome||'—')}</div>
+              <div style="font-size:.7rem;color:var(--t2)">${ROLE_LABEL[u.role]||u.role}${u.cargo?` · ${esc(u.cargo)}`:''}</div>
+            </div>
+            ${!u.ativo?'<span style="font-size:.6rem;padding:2px 5px;border-radius:8px;background:rgba(248,113,113,.15);color:#f87171">Inativo</span>':''}
+          </div>
+          ${subs.map(s => renderNo(s, nivel + 1)).join('')}
+        </div>`;
+    }
+    const raizes = byGestor[0] || equipe.filter(u => !u.gestor_id);
+    container.innerHTML = `<div>${raizes.map(u => renderNo(u, 0)).join('')}</div>`;
   }
 
   async function toggleClienteField() {
@@ -6756,9 +6981,41 @@
   }
 
   async function carregarMinhaArea() {
+    const isSF = usuarioLogado?.role === 'socio_fundador' || usuarioLogado?.role === 'admin';
+    const extraDiv = document.getElementById('minha-area-perfil-extra');
+
+    if (isSF) {
+      if (extraDiv) extraDiv.style.display = '';
+      const gridEl = document.getElementById('ma-equipe-grid');
+      if (gridEl) {
+        gridEl.innerHTML = '<div class="spinner"></div>';
+        try {
+          const r = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
+          if (r.ok) {
+            const { dados = [] } = await r.json();
+            const equipe = dados.filter(u => u.role !== 'cliente' && u.ativo !== false);
+            gridEl.innerHTML = equipe.length ? equipe.map(u => `
+              <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1rem;display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <span style="font-weight:700;font-size:.9rem;color:${ROLE_COR[u.role]||'#94a3b8'}">${(u.nome||u.email).charAt(0).toUpperCase()}</span>
+                </div>
+                <div style="min-width:0">
+                  <div style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(u.nome||'—')}</div>
+                  <div style="font-size:.7rem;color:var(--t2)">${ROLE_LABEL[u.role]||u.role}${u.cargo?` · ${esc(u.cargo)}`:''}</div>
+                </div>
+              </div>`).join('') : '<p style="color:var(--t2);font-size:.8rem">Nenhum colaborador ativo.</p>';
+          }
+        } catch { gridEl.innerHTML = ''; }
+      }
+    } else {
+      if (extraDiv) extraDiv.style.display = 'none';
+    }
+
     if (!userClienteId) {
-      document.getElementById('ma-metrics').innerHTML =
-        '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
+      if (!isSF) {
+        document.getElementById('ma-metrics').innerHTML =
+          '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
+      }
       return;
     }
 
@@ -7501,39 +7758,62 @@
   }
 
   // ── Usuários: editar e excluir ──────────────────────────────────────────────
-  function abrirEditarUsuario(u) {
-    document.getElementById('eu-id').value      = u.id;
-    document.getElementById('eu-nome').value    = u.nome || '';
-    document.getElementById('eu-email').value   = u.email;
-    document.getElementById('eu-role').value    = u.role;
+  async function abrirEditarUsuario(u) {
+    document.getElementById('eu-id').value          = u.id;
+    document.getElementById('eu-nome').value        = u.nome || '';
+    document.getElementById('eu-email').value       = u.email;
+    document.getElementById('eu-role').value        = u.role;
+    document.getElementById('eu-cargo').value       = u.cargo || '';
+    document.getElementById('eu-area').value        = u.area || '';
+    document.getElementById('eu-telefone').value    = u.telefone || '';
+    document.getElementById('eu-bio').value         = u.bio || '';
+    document.getElementById('eu-ativo').checked     = u.ativo !== false;
+    document.getElementById('eu-data-entrada').value = u.data_entrada ? u.data_entrada.slice(0,10) : '';
     hideAlert('alert-editar-usuario');
-    toggleEuClienteField();
-    document.getElementById('eu-cliente-id').value = u.cliente_id || '';
+
+    // Populate gestores select
+    const gestSel = document.getElementById('eu-gestor-id');
+    const equipe = usuariosCache.filter(x => x.role !== 'cliente' && x.id !== u.id);
+    gestSel.innerHTML = '<option value="">Sem gestor</option>' +
+      equipe.map(x => `<option value="${x.id}"${x.id === u.gestor_id?' selected':''}>${esc(x.nome||x.email)}</option>`).join('');
+
+    await toggleEuClienteField();
+    if (u.role === 'cliente') document.getElementById('eu-cliente-id').value = u.cliente_id || '';
     document.getElementById('modal-editar-usuario').classList.add('visible');
   }
 
-  function toggleEuClienteField() {
+  async function toggleEuClienteField() {
     const role = document.getElementById('eu-role').value;
     const field = document.getElementById('eu-cliente-field');
     field.style.display = role === 'cliente' ? 'block' : 'none';
     if (role === 'cliente' && document.getElementById('eu-cliente-id').options.length <= 1) {
-      fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => {
-          document.getElementById('eu-cliente-id').innerHTML =
-            '<option value="">Selecione</option>' +
-            (d.dados || []).map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
-        });
+      try {
+        const r = await fetch(`${API}/clientes`, { headers: { Authorization: `Bearer ${token}` } });
+        const { dados = [] } = await r.json();
+        document.getElementById('eu-cliente-id').innerHTML =
+          '<option value="">Selecione</option>' +
+          dados.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+      } catch { /* mantém placeholder */ }
     }
   }
 
   async function salvarEdicaoUsuario() {
-    const id  = document.getElementById('eu-id').value;
+    const id   = document.getElementById('eu-id').value;
     const role = document.getElementById('eu-role').value;
+    const gestorId = document.getElementById('eu-gestor-id').value;
+    const dataEntrada = document.getElementById('eu-data-entrada').value;
     const body = {
-      nome:       document.getElementById('eu-nome').value.trim() || null,
-      email:      document.getElementById('eu-email').value.trim(),
+      nome:        document.getElementById('eu-nome').value.trim() || null,
+      email:       document.getElementById('eu-email').value.trim(),
       role,
-      cliente_id: role === 'cliente' ? (parseInt(document.getElementById('eu-cliente-id').value) || null) : null,
+      cargo:       document.getElementById('eu-cargo').value.trim() || null,
+      area:        document.getElementById('eu-area').value.trim() || null,
+      telefone:    document.getElementById('eu-telefone').value.trim() || null,
+      bio:         document.getElementById('eu-bio').value.trim() || null,
+      ativo:       document.getElementById('eu-ativo').checked,
+      gestor_id:   gestorId ? parseInt(gestorId) : null,
+      data_entrada: dataEntrada || null,
+      cliente_id:  role === 'cliente' ? (parseInt(document.getElementById('eu-cliente-id').value) || null) : null,
     };
     try {
       const r = await fetch(`${API}/auth/usuarios/${id}`, {
@@ -7544,7 +7824,7 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
       document.getElementById('modal-editar-usuario').classList.remove('visible');
-      toast('Usuário atualizado!', 'success');
+      toast('Colaborador atualizado!', 'success');
       carregarUsuarios();
     } catch (e) { showAlert('alert-editar-usuario', e.message, 'error'); }
   }
@@ -9270,23 +9550,27 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 </div>
 
 <!-- MODAL: Gerenciar Permissões -->
-<div class="modal-overlay" id="modal-permissoes" onclick="fecharModalPermissoes()">
-  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:600px">
+<div class="modal-overlay" id="modal-permissoes" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
     <div class="modal-header">
-      <h3>⚙️ Gerenciar Acessos</h3>
-      <button class="modal-close" onclick="fecharModalPermissoes()">✕</button>
+      <div>
+        <h3><i class="ti ti-shield-check" style="margin-right:6px"></i>Permissões de acesso</h3>
+        <div style="font-size:.78rem;color:var(--t2);margin-top:2px" id="perm-usuario-nome">—</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-permissoes').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="perms-header">
-        <div class="perms-user-info">
-          <span class="perm-icon">👤</span>
-          <span class="perms-user-name" id="perm-modal-nome"></span>
-          <span class="s-badge s-pendente" id="perm-modal-role" style="font-size:.72rem"></span>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="resetarPermissoes(_permModalUsuario?.id)">↺ Resetar para padrão</button>
+      <div id="perm-lista" style="display:flex;flex-direction:column;gap:8px">
+        <div class="state-box"><div class="spinner"></div></div>
       </div>
-      <div class="perms-grid" id="perm-modal-grid"></div>
-      <div class="perms-footer">⚡ Alterações aplicadas imediatamente — o usuário verá o efeito no próximo login.</div>
+      <div style="margin-top:14px;padding:10px;background:rgba(76,197,215,.06);border-radius:8px;font-size:.72rem;color:var(--t2)">
+        <i class="ti ti-info-circle" style="margin-right:4px"></i>
+        Alterações salvas ao clicar em "Salvar". O usuário verá o efeito no próximo login.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-permissoes').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPermissoes()">Salvar permissões</button>
     </div>
   </div>
 </div>
@@ -9344,28 +9628,46 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 
 <!-- MODAL: Editar usuário -->
 <div class="modal-overlay" id="modal-editar-usuario" onclick="this.classList.remove('visible')">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:540px">
     <div class="modal-header">
-      <h3>Editar usuário</h3>
+      <h3>Editar colaborador</h3>
       <button class="modal-close" onclick="document.getElementById('modal-editar-usuario').classList.remove('visible')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
       <input type="hidden" id="eu-id">
       <div class="form-row">
-        <div class="form-group"><label>Nome</label><input type="text" id="eu-nome" placeholder="Nome completo" /></div>
+        <div class="form-group"><label>Nome completo</label><input type="text" id="eu-nome" placeholder="Nome completo" /></div>
         <div class="form-group"><label>E-mail</label><input type="email" id="eu-email" placeholder="email@exemplo.com" /></div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Nível</label>
+          <label>Nível / Role</label>
           <select id="eu-role" onchange="toggleEuClienteField()">
+            <option value="socio_fundador">Sócio Fundador</option>
+            <option value="admin">Admin</option>
+            <option value="diretor_comercial">Diretor Comercial</option>
             <option value="assistente">Assistente</option>
             <option value="assistente_junior">Assistente Júnior</option>
             <option value="operador">Operador</option>
-            <option value="admin">Admin</option>
-            <option value="socio_fundador">Sócio Fundador</option>
-            <option value="diretor_comercial">Diretor Comercial</option>
+            <option value="sdr">SDR</option>
+            <option value="social_media">Social Media</option>
             <option value="cliente">Cliente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="text" id="eu-telefone" placeholder="(00) 00000-0000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cargo / Função</label><input type="text" id="eu-cargo" placeholder="Ex: Analista de Licitações" /></div>
+        <div class="form-group"><label>Área</label><input type="text" id="eu-area" placeholder="Ex: Operações" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Gestor direto</label>
+          <select id="eu-gestor-id">
+            <option value="">Sem gestor</option>
           </select>
         </div>
         <div class="form-group" id="eu-cliente-field" style="display:none">
@@ -9373,11 +9675,25 @@ img { max-height: 22px !important; width: auto !important; display: block; }
           <select id="eu-cliente-id"><option value="">Selecione</option></select>
         </div>
       </div>
+      <div class="form-row" style="align-items:center">
+        <div class="form-group">
+          <label>Data de entrada</label>
+          <input type="date" id="eu-data-entrada" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+          <input type="checkbox" id="eu-ativo" style="width:16px;height:16px;cursor:pointer" />
+          <label for="eu-ativo" style="cursor:pointer;margin:0">Colaborador ativo</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Bio / Apresentação</label>
+        <textarea id="eu-bio" rows="2" placeholder="Pequena descrição do colaborador..." style="width:100%;resize:vertical"></textarea>
+      </div>
       <div id="alert-editar-usuario" class="alert"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-editar-usuario').classList.remove('visible')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarEdicaoUsuario()">Salvar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoUsuario()">Salvar alterações</button>
     </div>
   </div>
 </div>
