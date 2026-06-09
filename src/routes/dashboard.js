@@ -77,19 +77,36 @@ router.get('/', autenticar, cap(async (req, res) => {
     `)
   );
 
+  // Contas a vencer nos próximos 7 dias — exclusivo para gestores
+  const isGestor = ['socio_fundador', 'admin'].includes(req.usuario.role);
+  const contasRow = isGestor ? await safe(() =>
+    db.query(`
+      SELECT m.id, m.mes_ano, m.valor, m.data_vencimento, m.status,
+             c.nome AS cliente_nome
+      FROM mensalidades m
+      LEFT JOIN clientes c ON c.id = m.cliente_id
+      WHERE m.status IN ('pendente', 'enviada', 'atrasada')
+        AND m.data_vencimento >= CURRENT_DATE
+        AND m.data_vencimento <= CURRENT_DATE + INTERVAL '7 days'
+      ORDER BY m.data_vencimento ASC
+      LIMIT 10
+    `)
+  ) : null;
+
   res.json({
-    usuario:            { nome: userNome },
+    usuario:            { nome: userNome, role: req.usuario.role },
     metricas: {
-      clientes_ativos:  clientesRow?.rows[0]?.total       ?? 0,
-      mrr:              clientesRow?.rows[0]?.mrr          ?? 0,
-      pregoes_abertos:  pregoesRow?.rows[0]?.abertos       ?? 0,
-      pregoes_vencidos: pregoesRow?.rows[0]?.vencidos      ?? 0,
-      prospects:        prospectsRow?.rows[0]?.total       ?? 0,
+      clientes_ativos:  clientesRow?.rows[0]?.total        ?? 0,
+      mrr:              clientesRow?.rows[0]?.mrr           ?? 0,
+      pregoes_abertos:  pregoesRow?.rows[0]?.abertos        ?? 0,
+      pregoes_vencidos: pregoesRow?.rows[0]?.vencidos       ?? 0,
+      prospects:        prospectsRow?.rows[0]?.total        ?? 0,
       volume_total:     pregoesRow?.rows[0]?.volume_vencido ?? 0,
     },
-    proximos_pregoes:   proximosRow?.rows   ?? [],
+    proximos_pregoes:    proximosRow?.rows  ?? [],
     funil,
     contratos_pendentes: pendentesRow?.rows ?? [],
+    contas_a_vencer:     contasRow?.rows    ?? [],
   });
 }));
 

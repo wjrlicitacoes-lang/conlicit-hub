@@ -292,11 +292,17 @@
       border-right: 1px solid rgba(76,197,215,0.12);
       display: flex;
       flex-direction: column;
-      position: sticky;
-      top: 60px;
-      height: calc(100vh - 60px);
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
+      padding-top: 60px;
       overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    .sidebar::-webkit-scrollbar { display: none; }
     header,
     body.tema-light header {
       background: #162A39 !important;
@@ -404,6 +410,7 @@
       flex: 1;
       min-width: 0;
       overflow-y: auto;
+      margin-left: var(--sidebar-w);
     }
 
     .section { display: none; padding: 2rem clamp(1.25rem, 3vw, 2.5rem) 3rem; }
@@ -1441,6 +1448,7 @@
       }
       .sidebar.open { left: 0; }
       .main-content { margin-left: 0 !important; }
+      .content { margin-left: 0 !important; }
     }
     /* Safe area para notch / home indicator */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
@@ -3449,7 +3457,7 @@
 
         <div id="dash-alerta-pendentes" style="display:none;background:rgba(76,197,215,.08);
           border:1px solid rgba(76,197,215,.3);border-radius:8px;padding:12px 16px;
-          margin-bottom:1.5rem;display:flex;align-items:center;gap:10px">
+          margin-bottom:1.5rem;align-items:center;gap:10px">
           <i class="ti ti-alert-triangle" style="color:#4CC5D7;font-size:20px;flex-shrink:0"></i>
           <p id="dash-alerta-txt" style="color:var(--t1);font-size:.875rem;font-weight:500;margin:0"></p>
         </div>
@@ -3488,6 +3496,9 @@
               { icon:'ti-calendar-plus',label:'Calendário',     fn:"navTo('calendario')" },
               { icon:'ti-file-invoice', label:'Nova proposta',  fn:"navTo('proposta')" },
               { icon:'ti-users',        label:'Ver clientes',   fn:"navTo('clientes')" },
+              ...(['socio_fundador','admin'].includes(userRole)
+                ? [{ icon:'ti-receipt', label:'Contas a vencer', fn:"navTo('financeiro')" }]
+                : []),
             ].map(a => `
               <button onclick="${a.fn}"
                 style="display:flex;align-items:center;gap:8px;background:var(--bg-secondary,#182A39);
@@ -3536,13 +3547,19 @@
       `).join('');
 
       // Alerta contratos pendentes
+      const alertaEl = document.getElementById('dash-alerta-pendentes');
+      alertaEl.style.display = 'none';
       const pendentes = d.contratos_pendentes || [];
       if (pendentes.length > 0) {
-        const alertEl = document.getElementById('dash-alerta-pendentes');
-        alertEl.style.display = 'flex';
-        document.getElementById('dash-alerta-txt').textContent =
-          `${pendentes.length} contrato${pendentes.length > 1 ? 's' : ''} pendente${pendentes.length > 1 ? 's' : ''} de assinatura: ` +
-          pendentes.map(p => p.numero || (p.objeto || '').substring(0, 25)).join(', ');
+        const nomes = pendentes
+          .map(p => p.numero || (p.objeto || '').substring(0, 30))
+          .filter(Boolean)
+          .join(', ');
+        if (nomes) {
+          document.getElementById('dash-alerta-txt').textContent =
+            `${pendentes.length} contrato${pendentes.length > 1 ? 's' : ''} pendente${pendentes.length > 1 ? 's' : ''} de assinatura: ${nomes}`;
+          alertaEl.style.display = 'flex';
+        }
       }
 
       // Próximos pregões
@@ -3550,21 +3567,33 @@
       document.getElementById('dash-pregoes').innerHTML = preg.length === 0
         ? `<p style="color:var(--t3);font-size:.875rem">Nenhum pregão nos próximos 7 dias.</p>`
         : preg.map(p => {
-            const dt   = new Date(p.data_abertura + 'T12:00:00');
-            const hora = p.data_hora_abertura
+            let diaNum = '--', mesNome = '--', diaSem = '--';
+            try {
+              if (p.data_abertura) {
+                const partes = String(p.data_abertura).split('T')[0].split('-');
+                const ano = parseInt(partes[0]);
+                const mes = parseInt(partes[1]) - 1;
+                const dia = parseInt(partes[2]);
+                const dtObj = new Date(ano, mes, dia);
+                diaNum  = dia.toString().padStart(2, '0');
+                mesNome = meses[mes];
+                diaSem  = dias[dtObj.getDay()];
+              }
+            } catch(e) {}
+            const horaExib = p.data_hora_abertura
               ? new Date(p.data_hora_abertura).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
               : '--:--';
             return `
               <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bd)">
-                <div style="background:var(--bg-secondary,#182A39);border-radius:8px;padding:6px 10px;text-align:center;min-width:44px">
-                  <p style="font-size:16px;font-weight:600;color:#4CC5D7;margin:0;line-height:1">${dt.getDate().toString().padStart(2,'0')}</p>
-                  <p style="font-size:10px;color:var(--t3);margin:0">${meses[dt.getMonth()]}</p>
+                <div style="background:var(--bg-secondary,#182A39);border-radius:8px;padding:6px 10px;text-align:center;min-width:44px;flex-shrink:0">
+                  <p style="font-size:16px;font-weight:600;color:#4CC5D7;margin:0;line-height:1">${diaNum}</p>
+                  <p style="font-size:10px;color:var(--t3);margin:0">${mesNome}</p>
                 </div>
-                <div style="flex:1;min-width:0">
-                  <p style="font-size:13px;color:var(--t1);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                <div style="flex:1;min-width:0;overflow:hidden">
+                  <p style="font-size:13px;color:var(--t1);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">
                     ${esc(p.objeto || p.numero || 'Pregão')}
                   </p>
-                  <p style="font-size:11px;color:var(--t3);margin:0">${dias[dt.getDay()]} · ${hora} · ${esc(p.cliente_nome || '')}</p>
+                  <p style="font-size:11px;color:var(--t3);margin:0">${diaSem} · ${horaExib} · ${esc(p.cliente_nome || '')}</p>
                 </div>
               </div>`;
           }).join('');
