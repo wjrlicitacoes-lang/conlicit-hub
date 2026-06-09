@@ -7709,8 +7709,7 @@
       const r = await fetch(`${API}/prospects/followup`, { headers: { Authorization: `Bearer ${token}` } });
       const dados = await r.json();
       if (!dados.length) { toast('Nenhum follow-up vencido!', 'success'); return; }
-      const nomes = dados.slice(0, 5).map(p => `• ${esc(p.nome)} (${p.data_proximo_contato?.slice(0,10)})`).join('
-');
+      const nomes = dados.slice(0, 5).map(p => `• ${esc(p.nome)} (${p.data_proximo_contato?.slice(0,10)})`).join('\n');
       alert(`Follow-ups vencidos (${dados.length}):
 
 ${nomes}${dados.length > 5 ? `
