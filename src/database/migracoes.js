@@ -557,6 +557,114 @@ async function executarMigracoes() {
     )
   `);
 
+  // email_templates e email_logs para disparo via Brevo
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS email_templates (
+      id                    SERIAL PRIMARY KEY,
+      slug                  VARCHAR(100) UNIQUE NOT NULL,
+      nome                  VARCHAR(255) NOT NULL,
+      assunto               VARCHAR(500) NOT NULL,
+      corpo_html            TEXT NOT NULL,
+      variaveis_disponiveis TEXT[],
+      ativo                 BOOLEAN DEFAULT TRUE,
+      criado_em             TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS email_logs (
+      id                  SERIAL PRIMARY KEY,
+      prospect_id         INTEGER REFERENCES prospects(id) ON DELETE SET NULL,
+      template_slug       VARCHAR(100),
+      destinatario_email  VARCHAR(255),
+      status              VARCHAR(50) DEFAULT 'enviado',
+      brevo_message_id    VARCHAR(255),
+      erro_mensagem       TEXT,
+      enviado_por         INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      enviado_em          TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  // Seeds dos 3 templates de prospecção
+  await db.query(`
+    INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
+    VALUES (
+      'prospecto_desclassificado',
+      'Prospecção — Desclassificado',
+      '{{nome}}, encontramos uma forma de evitar desclassificações futuras',
+      $TMPL$Olá {{nome}},
+
+Vi que a {{empresa}} participou do Pregão {{numero_pregao}} da {{orgao}} e acabou sendo desclassificada.
+
+Esse tipo de situação é mais comum do que parece — e quase sempre tem solução.
+
+A Conlicit desenvolveu uma ferramenta que analisa o edital automaticamente, gera o checklist de documentos exatos que aquele pregão exige e avisa com antecedência quando alguma certidão está prestes a vencer.
+
+Posso te mostrar como isso funciona em 20 minutos, com um edital do seu segmento? Sem compromisso.
+
+É só responder este e-mail ou acessar nossa ferramenta gratuita:
+{{link_ferramenta}}
+
+Abraços,
+{{remetente_nome}}
+Conlicit — Seu copiloto em licitações$TMPL$,
+      ARRAY['nome','empresa','numero_pregao','orgao','link_ferramenta','remetente_nome']
+    )
+    ON CONFLICT (slug) DO NOTHING
+  `);
+
+  await db.query(`
+    INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
+    VALUES (
+      'prospecto_segundo_lugar',
+      'Prospecção — 2º Lugar',
+      '{{nome}}, {{diferenca}} separou vocês do contrato',
+      $TMPL$Olá {{nome}},
+
+A {{empresa}} ficou em 2º lugar no Pregão {{numero_pregao}} da {{orgao}}.
+
+Às vezes é uma questão de centavos. Às vezes é o preço que podia ter sido calibrado melhor. De qualquer forma, essa é uma oportunidade para a próxima licitação.
+
+A Conlicit tem uma ferramenta que analisa o edital, simula a faixa de preço competitiva e mostra quais documentos preparar — tudo antes da sessão pública.
+
+Quer ver como funciona? São 20 minutos e você sai com a análise de um edital real do seu segmento.
+
+{{link_ferramenta}}
+
+Abraços,
+{{remetente_nome}}
+Conlicit — Seu copiloto em licitações$TMPL$,
+      ARRAY['nome','empresa','numero_pregao','orgao','diferenca','link_ferramenta','remetente_nome']
+    )
+    ON CONFLICT (slug) DO NOTHING
+  `);
+
+  await db.query(`
+    INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
+    VALUES (
+      'prospecto_primeiro_acesso',
+      'Prospecção — Primeiro Acesso',
+      '{{nome}}, sua empresa tem perfil para licitações públicas',
+      $TMPL$Olá {{nome}},
+
+Empresas do segmento de {{segmento}} têm vencido contratos públicos significativos em {{uf}} — e o mercado de compras governamentais movimentou R$ 1 trilhão em 2025.
+
+A {{empresa}} tem o perfil certo para participar. O que geralmente falta é saber por onde começar: quais editais acompanhar, quais documentos separar e como formar o preço sem risco de desclassificação.
+
+Criamos uma ferramenta gratuita que faz exatamente isso. Você cola o número do edital e em 2 minutos tem o checklist completo e a análise de viabilidade.
+
+Experimente agora: {{link_ferramenta}}
+
+Qualquer dúvida, estou à disposição.
+
+Abraços,
+{{remetente_nome}}
+Conlicit — Seu copiloto em licitações$TMPL$,
+      ARRAY['nome','empresa','segmento','uf','link_ferramenta','remetente_nome']
+    )
+    ON CONFLICT (slug) DO NOTHING
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

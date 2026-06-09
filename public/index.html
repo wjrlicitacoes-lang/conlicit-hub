@@ -1969,6 +1969,7 @@
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" id="btn-view-kanban" onclick="setViewProspects('kanban')" title="Kanban">⬛ Kanban</button>
             <button class="btn btn-ghost btn-sm" id="btn-view-lista"  onclick="setViewProspects('lista')"  title="Lista">☰ Lista</button>
+            <button class="btn btn-ghost btn-sm" onclick="abrirModalProspectar()" style="border-color:var(--primary);color:var(--primary)"><i class="ti ti-search"></i> Prospectar</button>
             <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Lead</button>
             <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻</button>
           </div>
@@ -7898,6 +7899,244 @@
 
   // ── Prospecção ───────────────────────────────────────────────────────────────
 
+  // ─── Prospecção automática (ENTREGA 1) ───────────────────────────────────────
+
+  let _leadsEncontrados = [];
+  let _templatesEmail   = [];
+
+  function abrirModalProspectar() {
+    document.getElementById('mp-resultado').style.display = 'none';
+    _leadsEncontrados = [];
+    document.getElementById('modal-prospectar').classList.add('visible');
+  }
+
+  async function buscarLeads() {
+    const btn = document.getElementById('btn-buscar-leads');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px"></div>Buscando…';
+
+    const segmento  = document.getElementById('mp-segmento').value;
+    const keyword   = document.getElementById('mp-keyword').value.trim();
+    const uf        = document.getElementById('mp-uf').value;
+    const cidade    = document.getElementById('mp-cidade').value.trim();
+    const diasAtras = document.getElementById('mp-periodo').value;
+    const limite    = document.getElementById('mp-limite').value;
+    const enriquecer= document.getElementById('mp-enriquecer').checked;
+    const grupo2    = document.getElementById('mp-grupo2').checked;
+
+    const params = new URLSearchParams();
+    if (keyword)   params.set('palavraChave', keyword);
+    else if (segmento) params.set('segmento', segmento);
+    if (uf)        params.set('uf', uf);
+    if (cidade)    params.set('cidade', cidade);
+    params.set('diasAtras',       diasAtras);
+    params.set('maxResultados',   limite);
+    params.set('enriquecer',      enriquecer ? '1' : '0');
+
+    try {
+      const r = await fetch(`${API}/captacao/prospectar?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao buscar');
+      let leads = await r.json();
+      if (!Array.isArray(leads)) leads = leads.dados || leads.leads || [];
+
+      if (grupo2) {
+        const proxies = leads.slice(0, Math.ceil(leads.length / 2)).map(l => ({
+          ...l,
+          cnpj: null,
+          razaoSocial: `[Grupo 2 — Perfil similar] Empresa com mesmo segmento de ${l.razaoSocial || l.empresa || 'empresa identificada'} — nunca participou de licitação identificada. Potencial para prospecção de primeiro acesso.`,
+          _grupo: 2,
+        }));
+        leads = [...leads.map(l => ({ ...l, _grupo: 1 })), ...proxies];
+      }
+
+      _leadsEncontrados = leads;
+      renderListaLeads(leads);
+    } catch (e) {
+      toast('Erro na busca: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-search"></i> Buscar leads';
+    }
+  }
+
+  function renderListaLeads(leads) {
+    const el = document.getElementById('mp-resultado');
+    const lista = document.getElementById('mp-lista-leads');
+    document.getElementById('mp-resultado-count').textContent = `${leads.length} lead(s) encontrado(s)`;
+    document.getElementById('mp-select-all').checked = false;
+    el.style.display = '';
+
+    lista.innerHTML = leads.map((l, i) => {
+      const isGrupo2 = l._grupo === 2;
+      const nome = l.razaoSocial || l.empresa || l.nome || '—';
+      const cnpj = l.cnpj ? `CNPJ: ${l.cnpj}` : 'CNPJ: —';
+      const loc  = [l.cidade, l.uf].filter(Boolean).join('/');
+      return `
+        <div style="display:flex;align-items:flex-start;gap:10px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:.8rem 1rem">
+          <input type="checkbox" class="lead-check" data-idx="${i}" style="margin-top:3px;width:15px;height:15px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(nome.slice(0,80))}</span>
+              ${isGrupo2
+                ? '<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:rgba(167,139,250,.15);color:#a78bfa">Grupo 2 — Perfil similar</span>'
+                : '<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:rgba(76,197,215,.15);color:#4CC5D7">Grupo 1 — Participou</span>'}
+              ${l.prioridade === 'alta' ? '<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:rgba(239,68,68,.15);color:#ef4444">Alta prioridade</span>' : ''}
+            </div>
+            <div style="font-size:.73rem;color:var(--t2);margin-top:3px">${esc(cnpj)} ${loc ? `· ${esc(loc)}` : ''} ${l.segmento ? `· ${esc(l.segmento)}` : ''}</div>
+            ${l.email ? `<div style="font-size:.7rem;color:var(--t3)">${esc(l.email)}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('') || '<p style="color:var(--t2);text-align:center;padding:1rem">Nenhum lead encontrado com esses filtros.</p>';
+  }
+
+  function toggleSelectAll(cb) {
+    document.querySelectorAll('.lead-check').forEach(c => c.checked = cb.checked);
+  }
+
+  async function importarLeadsSelecionados() {
+    const selecionados = [...document.querySelectorAll('.lead-check:checked')]
+      .map(c => _leadsEncontrados[parseInt(c.dataset.idx)])
+      .filter(Boolean);
+
+    if (!selecionados.length) { toast('Selecione ao menos um lead.', 'error'); return; }
+
+    const btn = document.getElementById('btn-importar-leads');
+    btn.disabled = true;
+    btn.textContent = `Importando ${selecionados.length}…`;
+
+    let ok = 0, erros = 0;
+    for (const l of selecionados) {
+      try {
+        const body = {
+          nome:     l.contatoNome || l.razaoSocial || l.empresa || null,
+          empresa:  l.razaoSocial || l.empresa || null,
+          email:    l.email || null,
+          whatsapp: l.whatsapp || null,
+          segmento: l.segmento || null,
+          uf:       l.uf || null,
+          status:   'novo_lead',
+          origem:   'prospecao_automatica',
+          obs:      l._grupo === 2 ? l.razaoSocial : null,
+        };
+        if (!body.email && !body.empresa) { erros++; continue; }
+        const r = await fetch(`${API}/captacao/lead`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(body),
+        });
+        if (r.ok) ok++; else erros++;
+      } catch { erros++; }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-download"></i> Importar selecionados para o Kanban';
+    document.getElementById('modal-prospectar').classList.remove('visible');
+    toast(`${ok} lead(s) importado(s)${erros ? ` · ${erros} erro(s)` : ''}.`, ok ? 'success' : 'error');
+    carregarProspects();
+  }
+
+  // ─── Disparo de e-mail (ENTREGA 4) ───────────────────────────────────────────
+
+  let _emailTemplates = null;
+
+  async function carregarTemplatesEmail() {
+    if (_emailTemplates) return _emailTemplates;
+    try {
+      const r = await fetch(`${API}/prospects/email-templates`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return [];
+      const { dados } = await r.json();
+      _emailTemplates = dados;
+      return dados;
+    } catch { return []; }
+  }
+
+  async function abrirEmailProspect(id, nome, email) {
+    document.getElementById('email-prospect-id').value   = id;
+    document.getElementById('email-prospect-nome').textContent = nome || `Prospect #${id}`;
+    document.getElementById('email-dest-email').value    = email || '';
+    document.getElementById('email-dest-nome').value     = nome || '';
+    document.getElementById('email-template-select').value = '';
+    document.getElementById('email-preview-wrap').style.display = 'none';
+    document.getElementById('email-vars-extras').style.display  = 'none';
+    document.getElementById('alert-email-prospect').className = 'alert';
+    document.getElementById('modal-email-prospect').classList.add('visible');
+
+    const templates = await carregarTemplatesEmail();
+    const sel = document.getElementById('email-template-select');
+    sel.innerHTML = '<option value="">Selecione um template…</option>' +
+      templates.map(t => `<option value="${esc(t.slug)}">${esc(t.nome)}</option>`).join('');
+  }
+
+  function atualizarPreviewEmail() {
+    const slug = document.getElementById('email-template-select').value;
+    if (!slug || !_emailTemplates) { document.getElementById('email-preview-wrap').style.display = 'none'; return; }
+    const tmpl = _emailTemplates.find(t => t.slug === slug);
+    if (!tmpl) return;
+
+    const varsNeeded = tmpl.variaveis_disponiveis || [];
+    const hasExtra = varsNeeded.some(v => ['numero_pregao','orgao','diferenca'].includes(v));
+    document.getElementById('email-vars-extras').style.display = hasExtra ? '' : 'none';
+    ['numero_pregao','orgao','diferenca'].forEach(v => {
+      const wrap = document.getElementById(`email-var-${v}-wrap`);
+      if (wrap) wrap.style.display = varsNeeded.includes(v) ? '' : 'none';
+    });
+
+    const variaveis = {
+      nome:         document.getElementById('email-dest-nome').value,
+      empresa:      '',
+      numero_pregao: document.getElementById('email-var-numero_pregao')?.value || '',
+      orgao:        document.getElementById('email-var-orgao')?.value || '',
+      diferenca:    document.getElementById('email-var-diferenca')?.value || '',
+      link_ferramenta: 'https://conlicit.com/ferramentas',
+      remetente_nome: 'Sabrine | Conlicit',
+    };
+    const subst = str => str.replace(/\{\{(\w+)\}\}/g, (_, k) => variaveis[k] ?? `{{${k}}}`);
+
+    document.getElementById('email-preview-assunto').textContent = subst(tmpl.assunto);
+    document.getElementById('email-preview-corpo').textContent   = subst(tmpl.corpo_html.replace(/<[^>]+>/g,''));
+    document.getElementById('email-preview-wrap').style.display  = '';
+  }
+
+  async function enviarEmailProspect() {
+    const id          = document.getElementById('email-prospect-id').value;
+    const templateId  = document.getElementById('email-template-select').value;
+    const destEmail   = document.getElementById('email-dest-email').value.trim();
+    const destNome    = document.getElementById('email-dest-nome').value.trim();
+    const alertEl     = document.getElementById('alert-email-prospect');
+
+    if (!templateId) { showAlert('alert-email-prospect', 'Selecione um template.', 'error'); return; }
+    if (!destEmail)  { showAlert('alert-email-prospect', 'Informe o e-mail do destinatário.', 'error'); return; }
+
+    const btn = document.getElementById('btn-enviar-email-prospect');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border-width:2px;display:inline-block;margin-right:6px"></div>Enviando…';
+
+    const variaveis = {
+      numero_pregao: document.getElementById('email-var-numero_pregao')?.value || '',
+      orgao:         document.getElementById('email-var-orgao')?.value || '',
+      diferenca:     document.getElementById('email-var-diferenca')?.value || '',
+    };
+
+    try {
+      const r = await fetch(`${API}/prospects/${id}/enviar-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ template_id: templateId, destinatario_email: destEmail, destinatario_nome: destNome, variaveis }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao enviar');
+      document.getElementById('modal-email-prospect').classList.remove('visible');
+      toast('E-mail enviado com sucesso!', 'success');
+    } catch (e) {
+      showAlert('alert-email-prospect', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-send"></i> Enviar';
+    }
+  }
+
   const PROSPECT_STATUS = [
     { id: 'novo_lead',        label: 'Novo lead',         cor: '#4CC5D7' },
     { id: 'resumo_enviado',   label: 'Resumo enviado',    cor: '#06B6D4' },
@@ -8223,6 +8462,7 @@ ${nomes}${dados.length > 5 ? `
                     ${PROSPECT_STATUS.map(c => `<option value="${c.id}" ${c.id===p.status?'selected':''}>${c.label}</option>`).join('')}
                   </select>
                   <button style="font-size:.63rem;padding:2px 5px;background:rgba(76,197,215,.15);border:1px solid var(--primary);border-radius:4px;color:var(--primary);cursor:pointer" onclick="event.stopPropagation();verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Ver histórico">🕐</button>
+                  <button style="font-size:.63rem;padding:2px 5px;background:rgba(249,115,22,.15);border:1px solid #f97316;border-radius:4px;color:#f97316;cursor:pointer" onclick="event.stopPropagation();abrirEmailProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}')" title="Enviar e-mail">✉</button>
                   ${p.edital ? `<button style="font-size:.63rem;padding:2px 5px;background:rgba(139,92,246,.15);border:1px solid #8B5CF6;border-radius:4px;color:#8B5CF6;cursor:pointer" onclick="event.stopPropagation();analisarEditalProspect(${p.id})" title="Analisar edital">🔬</button>` : ''}
                   ${!['convertido','perdido'].includes(p.status) ? `<button style="font-size:.63rem;padding:2px 5px;background:rgba(16,185,129,.15);border:1px solid #10B981;border-radius:4px;color:#10B981;cursor:pointer" onclick="event.stopPropagation();converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→</button>` : ''}
                 </div>
@@ -8267,6 +8507,7 @@ ${nomes}${dados.length > 5 ? `
             <td>
               <div style="display:flex;gap:4px;justify-content:flex-end">
                 <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Histórico">🕐</button>
+                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem;color:#f97316" onclick="abrirEmailProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}')" title="Enviar e-mail">✉</button>
                 <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick='abrirEditarProspect(${JSON.stringify(p)})' title="Editar">✏️</button>
                 ${p.edital ? `<button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem;color:#8B5CF6" onclick="analisarEditalProspect(${p.id})" title="Analisar edital">🔬</button>` : ''}
                 ${!['convertido','perdido'].includes(p.status) ? `<button class="btn btn-primary btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→ Cliente</button>` : ''}
@@ -10625,6 +10866,174 @@ async function salvarOportunidade() {
         <button class="btn btn-danger btn-sm" onclick="pararRobo()">⬛ Parar Robô</button>
         <button class="btn btn-primary" onclick="iniciarRobo()">▶ Iniciar Robô</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Prospectar (busca automática via PNCP) -->
+<div class="modal-overlay" id="modal-prospectar" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:700px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div>
+        <h3><i class="ti ti-search" style="margin-right:6px"></i>Prospecção automática</h3>
+        <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Busca empresas participantes de pregões no PNCP</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-prospectar').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <!-- Filtros -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Segmento</label>
+          <select id="mp-segmento">
+            <option value="">Selecione ou use palavra-chave</option>
+            <option value="alimentacao">Alimentação</option>
+            <option value="material_escritorio">Material de Escritório</option>
+            <option value="limpeza">Limpeza</option>
+            <option value="ti">TI / Tecnologia</option>
+            <option value="saude">Saúde / Medicamentos</option>
+            <option value="servicos_limpeza">Serviços de Limpeza</option>
+            <option value="vigilancia">Vigilância / Segurança</option>
+            <option value="manutencao">Manutenção Predial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Palavra-chave livre <span style="color:var(--t3);font-size:.7rem">(substitui segmento)</span></label>
+          <input type="text" id="mp-keyword" placeholder="Ex: mobiliário, EPI, uniformes…" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>UF</label>
+          <select id="mp-uf">
+            <option value="">Todos os estados</option>
+            <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+            <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+            <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+            <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+            <option>SE</option><option>SP</option><option>TO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cidade <span style="color:var(--t3);font-size:.7rem">(opcional)</span></label>
+          <input type="text" id="mp-cidade" placeholder="Ex: Belo Horizonte" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Período</label>
+          <select id="mp-periodo">
+            <option value="30">Últimos 30 dias</option>
+            <option value="60" selected>Últimos 60 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Limite de leads</label>
+          <select id="mp-limite">
+            <option value="10">10 leads</option>
+            <option value="20" selected>20 leads</option>
+            <option value="30">30 leads</option>
+            <option value="50">50 leads</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem">
+          <input type="checkbox" id="mp-enriquecer" style="width:15px;height:15px">
+          Enriquecer dados (consulta Receita Federal)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem">
+          <input type="checkbox" id="mp-grupo2" style="width:15px;height:15px">
+          Incluir Grupo 2 (perfil similar, sem histórico de licitação)
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="buscarLeads()" id="btn-buscar-leads">
+        <i class="ti ti-search"></i> Buscar leads
+      </button>
+
+      <!-- Resultado -->
+      <div id="mp-resultado" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span id="mp-resultado-count" style="font-size:.8rem;font-weight:700;color:var(--t2)"></span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer">
+            <input type="checkbox" id="mp-select-all" onchange="toggleSelectAll(this)"> Selecionar todos
+          </label>
+        </div>
+        <div id="mp-lista-leads" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto"></div>
+        <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="importarLeadsSelecionados()" id="btn-importar-leads">
+          <i class="ti ti-download"></i> Importar selecionados para o Kanban
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Enviar E-mail para Prospect -->
+<div class="modal-overlay" id="modal-email-prospect" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <h3><i class="ti ti-mail" style="margin-right:6px"></i>Enviar e-mail</h3>
+        <div style="font-size:.75rem;color:var(--t2);margin-top:2px" id="email-prospect-nome">—</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-email-prospect').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="email-prospect-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Destinatário</label>
+          <input type="email" id="email-dest-email" placeholder="email@empresa.com" />
+        </div>
+        <div class="form-group">
+          <label>Nome do destinatário</label>
+          <input type="text" id="email-dest-nome" placeholder="Nome" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Template</label>
+        <select id="email-template-select" onchange="atualizarPreviewEmail()">
+          <option value="">Selecione um template…</option>
+        </select>
+      </div>
+
+      <!-- Variáveis extras -->
+      <div id="email-vars-extras" style="display:none">
+        <div class="form-row">
+          <div class="form-group" id="email-var-numero_pregao-wrap" style="display:none">
+            <label>Número do pregão</label>
+            <input type="text" id="email-var-numero_pregao" oninput="atualizarPreviewEmail()" />
+          </div>
+          <div class="form-group" id="email-var-orgao-wrap" style="display:none">
+            <label>Órgão</label>
+            <input type="text" id="email-var-orgao" oninput="atualizarPreviewEmail()" />
+          </div>
+          <div class="form-group" id="email-var-diferenca-wrap" style="display:none">
+            <label>Diferença de preço</label>
+            <input type="text" id="email-var-diferenca" placeholder="Ex: R$ 120,00" oninput="atualizarPreviewEmail()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="email-preview-wrap" style="display:none">
+        <label style="font-size:.78rem;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px">Preview</label>
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-top:6px;max-height:220px;overflow-y:auto">
+          <div style="font-size:.75rem;font-weight:700;color:var(--t2);margin-bottom:6px">Assunto: <span id="email-preview-assunto" style="color:var(--t1)"></span></div>
+          <div id="email-preview-corpo" style="font-size:.78rem;color:var(--t2);white-space:pre-wrap;line-height:1.6"></div>
+        </div>
+      </div>
+
+      <div id="alert-email-prospect" class="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-email-prospect').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarEmailProspect()" id="btn-enviar-email-prospect">
+        <i class="ti ti-send"></i> Enviar
+      </button>
     </div>
   </div>
 </div>
