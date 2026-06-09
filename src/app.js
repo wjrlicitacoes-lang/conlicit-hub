@@ -74,7 +74,11 @@ app.post('/api/prospects',         receberLanding);      // pública — landing
 app.post('/prospects/webhook-brevo', webhookBrevo);      // pública — eventos Brevo
 app.use('/health',        healthRoutes);
 app.use('/editais',       autenticar, verificarPermissao('editais'),    editaisRoutes);
-app.use('/clientes',      autenticar, verificarPermissao('clientes'),   clientesRoutes);
+app.use('/clientes',      autenticar, (req, res, next) => {
+  // role=cliente passa direto — protegerCliente no router restringe ao próprio id
+  if (req.usuario?.role === 'cliente') return next();
+  verificarPermissao('clientes')(req, res, next);
+}, clientesRoutes);
 app.use('/boletim',       autenticar, verificarPermissao('boletins'),   boletimRoutes);
 app.use('/calendario',    autenticar, verificarPermissao('calendario'), calendarioRoutes);
 app.use('/edson',         autenticar, verificarPermissao('edson'),      edsonRoutes);

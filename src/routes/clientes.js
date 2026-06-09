@@ -10,6 +10,13 @@ const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
 
+// role=cliente só pode acessar sub-recursos /:id/..., nunca rotas raiz (lista, stats, cadastro)
+router.use((req, res, next) => {
+  if (req.usuario?.role !== 'cliente') return next();
+  if (/^\/\d+\//.test(req.path)) return next();
+  return res.status(403).json({ erro: 'Acesso negado' });
+});
+
 const _uploadPregao = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },

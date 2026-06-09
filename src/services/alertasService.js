@@ -125,14 +125,41 @@ async function processarAlertas() {
       for (const dest of destinatarios) {
         try {
           await enviarEmailAlerta(dest.email, subject, montarHtmlAlerta(p, janela.label));
+          console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'email', dest: dest.email, status: 'enviado' });
         } catch (e) {
           console.error(`[Alertas] Email ${dest.email}:`, e.message);
+          console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'email', dest: dest.email, status: 'falhou', erro: e.message });
         }
         if (dest.whatsapp) {
           try {
             await enviarWhatsApp(dest.whatsapp, montarMensagemWpp(p, janela.label));
+            console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'whatsapp', dest: dest.whatsapp, status: 'enviado' });
           } catch (e) {
             console.error(`[Alertas] WhatsApp sócio:`, e.message);
+            console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'whatsapp', dest: dest.whatsapp, status: 'falhou', erro: e.message });
+          }
+        }
+      }
+
+      // Notificar operador vinculado ao pregão (se não for admin/socio_fundador já incluído)
+      if (p.operador_id) {
+        const { rows: [operador] } = await db.query(
+          `SELECT email, whatsapp FROM usuarios WHERE id = $1`, [p.operador_id]
+        );
+        if (operador && !destinatarios.find(d => d.email === operador.email)) {
+          try {
+            await enviarEmailAlerta(operador.email, subject, montarHtmlAlerta(p, janela.label));
+            console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'email_operador', dest: operador.email, status: 'enviado' });
+          } catch (e) {
+            console.error(`[Alertas] Email operador ${operador.email}:`, e.message);
+          }
+          if (operador.whatsapp) {
+            try {
+              await enviarWhatsApp(operador.whatsapp, montarMensagemWpp(p, janela.label));
+              console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'whatsapp_operador', dest: operador.whatsapp, status: 'enviado' });
+            } catch (e) {
+              console.error(`[Alertas] WhatsApp operador:`, e.message);
+            }
           }
         }
       }
@@ -141,6 +168,7 @@ async function processarAlertas() {
       if (adminWhatsapp && !destinatarios.find(d => d.whatsapp === adminWhatsapp)) {
         try {
           await enviarWhatsApp(adminWhatsapp, montarMensagemWpp(p, janela.label));
+          console.log('[ALERTA]', { pregao_id: p.id, operador: p.operador_nome, canal: 'whatsapp_env', status: 'enviado' });
         } catch (e) {
           console.error(`[Alertas] WhatsApp env:`, e.message);
         }

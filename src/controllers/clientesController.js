@@ -58,13 +58,22 @@ async function cadastrar(req, res) {
         contato_whatsapp?.replace(/\D/g, '') || null,
         responsavel_conlicit?.trim() || null,
         whatsapp_grupo || null,
+        cnpj?.trim() || null,
+        razao_social?.trim() || null,
+        responsavel_legal?.trim() || null,
+        cargo_responsavel?.trim() || null,
+        cpf_responsavel?.trim() || null,
+        endereco?.trim() || null,
       ],
     );
     return res.status(201).json(rows[0]);
   } catch (erro) {
     if (erro.code === '23505') return res.status(409).json({ erro: 'Email já cadastrado' });
-    console.error('Erro ao cadastrar cliente:', erro);
-    return res.status(500).json({ erro: 'Erro interno ao cadastrar cliente' });
+    console.error('Erro ao cadastrar cliente:', {
+      message: erro.message, code: erro.code,
+      detail: erro.detail, column: erro.column, constraint: erro.constraint,
+    });
+    return res.status(500).json({ erro: 'Erro interno ao cadastrar cliente', detalhe: erro.message });
   }
 }
 

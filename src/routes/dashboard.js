@@ -43,40 +43,27 @@ router.get('/consolidado', autenticar, cap(async (req, res) => {
 
       db.query(`
         SELECT
-          COALESCE(SUM(cm.valor_recebido) FILTER (
-            WHERE cm.status = 'recebida'
-            AND DATE_TRUNC('month', cm.data_recebimento) = DATE_TRUNC('month', NOW())
-          ), 0) AS comissao_mes,
+          (SELECT COALESCE(SUM(valor_recebido),0) FROM comissoes
+           WHERE status = 'recebida'
+           AND DATE_TRUNC('month', data_recebimento) = DATE_TRUNC('month', NOW())) AS comissao_mes,
 
-          COALESCE(SUM(cm.valor_recebido) FILTER (
-            WHERE cm.status = 'recebida'
-            AND DATE_TRUNC('year', cm.data_recebimento) = DATE_TRUNC('year', NOW())
-          ), 0) AS comissao_ano,
+          (SELECT COALESCE(SUM(valor_recebido),0) FROM comissoes
+           WHERE status = 'recebida'
+           AND DATE_TRUNC('year', data_recebimento) = DATE_TRUNC('year', NOW())) AS comissao_ano,
 
-          COALESCE(SUM(cm.valor_esperado) FILTER (
-            WHERE cm.status IN ('pendente','enviada','atrasada')
-          ), 0) AS comissao_a_receber,
+          (SELECT COALESCE(SUM(valor_esperado),0) FROM comissoes
+           WHERE status IN ('pendente','enviada','atrasada')) AS comissao_a_receber,
 
-          COUNT(DISTINCT co.id) FILTER (
-            WHERE co.status NOT IN ('concluido','rescindido')
-          )::int AS contratos_ativos,
+          (SELECT COUNT(*) FROM contratos
+           WHERE status NOT IN ('concluido','rescindido'))::int AS contratos_ativos,
 
-          COALESCE(SUM(co.valor_contrato) FILTER (
-            WHERE co.status NOT IN ('concluido','rescindido')
-          ), 0) AS carteira_total,
+          (SELECT COALESCE(SUM(valor_contrato),0) FROM contratos
+           WHERE status NOT IN ('concluido','rescindido')) AS carteira_total,
 
-          COUNT(DISTINCT p.id) FILTER (
-            WHERE p.status NOT IN ('cancelado','concluido','fracassado')
-          )::int AS pregoes_ativos,
+          (SELECT COUNT(*) FROM pregoes
+           WHERE status NOT IN ('cancelado','concluido','fracassado'))::int AS pregoes_ativos,
 
-          COUNT(DISTINCT cl.id) FILTER (
-            WHERE cl.ativo = true
-          )::int AS clientes_ativos
-
-        FROM contratos co
-        FULL JOIN comissoes cm ON cm.contrato_id = co.id
-        FULL JOIN pregoes p ON p.cliente_id = co.cliente_id
-        FULL JOIN clientes cl ON cl.id = co.cliente_id
+          (SELECT COUNT(*) FROM clientes WHERE ativo = true)::int AS clientes_ativos
       `),
 
       db.query(`
