@@ -1508,19 +1508,52 @@
     body:not(.tema-light) #btn-tema::after { content: '\eaf8'; }
     body.tema-light #btn-tema::after { content: '\eb30'; }
 
-    /* Planilha de Preços — checkbox customizado */
-    #etab-planilha-precos input[type="checkbox"] {
-      appearance: none;
+    /* ── Checkboxes globais ── */
+    input[type="checkbox"] {
       -webkit-appearance: none;
-      background-repeat: no-repeat;
-      background-size: 80% 80%;
-      background-position: center;
-      transition: all .15s;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      min-width: 18px;
+      border: 2px solid #4CC5D7;
+      border-radius: 4px;
+      background-color: transparent;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      vertical-align: middle;
     }
-    #etab-planilha-precos input[type="checkbox"]:checked {
+    input[type="checkbox"]:checked {
       background-color: #4CC5D7;
-      border-color: #4CC5D7 !important;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C%2Fsvg%3E");
+      border-color: #4CC5D7;
+    }
+    input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 6px;
+      height: 10px;
+      border: 2px solid #FFFFFF;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+    input[type="checkbox"]:hover {
+      border-color: #4CC5D7;
+      opacity: 0.85;
+    }
+    input[type="checkbox"]:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(76, 197, 215, 0.25);
+    }
+    input[type="checkbox"]:disabled {
+      border-color: #4a5568;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    input[type="checkbox"]:disabled:checked {
+      background-color: #4a5568;
     }
   </style>
 </head>
@@ -2956,7 +2989,7 @@
         <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">O Edson analisa automaticamente quando o cliente aceitar</div>
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
-        <input type="checkbox" id="of-edson" checked style="width:auto;margin:0" />
+        <input type="checkbox" id="of-edson" checked />
         <label for="of-edson" style="margin:0;cursor:pointer;font-size:.88rem">Acionar Edson automaticamente (sem PDF)</label>
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end">
@@ -3126,7 +3159,7 @@
         </div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.88rem;color:var(--text)">
-            <input type="checkbox" id="cliente-ativo" checked style="width:auto;accent-color:var(--primary)" />
+            <input type="checkbox" id="cliente-ativo" checked />
             Cliente ativo (recebe boletins)
           </label>
         </div>
@@ -6767,7 +6800,7 @@
           ${items.map((item, i) => {
             const checked = !!saved[`${g}-${i}`];
             return `<label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">
-              <input type="checkbox" ${checked?'checked':''} style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary)"
+              <input type="checkbox" ${checked?'checked':''} style="margin-top:2px;flex-shrink:0"
                 onchange="toggleEdsonChecklist(${pregaoId},'${g}',${i},this)" />
               <span id="ecl-${pregaoId}-${g}-${i}" style="font-size:.875rem;${checked?'opacity:.45;text-decoration:line-through':''}">${esc(item)}</span>
             </label>`;
@@ -7551,7 +7584,7 @@
         html += `<tr style="border-bottom:1px solid var(--border);${idx % 2 !== 0 ? 'background:rgba(255,255,255,.02)' : ''}">
           <td style="padding:.5rem .75rem;text-align:center">
             <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}
-              style="appearance:none;-webkit-appearance:none;width:15px;height:15px;min-width:15px;border:1.5px solid rgba(76,197,215,.4);border-radius:3px;cursor:pointer;flex-shrink:0;vertical-align:middle">
+              style="flex-shrink:0;vertical-align:middle">
           </td>
           <td style="padding:.5rem .75rem;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${item.numero}</td>
           <td style="padding:.5rem .75rem;font-size:.83rem;line-height:1.4">${esc(item.descricao || '—')}</td>
@@ -8093,7 +8126,7 @@
           const checked = ehSocioFundador || permMap[m.id] !== false;
           const disabled = ehSocioFundador;
           return `<label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:${disabled?'default':'pointer'};padding:4px 6px;border-radius:5px;background:var(--card-bg);${disabled?'opacity:.65':''}">
-            <input type="checkbox" id="eu-perm-${m.id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} style="cursor:${disabled?'not-allowed':'pointer'};flex-shrink:0">
+            <input type="checkbox" id="eu-perm-${m.id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} style="flex-shrink:0">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${m.label}">${m.label}</span>
           </label>`;
         }).join('');
@@ -8374,7 +8407,7 @@
       const loc  = [l.cidade, l.uf].filter(Boolean).join('/');
       return `
         <div style="display:flex;align-items:flex-start;gap:10px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:.8rem 1rem">
-          <input type="checkbox" class="lead-check" data-idx="${i}" style="margin-top:3px;width:15px;height:15px;flex-shrink:0">
+          <input type="checkbox" class="lead-check" data-idx="${i}" style="margin-top:3px;flex-shrink:0">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(nome.slice(0,80))}</span>
@@ -9735,7 +9768,7 @@ ${nomes}${dados.length > 5 ? `
           <div class="p-frente-header-left">
             <input type="checkbox" id="pft_${f.id}" ${f.on?'checked':''}
                    onchange="_propostaToggleFrente('${f.id}',this.checked)"
-                   style="width:14px;height:14px;accent-color:var(--pv-teal);flex-shrink:0">
+                   style="flex-shrink:0">
             <div class="p-frente-num">${f.n}</div>
             <div class="p-frente-name">${esc(f.name)}</div>
           </div>
@@ -10462,7 +10495,7 @@ img { max-height: 22px !important; width: auto !important; display: block; }
         </select>
       </div>
       <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.88rem">
-        <input type="checkbox" id="enviar-cliente-pdf" style="width:15px;height:15px;accent-color:var(--primary)">
+        <input type="checkbox" id="enviar-cliente-pdf">
         Incluir relatório PDF para reunião
       </label>
     </div>
@@ -10670,7 +10703,7 @@ img { max-height: 22px !important; width: auto !important; display: block; }
           <input type="date" id="eu-data-entrada" />
         </div>
         <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:22px">
-          <input type="checkbox" id="eu-ativo" style="width:16px;height:16px;cursor:pointer" />
+          <input type="checkbox" id="eu-ativo" />
           <label for="eu-ativo" style="cursor:pointer;margin:0">Colaborador ativo</label>
         </div>
       </div>
@@ -12197,11 +12230,11 @@ async function mktSalvarTemplate() {
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem">
-          <input type="checkbox" id="mp-enriquecer" style="width:15px;height:15px">
+          <input type="checkbox" id="mp-enriquecer">
           Enriquecer dados (consulta Receita Federal)
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem">
-          <input type="checkbox" id="mp-grupo2" style="width:15px;height:15px">
+          <input type="checkbox" id="mp-grupo2">
           Incluir Grupo 2 (perfil similar, sem histórico de licitação)
         </label>
       </div>
