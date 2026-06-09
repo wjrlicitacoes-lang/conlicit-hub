@@ -1798,10 +1798,6 @@
               </div>
             </div>
             <div class="busca-campo busca-campo-sm">
-              <label class="busca-label">Encerramento de</label>
-              <input type="date" id="dataInicial" />
-            </div>
-            <div class="busca-campo busca-campo-sm">
               <label class="busca-label">Encerramento até</label>
               <input type="date" id="dataFinal" />
             </div>
@@ -1816,10 +1812,20 @@
               <datalist id="ibge-dl-cidade"></datalist>
             </div>
             <div class="busca-campo busca-campo-xs">
-              <label class="busca-label">Raio — <span id="raio_km_label">0 km</span></label>
-              <input type="range" id="raio_km" min="0" max="500" step="10" value="0"
-                style="width:100%;accent-color:var(--primary)"
-                oninput="document.getElementById('raio_km_label').textContent=this.value>0?this.value+' km':'qualquer'" />
+              <label class="busca-label">Raio de busca</label>
+              <select id="raio_km">
+                <option value="0">Qualquer</option>
+                <option value="10">10 km</option>
+                <option value="20">20 km</option>
+                <option value="30">30 km</option>
+                <option value="40">40 km</option>
+                <option value="50">50 km</option>
+                <option value="60">60 km</option>
+                <option value="70">70 km</option>
+                <option value="80">80 km</option>
+                <option value="90">90 km</option>
+                <option value="100">100 km</option>
+              </select>
             </div>
             <div class="busca-campo busca-campo-sm">
               <label class="busca-label">Valor mínimo (R$)</label>
@@ -5498,9 +5504,7 @@
   // EDITAIS — existing search logic
   // ─────────────────────────────────────────
   function setDefaultDates() {
-    const hoje = new Date();
-    const fim = new Date(hoje); fim.setDate(fim.getDate() + 30);
-    document.getElementById('dataInicial').value = hoje.toISOString().slice(0, 10);
+    const fim = new Date(); fim.setDate(fim.getDate() + 30);
     document.getElementById('dataFinal').value = fim.toISOString().slice(0, 10);
   }
 
@@ -5549,7 +5553,7 @@
     const cidadeEl = document.getElementById('cidade');
     const raioEl   = document.getElementById('raio_km');
     if (cidadeEl) cidadeEl.value = '';
-    if (raioEl)   { raioEl.value = '0'; const lbl = document.getElementById('raio_km_label'); if (lbl) lbl.textContent = 'qualquer'; }
+    if (raioEl)   raioEl.value = '0';
     const vMinEl = document.getElementById('filtro-valor-min');
     const vMaxEl = document.getElementById('filtro-valor-max');
     if (vMinEl) vMinEl.value = '';
@@ -5682,8 +5686,11 @@
     const q      = document.getElementById('q').value.trim();
     const ufsChecked = Array.from(document.querySelectorAll('#uf-checkboxes input:checked')).map(cb => cb.value);
     const uf = ufsChecked.join(',');
-    const di     = document.getElementById('dataInicial').value;
-    const df     = document.getElementById('dataFinal').value;
+    // dataInicial é sempre hoje (campo removido do formulário)
+    const di = new Date().toISOString().split('T')[0];
+    // dataFinal: usa o valor do campo ou padrão de 90 dias
+    const dfRaw = document.getElementById('dataFinal')?.value;
+    const df = dfRaw || (() => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().split('T')[0]; })();
     const cidade  = document.getElementById('cidade')?.value.trim() || '';
     const raio    = document.getElementById('raio_km')?.value || '';
     const modalidades = Array.from(document.querySelectorAll('#filtro-modalidades input:checked')).map(el => el.value);
@@ -5691,8 +5698,6 @@
     const valorMin   = document.getElementById('filtro-valor-min')?.value || '';
     const valorMax   = document.getElementById('filtro-valor-max')?.value || '';
 
-    if (!di || !df) { toast('Informe o período de busca', 'error'); return; }
-    if (new Date(di) > new Date(df)) { toast('Data inicial deve ser anterior à data final', 'error'); return; }
     if (valorMin && valorMax && Number(valorMin) > Number(valorMax)) {
       toast('Valor mínimo não pode ser maior que o valor máximo', 'error'); return;
     }
@@ -5747,20 +5752,18 @@
       </div>`;
       return;
     }
-    // Filtra por encerramento se datas informadas
+    // Filtra por encerramento até dataFinal se informado
     let dadosFiltrados = d.dados;
-    const diVal = document.getElementById('dataInicial')?.value;
     const dfVal = document.getElementById('dataFinal')?.value;
-    if (diVal || dfVal) {
-      const dtIni = diVal ? new Date(diVal + 'T00:00:00') : null;
-      const dtFim = dfVal ? new Date(dfVal + 'T23:59:59') : null;
+    if (dfVal) {
+      const dtFim = new Date(dfVal + 'T23:59:59');
       dadosFiltrados = d.dados.filter(e => {
-        const enc = e.dataEncerramentoProposta || e.dataEncerramento || e.data_encerramento_proposta || null;
+        // Usa dataEncerramento (ISO) primeiro — mais confiável para comparação
+        const enc = e.dataEncerramento || e.dataEncerramentoProposta || e.data_encerramento_proposta || null;
         if (!enc) return true;
         const dtEnc = new Date(enc);
-        if (dtIni && dtEnc < dtIni) return false;
-        if (dtFim && dtEnc > dtFim) return false;
-        return true;
+        if (isNaN(dtEnc.getTime())) return true;
+        return dtEnc <= dtFim;
       });
     }
     const total = dadosFiltrados.length;
@@ -6046,7 +6049,7 @@
   }
 
   // Enter key in search fields
-  ['q','uf','dataInicial','dataFinal'].forEach(id => {
+  ['q','dataFinal'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
       if (e.key === 'Enter') buscar(1);
     });

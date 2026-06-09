@@ -266,11 +266,16 @@ async function listarEditais(req, res) {
     valorMax,
   } = req.query;
 
-  if (!dataInicial || !dataFinal) {
+  if (!dataInicial) {
     return res.status(400).json({
-      erro: 'Os parâmetros dataInicial e dataFinal são obrigatórios (formato: YYYYMMDD)',
+      erro: 'O parâmetro dataInicial é obrigatório (formato: YYYYMMDD)',
     });
   }
+  // dataFinal opcional — padrão: 90 dias a partir de hoje
+  const dataFinalEfetivo = dataFinal || (() => {
+    const d = new Date(); d.setDate(d.getDate() + 90);
+    return d.toISOString().slice(0, 10).replace(/-/g, '');
+  })();
 
   // Arrays de modalidade e portal (multi-select)
   const modalidades = modalidadesRaw ? modalidadesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -298,11 +303,12 @@ async function listarEditais(req, res) {
       const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
         params: {
           dataInicial,
-          dataFinal,
+          dataFinal: dataFinalEfetivo,
           pagina: paginaSolicitada,
           tamanhoPagina: tamanhoSolicitado,
           ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }),
         },
+        headers: { 'Accept': 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
         timeout: 15000,
       });
 
@@ -325,7 +331,7 @@ async function listarEditais(req, res) {
     if (totalCache >= 100) {
       // Cache populado → busca no banco (cobertura 100% dos editais sincronizados)
       const { total, dados } = await buscarNaCache({
-        q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais,
+        q, uf, modalidade, modalidades, dataInicial, dataFinal: dataFinalEfetivo, cidade, raio_km, portal, portais,
         valorMin: vMin, valorMax: vMax,
         pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado,
       });
@@ -366,8 +372,9 @@ async function listarEditais(req, res) {
     const paginas = await Promise.all(
       Array.from({ length: PAGINAS_BUSCA }, (_, i) =>
         axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
-          params: { dataInicial, dataFinal, pagina: i + 1, tamanhoPagina: 50,
+          params: { dataInicial, dataFinal: dataFinalEfetivo, pagina: i + 1, tamanhoPagina: 50,
             ...(codigoModalidade && { codigoModalidadeContratacao: codigoModalidade }) },
+          headers: { 'Accept': 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
           timeout: 15000,
         }).then((r) => r.data.data ?? []).catch(() => []),
       ),
