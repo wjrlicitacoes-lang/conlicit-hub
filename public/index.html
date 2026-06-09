@@ -8006,7 +8006,66 @@
   function abrirModalProspectar() {
     document.getElementById('mp-resultado').style.display = 'none';
     _leadsEncontrados = [];
+    setFonteProspeccao('pncp');
     document.getElementById('modal-prospectar').classList.add('visible');
+  }
+
+  function setFonteProspeccao(fonte) {
+    const pncpFields  = document.getElementById('mp-pncp-fields');
+    const gmapsFields = document.getElementById('mp-gmaps-fields');
+    const btnPncp     = document.getElementById('mp-btn-pncp');
+    const btnGmaps    = document.getElementById('mp-btn-gmaps');
+    const resultado   = document.getElementById('mp-resultado');
+
+    if (fonte === 'pncp') {
+      pncpFields.style.display  = '';
+      gmapsFields.style.display = 'none';
+      btnPncp.style.background  = '#4CC5D7';
+      btnPncp.style.color       = '#fff';
+      btnGmaps.style.background = 'transparent';
+      btnGmaps.style.color      = '#4CC5D7';
+    } else {
+      pncpFields.style.display  = 'none';
+      gmapsFields.style.display = 'flex';
+      btnGmaps.style.background = '#4CC5D7';
+      btnGmaps.style.color      = '#fff';
+      btnPncp.style.background  = 'transparent';
+      btnPncp.style.color       = '#4CC5D7';
+      resultado.style.display   = 'none';
+      document.getElementById('mp-gmaps-banner').style.display = 'none';
+    }
+  }
+
+  async function buscarGoogleMaps() {
+    const segmento = document.getElementById('mp-gm-segmento').value.trim();
+    const cidade   = document.getElementById('mp-gm-cidade').value.trim();
+    const raio     = parseInt(document.getElementById('mp-gm-raio').value, 10);
+
+    if (!segmento || !cidade) {
+      toast('Preencha segmento e cidade.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-buscar-gmaps');
+    btn.disabled = true;
+    btn.textContent = 'Buscando…';
+
+    try {
+      const r = await fetch(`${API}/api/prospects/google-maps-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ segmento, cidade, raio_km: raio }),
+      });
+      const d = await r.json();
+      if (d.status === 'em_breve') {
+        document.getElementById('mp-gmaps-banner').style.display = 'block';
+      }
+    } catch {
+      document.getElementById('mp-gmaps-banner').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Buscar no Google Maps →';
+    }
   }
 
   async function buscarLeads() {
@@ -11335,6 +11394,22 @@ async function salvarOportunidade() {
       <button class="modal-close" onclick="document.getElementById('modal-prospectar').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- Toggle de fonte -->
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:.75rem;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-right:4px">Fonte:</span>
+        <button id="mp-btn-pncp" onclick="setFonteProspeccao('pncp')"
+          style="padding:.35rem 1rem;border-radius:20px;border:1.5px solid #4CC5D7;background:#4CC5D7;color:#fff;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s">
+          PNCP
+        </button>
+        <button id="mp-btn-gmaps" onclick="setFonteProspeccao('gmaps')"
+          style="padding:.35rem 1rem;border-radius:20px;border:1.5px solid #4CC5D7;background:transparent;color:#4CC5D7;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s">
+          Google Maps
+        </button>
+      </div>
+
+      <!-- ── Campos PNCP ── -->
+      <div id="mp-pncp-fields">
       <!-- Filtros -->
       <div class="form-row">
         <div class="form-group">
@@ -11407,6 +11482,42 @@ async function salvarOportunidade() {
       <button class="btn btn-primary" onclick="buscarLeads()" id="btn-buscar-leads">
         <i class="ti ti-search"></i> Buscar leads
       </button>
+      </div><!-- /#mp-pncp-fields -->
+
+      <!-- ── Campos Google Maps ── -->
+      <div id="mp-gmaps-fields" style="display:none;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label>Segmento / Tipo de negócio <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="mp-gm-segmento" placeholder="Ex: material de construção, distribuidora, farmácia" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cidade <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="mp-gm-cidade" placeholder="Ex: Belo Horizonte" />
+          </div>
+          <div class="form-group">
+            <label>Raio de busca</label>
+            <select id="mp-gm-raio">
+              <option value="5">5 km</option>
+              <option value="10" selected>10 km</option>
+              <option value="25">25 km</option>
+              <option value="50">50 km</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="buscarGoogleMaps()" id="btn-buscar-gmaps">
+            Buscar no Google Maps →
+          </button>
+          <span style="display:inline-flex;align-items:center;gap:5px;background:#FEF3C7;color:#92400E;font-size:.72rem;font-weight:700;padding:.25rem .6rem;border-radius:10px;cursor:default"
+            title="Integração Google Maps em desenvolvimento. Em breve disponível.">
+            EM BREVE
+          </span>
+        </div>
+        <div id="mp-gmaps-banner" style="display:none;background:#FEF3C7;color:#92400E;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;line-height:1.5">
+          🔜 Integração Google Maps em desenvolvimento. Disponível em breve.
+        </div>
+      </div>
 
       <!-- Resultado -->
       <div id="mp-resultado" style="display:none">

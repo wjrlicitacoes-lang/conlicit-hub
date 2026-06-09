@@ -93,6 +93,15 @@ app.use('/documentos-cliente',  documentosClienteRoutes);
 app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/financeiro',      financeiroRoutes);
 
+// POST /api/prospects/google-maps-search — stub para integração futura
+app.post('/api/prospects/google-maps-search', autenticar, (req, res) => {
+  res.json({
+    status: 'em_breve',
+    mensagem: 'Integração Google Maps em desenvolvimento. Configure a variável GOOGLE_MAPS_API_KEY no ambiente para ativar.',
+    config_necessaria: 'GOOGLE_MAPS_API_KEY',
+  });
+});
+
 // Endpoint temporário para forçar migrations pontuais via API
 app.post('/admin/migrar', autenticar, async (req, res) => {
   if (req.usuario?.role !== 'admin') return res.status(403).json({ erro: 'Apenas admin' });
