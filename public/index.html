@@ -1512,18 +1512,15 @@
     #etab-planilha-precos input[type="checkbox"] {
       appearance: none;
       -webkit-appearance: none;
+      background-repeat: no-repeat;
+      background-size: 80% 80%;
+      background-position: center;
+      transition: all .15s;
     }
-    #etab-planilha-precos input[type="checkbox"]:checked::after {
-      content: '';
-      position: absolute;
-      left: 3px;
-      top: 0px;
-      width: 5px;
-      height: 9px;
-      border: 2px solid #182A39;
-      border-top: none;
-      border-left: none;
-      transform: rotate(45deg);
+    #etab-planilha-precos input[type="checkbox"]:checked {
+      background-color: #4CC5D7;
+      border-color: #4CC5D7 !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C%2Fsvg%3E");
     }
   </style>
 </head>
@@ -7284,6 +7281,8 @@
             <th style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Qtd</th>
             <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Ref. Unit.</th>
             <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Total</th>
+            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Marca/Modelo</th>
+            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Valor Final</th>
           </tr>
         </thead>
         <tbody>`;
@@ -7292,15 +7291,18 @@
         const selecionado = jaTemSelecao
           ? d.itens_selecao.some(s => s.numero === item.numero)
           : true;
+        const selItem = jaTemSelecao ? (d.itens_selecao.find(s => s.numero === item.numero) || null) : null;
         const vlr   = item.valor_referencia       ? `R$ ${parseFloat(item.valor_referencia).toFixed(2).replace('.',',')}` : '—';
         const vtotal = item.valor_total_estimado  ? `R$ ${parseFloat(item.valor_total_estimado).toFixed(2).replace('.',',')}` : '—';
         const qtd   = (item.quantidade != null && item.quantidade !== 'null') ? item.quantidade : '—';
         const und   = item.unidade || '—';
+        const idSafe = String(item.numero).replace(/[^a-zA-Z0-9]/g, '_');
+        const marcaVal = selItem?.marca_modelo || '';
+        const vfinalVal = selItem?.valor_final != null ? selItem.valor_final : '';
         html += `<tr style="border-bottom:1px solid var(--border);${idx % 2 !== 0 ? 'background:rgba(255,255,255,.02)' : ''}">
           <td style="padding:.5rem .75rem;text-align:center">
             <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}
-              style="appearance:none;-webkit-appearance:none;width:15px;height:15px;min-width:15px;border:1.5px solid rgba(76,197,215,.4);border-radius:3px;background:${selecionado ? '#4CC5D7' : 'transparent'};cursor:pointer;position:relative;flex-shrink:0;transition:all .15s;vertical-align:middle"
-              onchange="this.style.background=this.checked?'#4CC5D7':'transparent';this.style.borderColor=this.checked?'#4CC5D7':'rgba(76,197,215,.4)'">
+              style="appearance:none;-webkit-appearance:none;width:15px;height:15px;min-width:15px;border:1.5px solid rgba(76,197,215,.4);border-radius:3px;cursor:pointer;flex-shrink:0;vertical-align:middle">
           </td>
           <td style="padding:.5rem .75rem;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${item.numero}</td>
           <td style="padding:.5rem .75rem;font-size:.83rem;line-height:1.4">${esc(item.descricao || '—')}</td>
@@ -7308,6 +7310,14 @@
           <td style="padding:.5rem .75rem;text-align:center;font-weight:600;font-size:.85rem">${qtd}</td>
           <td style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${vlr}</td>
           <td style="padding:.5rem .75rem;text-align:right;font-weight:600;font-size:.83rem;white-space:nowrap;color:${vtotal !== '—' ? 'var(--primary)' : 'var(--text-muted)'}">${vtotal}</td>
+          <td style="padding:.5rem .4rem">
+            <input type="text" id="pp-marca-${idSafe}" value="${esc(marcaVal)}" placeholder="Marca/Modelo"
+              style="width:110px;padding:.25rem .4rem;font-size:.78rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--t1)">
+          </td>
+          <td style="padding:.5rem .4rem">
+            <input type="number" id="pp-vfinal-${idSafe}" value="${vfinalVal}" placeholder="0,00" step="0.01" min="0"
+              style="width:90px;padding:.25rem .4rem;font-size:.78rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--t1);text-align:right">
+          </td>
         </tr>`;
       });
 
@@ -7414,7 +7424,16 @@
     const itensSelecionados = [];
     checkboxes.forEach(cb => {
       const item = itensEdital.find(i => String(i.numero) === cb.value);
-      if (item) itensSelecionados.push(item);
+      if (item) {
+        const idSafe = String(item.numero).replace(/[^a-zA-Z0-9]/g, '_');
+        const marcaEl  = document.getElementById(`pp-marca-${idSafe}`);
+        const vfinalEl = document.getElementById(`pp-vfinal-${idSafe}`);
+        itensSelecionados.push({
+          ...item,
+          marca_modelo: marcaEl?.value?.trim() || null,
+          valor_final:  vfinalEl?.value ? parseFloat(vfinalEl.value) : null,
+        });
+      }
     });
 
     try {
@@ -7808,6 +7827,29 @@
 
     await toggleEuClienteField();
     if (u.role === 'cliente') document.getElementById('eu-cliente-id').value = u.cliente_id || '';
+
+    // Carregar permissões
+    const permContainer = document.getElementById('eu-perm-lista');
+    permContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:.5rem;color:var(--text-muted);font-size:.8rem">Carregando…</div>';
+    try {
+      const permR = await fetch(`${API}/auth/usuarios/${u.id}/permissoes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (permR.ok) {
+        const { permissoes } = await permR.json();
+        const permMap = Object.fromEntries(permissoes.map(p => [p.modulo, p.liberado]));
+        permContainer.innerHTML = MODULOS_DISPONIVEIS.map(m => `
+          <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer;padding:4px 6px;border-radius:5px;background:var(--card-bg)">
+            <input type="checkbox" id="eu-perm-${m.id}" ${permMap[m.id] ? 'checked' : ''} style="cursor:pointer;flex-shrink:0">
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${m.label}">${m.label}</span>
+          </label>`).join('');
+      } else {
+        permContainer.innerHTML = '<div style="grid-column:1/-1;font-size:.78rem;color:var(--danger);padding:.25rem">Não foi possível carregar permissões</div>';
+      }
+    } catch {
+      permContainer.innerHTML = '<div style="grid-column:1/-1;font-size:.78rem;color:var(--danger);padding:.25rem">Erro ao carregar permissões</div>';
+    }
+
     document.getElementById('modal-editar-usuario').classList.add('visible');
   }
 
@@ -7852,6 +7894,18 @@
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
+
+      // Salvar permissões em paralelo (best-effort)
+      const permissoes = MODULOS_DISPONIVEIS.map(m => ({
+        modulo: m.id,
+        liberado: document.getElementById(`eu-perm-${m.id}`)?.checked ?? false,
+      }));
+      await fetch(`${API}/auth/usuarios/${id}/permissoes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ permissoes }),
+      }).catch(() => {});
+
       document.getElementById('modal-editar-usuario').classList.remove('visible');
       toast('Colaborador atualizado!', 'success');
       carregarUsuarios();
@@ -9709,14 +9763,28 @@ img { max-height: 22px !important; width: auto !important; display: block; }
                 <td>${p.valor_mensalidade ? 'R$ '+parseFloat(p.valor_mensalidade).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
                 ${!isDiretor ? `<td>${p.percentual_comissao ? p.percentual_comissao+'%' : '—'}</td><td>${p.criado_por_nome||p.responsavel||'—'}</td>` : ''}
                 <td>${new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
-                <td>
+                <td style="white-space:nowrap">
                   <button class="btn btn-ghost btn-sm" onclick='propostaReabrir(${JSON.stringify(p)})'>Reabrir</button>
+                  <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="excluirProposta(${p.id},'${p.numero.replace(/'/g,"\\'")}')">Excluir</button>
                 </td>
               </tr>
             `).join('')}
           </tbody>
         </table>`;
     } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+  }
+
+  async function excluirProposta(id, numero) {
+    if (!confirm(`Excluir proposta nº ${numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const r = await fetch(`${API}/propostas/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao excluir');
+      toast('Proposta excluída.', 'success');
+      propostaCarregarHistorico();
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   async function propostaReabrir(p) {
@@ -10288,6 +10356,12 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       <div class="form-group">
         <label>Bio / Apresentação</label>
         <textarea id="eu-bio" rows="2" placeholder="Pequena descrição do colaborador..." style="width:100%;resize:vertical"></textarea>
+      </div>
+      <div>
+        <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:.5rem">Permissões de acesso</label>
+        <div id="eu-perm-lista" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);max-height:180px;overflow-y:auto">
+          <div style="grid-column:1/-1;text-align:center;padding:.5rem;color:var(--text-muted);font-size:.8rem">Carregando…</div>
+        </div>
       </div>
       <div id="alert-editar-usuario" class="alert"></div>
     </div>
