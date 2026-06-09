@@ -689,6 +689,44 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   // Campo função específica do colaborador (distinto de cargo)
   await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS funcao TEXT`);
 
+  // ── Fluxo SDR/Closer: novas colunas em prospects ─────────────────────────────
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nome_empresa text`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nicho text`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_nome text`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_cargo text`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS status_contato text DEFAULT 'novo_lead'`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_id integer REFERENCES usuarios(id) ON DELETE SET NULL`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS anotacoes text`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS data_ultimo_contato timestamptz`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS campanhas_recebidas jsonb DEFAULT '[]'`);
+
+  // ── Tabelas de marketing ──────────────────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS campanhas_marketing (
+      id            SERIAL PRIMARY KEY,
+      nome          TEXT NOT NULL,
+      tipo          TEXT NOT NULL DEFAULT 'email',
+      assunto       TEXT,
+      corpo         TEXT NOT NULL,
+      status        TEXT NOT NULL DEFAULT 'rascunho',
+      criado_por    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      total_enviados INT DEFAULT 0,
+      total_abertos  INT DEFAULT 0
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS campanha_leads (
+      id              SERIAL PRIMARY KEY,
+      campanha_id     INTEGER REFERENCES campanhas_marketing(id) ON DELETE CASCADE,
+      prospect_id     INTEGER REFERENCES prospects(id) ON DELETE CASCADE,
+      status_entrega  TEXT DEFAULT 'pendente',
+      enviado_em      TIMESTAMPTZ,
+      UNIQUE(campanha_id, prospect_id)
+    )
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

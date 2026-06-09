@@ -29,6 +29,7 @@ const documentosRoutes         = require('./routes/documentos');
 const documentosClienteRoutes  = require('./routes/documentosCliente');
 const dashboardRoutes          = require('./routes/dashboard');
 const financeiroRoutes         = require('./routes/financeiro');
+const marketingRoutes          = require('./routes/marketing');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -92,6 +93,7 @@ app.use('/documentos',          autenticar, documentosRoutes);
 app.use('/documentos-cliente',  documentosClienteRoutes);
 app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/financeiro',      financeiroRoutes);
+app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 
 // POST /api/prospects/google-maps-search — stub para integração futura
 app.post('/api/prospects/google-maps-search', autenticar, (req, res) => {

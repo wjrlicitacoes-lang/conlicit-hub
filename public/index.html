@@ -829,6 +829,12 @@
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
+    .pf-chip {
+      padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;border:1px solid #4CC5D7;
+      color:#4CC5D7;background:transparent;transition:all .15s;
+    }
+    .pf-chip.active { background:#4CC5D7;color:#fff; }
+    .pf-chip:hover:not(.active) { background:rgba(76,197,215,.12); }
 
     /* ── CLIENT CARDS ── */
     .client-grid {
@@ -2024,6 +2030,7 @@
             <button class="btn btn-ghost btn-sm" id="btn-view-kanban" onclick="setViewProspects('kanban')" title="Kanban">⬛ Kanban</button>
             <button class="btn btn-ghost btn-sm" id="btn-view-lista"  onclick="setViewProspects('lista')"  title="Lista">☰ Lista</button>
             <button class="btn btn-ghost btn-sm" onclick="abrirModalProspectar()" style="border-color:var(--primary);color:var(--primary)"><i class="ti ti-search"></i> Prospectar</button>
+            <button class="btn btn-ghost btn-sm" onclick="abrirModalImportarPlanilha()" style="border-color:#4CC5D7;color:#4CC5D7">↑ Importar planilha</button>
             <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Lead</button>
             <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻</button>
           </div>
@@ -2032,10 +2039,24 @@
         <!-- Stats -->
         <div id="prospects-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem"></div>
 
+        <!-- Chips de status_contato -->
+        <div id="pf-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="pf-chip active" data-sc="" onclick="filtrarProspectsChip(this,'')">Todos</button>
+          <button class="pf-chip" data-sc="novo_lead"        onclick="filtrarProspectsChip(this,'novo_lead')">Novo lead</button>
+          <button class="pf-chip" data-sc="aguardando"       onclick="filtrarProspectsChip(this,'aguardando')">Aguardando</button>
+          <button class="pf-chip" data-sc="contato_feito"    onclick="filtrarProspectsChip(this,'contato_feito')">Contato feito</button>
+          <button class="pf-chip" data-sc="respondido"       onclick="filtrarProspectsChip(this,'respondido')">Respondido</button>
+          <button class="pf-chip" data-sc="proposta_enviada" onclick="filtrarProspectsChip(this,'proposta_enviada')">Proposta enviada</button>
+          <button class="pf-chip" data-sc="sem_interesse"    onclick="filtrarProspectsChip(this,'sem_interesse')">Sem interesse</button>
+          <button class="pf-chip" data-sc="fechado"          onclick="filtrarProspectsChip(this,'fechado')">Fechado</button>
+        </div>
+
         <!-- Filtros -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+          <input type="text" id="pf-q" placeholder="Buscar empresa, email, CNPJ…" style="font-size:.8rem;padding:5px 10px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);min-width:180px">
+          <input type="text" id="pf-nicho" placeholder="Nicho/segmento" style="font-size:.8rem;padding:5px 10px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);min-width:130px">
           <select id="pf-status" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
-            <option value="">Todos os status</option>
+            <option value="">Todos (pipeline)</option>
             <option value="novo_lead">Novo lead</option>
             <option value="em_negociacao">Em negociação</option>
             <option value="resumo_enviado">Resumo enviado</option>
@@ -2045,24 +2066,30 @@
             <option value="convertido">Convertido</option>
             <option value="perdido">Perdido</option>
           </select>
-          <select id="pf-segmento" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
-            <option value="">Todos os segmentos</option>
-            <option value="saude">Saúde / Medicamentos</option>
-            <option value="alimentacao">Alimentação / Merenda</option>
-            <option value="obras">Obras e Engenharia</option>
-            <option value="limpeza">Limpeza e Conservação</option>
-            <option value="escritorio">Material de Escritório</option>
-            <option value="ti">TI e Software</option>
-            <option value="seguranca">Segurança e Vigilância</option>
-            <option value="manutencao">Manutenção Predial</option>
-            <option value="transporte">Transporte / Veículos</option>
-            <option value="epi">EPI / Uniformes</option>
-          </select>
-          <input type="date" id="pf-data-de"  style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)" title="De">
-          <input type="date" id="pf-data-ate" style="font-size:.8rem;padding:5px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)" title="Até">
-          <input type="text" id="pf-q" placeholder="Buscar nome, empresa…" style="font-size:.8rem;padding:5px 10px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1);min-width:160px">
           <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">Filtrar</button>
           <button class="btn btn-ghost btn-sm" onclick="limparFiltrosProspects()">✕ Limpar</button>
+        </div>
+
+        <!-- Barra de ações em lote (oculta por padrão) -->
+        <div id="pf-lote-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:8px;padding:8px 14px;margin-bottom:12px">
+          <span id="pf-lote-count" style="font-size:.82rem;font-weight:600;color:var(--primary)">0 leads selecionados</span>
+          <select id="pf-lote-status" style="font-size:.78rem;padding:4px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
+            <option value="">Alterar status…</option>
+            <option value="novo_lead">Novo lead</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="contato_feito">Contato feito</option>
+            <option value="respondido">Respondido</option>
+            <option value="proposta_enviada">Proposta enviada</option>
+            <option value="sem_interesse">Sem interesse</option>
+            <option value="fechado">Fechado</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="aplicarStatusLote()" style="font-size:.75rem">Aplicar status</button>
+          <select id="pf-lote-campanha" style="font-size:.78rem;padding:4px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
+            <option value="">Enviar campanha…</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="enviarCampanhaLote()" style="font-size:.75rem;color:#4CC5D7">Enviar</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarSelecionados()" style="font-size:.75rem">↓ Exportar</button>
+          <button class="btn btn-ghost btn-sm" onclick="excluirSelecionados()" style="font-size:.75rem;color:#ef4444">🗑 Excluir</button>
         </div>
 
         <div id="prospects-area">
@@ -2693,52 +2720,28 @@
           <h1>Marketing</h1>
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarMarketing()">↻ Atualizar</button>
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-mkt-template').showModal()">+ Novo Template</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNovaCampanha()">+ Nova Campanha</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-mkt-template').showModal()">+ Template Email</button>
           </div>
         </div>
 
         <!-- Tabs -->
         <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:16px">
-          <button id="mkt-tab-templates" class="tab-btn active" onclick="mktSwitchTab('templates')">Templates</button>
+          <button id="mkt-tab-campanhas" class="tab-btn active" onclick="mktSwitchTab('campanhas')">Campanhas</button>
+          <button id="mkt-tab-templates" class="tab-btn"        onclick="mktSwitchTab('templates')">Templates Email</button>
           <button id="mkt-tab-logs"      class="tab-btn"        onclick="mktSwitchTab('logs')">Histórico</button>
-          <button id="mkt-tab-campanha"  class="tab-btn"        onclick="mktSwitchTab('campanha')">Disparar Campanha</button>
         </div>
 
-        <div id="mkt-panel-templates">
+        <div id="mkt-panel-campanhas">
+          <div id="mkt-campanhas-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+
+        <div id="mkt-panel-templates" style="display:none">
           <div id="mkt-templates-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
         </div>
 
         <div id="mkt-panel-logs" style="display:none">
           <div id="mkt-logs-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        </div>
-
-        <div id="mkt-panel-campanha" style="display:none">
-          <div style="max-width:520px;display:grid;gap:16px">
-            <div>
-              <label class="form-label">Template de email *</label>
-              <select id="mkt-camp-template" class="form-control"><option value="">Carregando…</option></select>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div>
-                <label class="form-label">Segmento (opcional)</label>
-                <input id="mkt-camp-segmento" class="form-control" placeholder="Ex: construção civil">
-              </div>
-              <div>
-                <label class="form-label">UF (opcional)</label>
-                <input id="mkt-camp-uf" class="form-control" placeholder="Ex: MG" maxlength="2" style="text-transform:uppercase">
-              </div>
-            </div>
-            <div>
-              <label class="form-label">Limite de envios</label>
-              <input id="mkt-camp-limite" class="form-control" type="number" min="1" max="500" value="50">
-            </div>
-            <div style="background:#FEF3C7;color:#92400E;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;line-height:1.5">
-              <strong>Atenção:</strong> Os emails serão enviados aos prospects que têm endereço de email cadastrado, filtrados pelos critérios acima. Verifique sempre a lista antes de disparar.
-            </div>
-            <div>
-              <button id="btn-mkt-enviar" class="btn btn-primary" onclick="mktEnviarCampanha()">Disparar Campanha</button>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -2881,6 +2884,96 @@
     </div>
   </div>
 </dialog>
+
+<!-- Modal: Nova/Editar Campanha de Marketing -->
+<div class="modal-overlay" id="modal-nova-campanha" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="camp-modal-titulo">Nova Campanha</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-nova-campanha').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="camp-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome da campanha *</label>
+          <input type="text" id="camp-nome" placeholder="Ex: Prospecção MG — Jun/2026">
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="camp-tipo" onchange="campTipoChange()">
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+      </div>
+      <div id="camp-assunto-wrap" class="form-group">
+        <label>Assunto (email)</label>
+        <input type="text" id="camp-assunto" placeholder="Ex: {{empresa}}, temos uma oportunidade para você">
+      </div>
+      <div class="form-group">
+        <label>Corpo da mensagem *</label>
+        <textarea id="camp-corpo" rows="6" placeholder="Olá {{nome}},&#10;&#10;Texto da mensagem…&#10;&#10;Atenciosamente,&#10;Conlicit"></textarea>
+        <div style="font-size:.73rem;color:var(--t3);margin-top:3px">Variáveis: {{nome}}, {{empresa}}</div>
+      </div>
+      <div id="alert-camp" class="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-nova-campanha').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCampanha()">Salvar rascunho</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Disparar campanha -->
+<div class="modal-overlay" id="modal-disparar-campanha" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:500px">
+    <div class="modal-header">
+      <h3>Disparar: <span id="disp-camp-nome" style="color:var(--primary)"></span></h3>
+      <button class="modal-close" onclick="document.getElementById('modal-disparar-campanha').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="disp-camp-id">
+      <div>
+        <label style="font-size:.82rem;font-weight:600;margin-bottom:6px;display:block">Modo de disparo</label>
+        <div style="display:flex;gap:8px">
+          <button class="pf-chip active" id="disp-modo-filtro" onclick="dispModo('filtro')">Por filtro</button>
+          <button class="pf-chip" id="disp-modo-manual" onclick="dispModo('manual')">Selecionar manualmente</button>
+        </div>
+      </div>
+      <div id="disp-panel-filtro">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="form-label">Status de contato</label>
+            <select id="disp-filtro-status" class="form-control">
+              <option value="">Todos</option>
+              <option value="novo_lead">Novo lead</option>
+              <option value="aguardando">Aguardando</option>
+              <option value="contato_feito">Contato feito</option>
+              <option value="respondido">Respondido</option>
+              <option value="proposta_enviada">Proposta enviada</option>
+              <option value="fechado">Fechado</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Nicho</label>
+            <input id="disp-filtro-nicho" class="form-control" placeholder="Ex: construção">
+          </div>
+        </div>
+        <div id="disp-alcance" style="margin-top:8px;font-size:.8rem;color:var(--t2)">— Calcular alcance</div>
+      </div>
+      <div id="disp-panel-manual" style="display:none">
+        <div style="font-size:.8rem;color:var(--t2);margin-bottom:6px">Lista de prospects carregada ao abrir este painel.</div>
+        <div id="disp-lista-manual" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+      <div id="alert-disp" class="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-disparar-campanha').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-disparo" onclick="confirmarDisparo()">Confirmar disparo</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Nova Oportunidade -->
 <div class="modal-overlay" id="modal-nova-oportunidade" onclick="this.classList.remove('visible')">
@@ -3420,13 +3513,13 @@
     else if (section === 'edson')          carregarEdson();
     else if (section === 'minha-area')     carregarMinhaArea();
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
-    else if (section === 'prospects')       carregarProspects();
+    else if (section === 'prospects')       { carregarProspects(); carregarCampanhasParaLote(); }
     else if (section === 'documentacao')    carregarDocumentosInternos();
     else if (section === 'financeiro')      carregarFinanceiro();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'pos-vitoria')     carregarPosVitoria();
-    else if (section === 'marketing')       carregarMarketing();
+    else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -8632,15 +8725,22 @@
   }
 
   const PROSPECT_STATUS = [
-    { id: 'novo_lead',        label: 'Novo lead',         cor: '#4CC5D7' },
+    { id: 'novo_lead',        label: 'Novo lead',         cor: '#64748b' },
+    { id: 'aguardando',       label: 'Aguardando',        cor: '#f59e0b' },
+    { id: 'contato_feito',    label: 'Contato feito',     cor: '#4CC5D7' },
+    { id: 'respondido',       label: 'Respondido',        cor: '#a78bfa' },
+    { id: 'proposta_enviada', label: 'Proposta enviada',  cor: '#f97316' },
+    { id: 'fechado',          label: 'Fechado',           cor: '#22c55e' },
+    { id: 'sem_interesse',    label: 'Sem interesse',     cor: '#ef4444' },
+    // legados mantidos para compatibilidade
     { id: 'resumo_enviado',   label: 'Resumo enviado',    cor: '#06B6D4' },
     { id: 'em_followup',      label: 'Em follow-up',      cor: '#F59E0B' },
     { id: 'em_negociacao',    label: 'Em negociação',     cor: '#A78BFA' },
-    { id: 'proposta_enviada', label: 'Proposta enviada',  cor: '#8B5CF6' },
-    { id: 'aguardando',       label: 'Aguardando',        cor: '#6B7280' },
     { id: 'convertido',       label: 'Convertido',        cor: '#10B981' },
     { id: 'perdido',          label: 'Perdido',           cor: '#EF4444' },
   ];
+
+  let prospectsChipStatus = '';
 
   const BREVO_BADGE = {
     clicado: { label: '✉ Clicou',  bg: '#10B981', cor: '#fff' },
@@ -8658,9 +8758,114 @@
   }
 
   function limparFiltrosProspects() {
-    ['pf-status','pf-segmento','pf-q'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    ['pf-data-de','pf-data-ate'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['pf-status','pf-nicho','pf-q'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    prospectsChipStatus = '';
+    document.querySelectorAll('.pf-chip').forEach((b,i) => b.classList.toggle('active', i===0));
     carregarProspects();
+  }
+
+  // ── Importar planilha ──────────────────────────────────────────────────────
+
+  function abrirModalImportarPlanilha() {
+    document.getElementById('imp-resultado').style.display = 'none';
+    document.getElementById('imp-preview').style.display   = 'none';
+    document.getElementById('imp-arquivo').value           = '';
+    document.getElementById('imp-nome-arquivo').textContent = '';
+    document.getElementById('imp-btn-importar').disabled   = true;
+    document.getElementById('imp-btn-importar').textContent = 'Importar';
+    document.getElementById('modal-importar-planilha').classList.add('visible');
+  }
+
+  function imp_onFileChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('imp-nome-arquivo').textContent = file.name;
+    document.getElementById('imp-btn-importar').disabled = false;
+    // Preview das primeiras linhas via XLSX no cliente não disponível — só mostra nome
+    document.getElementById('imp-preview').style.display = 'block';
+    document.getElementById('imp-preview').innerHTML =
+      `<div style="font-size:.8rem;color:var(--t2);padding:8px;background:rgba(76,197,215,.05);border:1px solid rgba(76,197,215,.2);border-radius:6px">
+         📄 <strong>${esc(file.name)}</strong> — ${(file.size/1024).toFixed(0)} KB
+         <br><span style="color:var(--t3);font-size:.75rem">O arquivo será processado ao clicar em "Importar"</span>
+       </div>`;
+  }
+
+  async function importarPlanilhaEnviar() {
+    const fileInput = document.getElementById('imp-arquivo');
+    if (!fileInput.files[0]) { toast('Selecione um arquivo', 'error'); return; }
+    const btn = document.getElementById('imp-btn-importar');
+    btn.disabled = true;
+    btn.textContent = 'Importando…';
+    const fd = new FormData();
+    fd.append('arquivo', fileInput.files[0]);
+    try {
+      const r = await fetch(`${API}/prospects/importar-planilha`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      const res = document.getElementById('imp-resultado');
+      res.style.display = 'block';
+      res.innerHTML = `
+        <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:12px 16px;font-size:.85rem">
+          ✅ <strong>${d.importados} leads importados</strong> · ${d.atualizados} atualizados · ${d.erros?.length||0} erros
+          ${d.erros?.length ? `<div style="margin-top:6px;font-size:.75rem;color:#ef4444">${d.erros.slice(0,3).map(e=>`Linha ${e.linha}: ${e.erro}`).join('<br>')}</div>` : ''}
+        </div>`;
+      btn.textContent = '✓ Concluído';
+      carregarProspects();
+    } catch (e) {
+      toast(e.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Importar';
+    }
+  }
+
+  // ── Enviar campanha para prospect específico ───────────────────────────────
+
+  async function abrirEnviarCampanhaProspect(prospectId, nomeEmpresa) {
+    // Carrega campanhas disponíveis
+    let campanhas = [];
+    try {
+      const r = await fetch(`${API}/api/marketing/campanhas`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      campanhas = (d.dados || []).filter(c => c.status !== 'excluida');
+    } catch (e) {}
+
+    if (!campanhas.length) { toast('Nenhuma campanha disponível. Crie uma na seção Marketing.', 'error'); return; }
+
+    const campId = await new Promise(resolve => {
+      const opts = campanhas.map(c => `<option value="${c.id}">${esc(c.nome)} (${c.tipo})</option>`).join('');
+      const div = document.createElement('div');
+      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+      div.innerHTML = `
+        <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:24px;width:380px;max-width:95vw">
+          <h3 style="margin:0 0 14px;font-size:1rem">Enviar campanha para <span style="color:var(--primary)">${esc(nomeEmpresa)}</span></h3>
+          <select id="_tmp-camp-sel" class="form-control" style="margin-bottom:16px"><option value="">Selecione…</option>${opts}</select>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-ghost btn-sm" onclick="this.closest('div[style*=fixed]').remove();resolve(null)">Cancelar</button>
+            <button class="btn btn-primary btn-sm" onclick="
+              const v=document.getElementById('_tmp-camp-sel').value;
+              if(!v){alert('Selecione uma campanha');return;}
+              this.closest('div[style*=fixed]').remove();
+              resolve(v);">Enviar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(div);
+    });
+
+    if (!campId) return;
+    try {
+      const r = await fetch(`${API}/api/marketing/campanhas/${campId}/disparar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prospect_ids: [prospectId] }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      toast(`Campanha enviada para ${nomeEmpresa}`, 'success');
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   function prStatusBadge(status) {
@@ -9197,21 +9402,108 @@ ${nomes}${dados.length > 5 ? `
     setTimeout(() => { const s = document.getElementById('print-style'); if (s) s.remove(); }, 1000);
   }
 
+  function filtrarProspectsChip(btn, sc) {
+    prospectsChipStatus = sc;
+    document.querySelectorAll('.pf-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    carregarProspects();
+  }
+
+  let prospectsChecked = new Set();
+
+  function toggleLoteBar() {
+    const bar = document.getElementById('pf-lote-bar');
+    const cnt = document.getElementById('pf-lote-count');
+    if (!bar) return;
+    if (prospectsChecked.size > 0) {
+      bar.style.display = 'flex';
+      cnt.textContent = `${prospectsChecked.size} lead${prospectsChecked.size > 1 ? 's' : ''} selecionado${prospectsChecked.size > 1 ? 's' : ''}`;
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  function toggleProspectCheck(id, cb) {
+    if (cb.checked) prospectsChecked.add(id);
+    else prospectsChecked.delete(id);
+    toggleLoteBar();
+  }
+
+  function toggleAllProspects(masterCb) {
+    document.querySelectorAll('.pr-row-cb').forEach(cb => {
+      cb.checked = masterCb.checked;
+      const pid = parseInt(cb.dataset.pid);
+      if (masterCb.checked) prospectsChecked.add(pid);
+      else prospectsChecked.delete(pid);
+    });
+    toggleLoteBar();
+  }
+
+  async function aplicarStatusLote() {
+    const sc = document.getElementById('pf-lote-status')?.value;
+    if (!sc) { toast('Selecione um status', 'error'); return; }
+    if (!prospectsChecked.size) return;
+    try {
+      const r = await fetch(`${API}/prospects/lote/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids: [...prospectsChecked], status_contato: sc }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast(`${prospectsChecked.size} leads atualizados`, 'success');
+      prospectsChecked.clear();
+      carregarProspects();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function enviarCampanhaLote() {
+    const campId = document.getElementById('pf-lote-campanha')?.value;
+    if (!campId) { toast('Selecione uma campanha', 'error'); return; }
+    if (!prospectsChecked.size) return;
+    try {
+      const r = await fetch(`${API}/api/marketing/campanhas/${campId}/disparar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prospect_ids: [...prospectsChecked] }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      toast(`Campanha enviada para ${d.enviados} leads`, 'success');
+      prospectsChecked.clear();
+      carregarProspects();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function exportarSelecionados() {
+    if (!prospectsChecked.size) return;
+    const ids = [...prospectsChecked].join(',');
+    window.open(`${API}/prospects/exportar?ids=${ids}`, '_blank');
+  }
+
+  async function excluirSelecionados() {
+    if (!prospectsChecked.size) return;
+    if (!confirm(`Excluir ${prospectsChecked.size} leads? Esta ação é irreversível.`)) return;
+    for (const id of prospectsChecked) {
+      await fetch(`${API}/prospects/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
+    prospectsChecked.clear();
+    toast('Leads excluídos', 'success');
+    carregarProspects();
+  }
+
   async function carregarProspects() {
     const area = document.getElementById('prospects-area');
     area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    prospectsChecked.clear();
 
     const params = new URLSearchParams();
     const pStatus  = document.getElementById('pf-status')?.value;
-    const pSeg     = document.getElementById('pf-segmento')?.value;
-    const pDe      = document.getElementById('pf-data-de')?.value;
-    const pAte     = document.getElementById('pf-data-ate')?.value;
+    const pNicho   = document.getElementById('pf-nicho')?.value;
     const pQ       = document.getElementById('pf-q')?.value;
-    if (pStatus) params.set('status', pStatus);
-    if (pSeg)    params.set('segmento', pSeg);
-    if (pDe)     params.set('data_de', pDe);
-    if (pAte)    params.set('data_ate', pAte);
-    if (pQ)      params.set('q', pQ);
+    if (pStatus)             params.set('status', pStatus);
+    if (pNicho)              params.set('nicho', pNicho);
+    if (pQ)                  params.set('q', pQ);
+    if (prospectsChipStatus) params.set('status_contato', prospectsChipStatus);
 
     try {
       const r = await fetch(`${API}/prospects?${params}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -9302,46 +9594,67 @@ ${nomes}${dados.length > 5 ? `
 
   function renderProspectsLista(area, dados) {
     if (!dados.length) { area.innerHTML = '<div class="state-box">Nenhum prospect encontrado.</div>'; return; }
-    area.innerHTML = `<div class="table-wrap"><table class="data-table">
+    area.innerHTML = `<div class="table-wrap"><table class="data-table" style="font-size:.8rem">
       <thead><tr>
-        <th>Lead</th><th>Segmento</th><th>Status lead</th>
-        <th>Email Brevo</th><th>Formulário</th><th>Edital</th>
-        <th>Data</th><th></th>
+        <th style="width:28px"><input type="checkbox" onchange="toggleAllProspects(this)" style="cursor:pointer"></th>
+        <th>Empresa</th><th>Nicho</th><th>Email</th><th>Telefone</th>
+        <th>CNPJ</th><th>Responsável</th><th>Status</th><th>Último contato</th><th></th>
       </tr></thead>
       <tbody>
         ${dados.map(p => {
-          const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
-          const formCell = p.formulario_preenchido
-            ? `<span style="color:#10B981;font-size:.8rem">✓ Preenchido</span>`
-            : `<span style="color:var(--t3);font-size:.8rem">—</span>`;
-          const editalCell = p.edital
-            ? `<span style="font-size:.75rem;color:var(--t2)" title="${esc(p.edital)}">${esc(p.edital.length>30 ? p.edital.slice(0,30)+'…' : p.edital)}</span>`
-            : `<span style="color:var(--t3);font-size:.75rem">—</span>`;
+          const empresa   = p.nome_empresa || p.empresa || p.nome || '—';
+          const nicho     = p.nicho || p.segmento || '';
+          const email     = p.email || '';
+          const tel       = p.telefone || p.whatsapp || '';
+          const cnpj      = p.cnpj ? p.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '—';
+          const resp      = p.responsavel_nome_usuario || p.responsavel_nome || p.responsavel || '—';
+          const scBadge   = prStatusBadge(p.status_contato || p.status);
+          const ultContato = p.data_ultimo_contato ? new Date(p.data_ultimo_contato).toLocaleDateString('pt-BR') : '—';
           return `<tr>
+            <td><input type="checkbox" class="pr-row-cb" data-pid="${p.id}" onchange="toggleProspectCheck(${p.id},this)" style="cursor:pointer" ${prospectsChecked.has(p.id)?'checked':''}></td>
             <td>
-              <div style="font-weight:600;font-size:.85rem">${esc(p.nome)}</div>
-              ${p.empresa ? `<div style="font-size:.75rem;color:var(--t2)">${esc(p.empresa)}</div>` : ''}
-              ${p.email ? `<div style="font-size:.7rem;color:var(--t3)">${esc(p.email)}</div>` : ''}
+              <div style="font-weight:600;cursor:pointer;color:var(--primary)" onclick='abrirEditarProspect(${JSON.stringify(p)})'>${esc(empresa)}</div>
+              ${p.cidade ? `<div style="font-size:.7rem;color:var(--t3)">${esc(p.cidade)}${p.estado ? '/'+p.estado : ''}</div>` : ''}
             </td>
-            <td style="font-size:.78rem">${p.segmento ? esc(p.segmento) : '<span style="color:var(--t3)">—</span>'}</td>
-            <td>${prStatusBadge(p.status)}</td>
-            <td>${brevoBadge(p)}</td>
-            <td>${formCell}</td>
-            <td>${editalCell}</td>
-            <td style="font-size:.75rem;color:var(--t2);white-space:nowrap">${dataStr}</td>
+            <td>${nicho ? `<span style="background:rgba(100,116,139,.15);color:var(--t2);padding:2px 7px;border-radius:12px;font-size:.7rem">${esc(nicho)}</span>` : '<span style="color:var(--t3)">—</span>'}</td>
+            <td>${email ? `<a href="mailto:${esc(email)}" style="color:var(--primary);font-size:.75rem">${esc(email)}</a>` : '<span style="color:var(--t3)">—</span>'}</td>
+            <td>${tel ? `<a href="https://wa.me/55${tel.replace(/\D/g,'')}" target="_blank" style="color:#22c55e;font-size:.75rem">📱 ${esc(tel)}</a>` : '<span style="color:var(--t3)">—</span>'}</td>
+            <td style="font-size:.72rem;color:var(--t2)">${cnpj}</td>
+            <td style="font-size:.75rem">${esc(resp)}</td>
+            <td>${scBadge}</td>
+            <td style="font-size:.72rem;color:var(--t3);white-space:nowrap">${ultContato}</td>
             <td>
-              <div style="display:flex;gap:4px;justify-content:flex-end">
-                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Histórico">🕐</button>
-                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem;color:#f97316" onclick="abrirEmailProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}')" title="Enviar e-mail">✉</button>
-                <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem" onclick='abrirEditarProspect(${JSON.stringify(p)})' title="Editar">✏️</button>
-                ${p.edital ? `<button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:.72rem;color:#8B5CF6" onclick="analisarEditalProspect(${p.id})" title="Analisar edital">🔬</button>` : ''}
-                ${!['convertido','perdido'].includes(p.status) ? `<button class="btn btn-primary btn-sm" style="padding:3px 7px;font-size:.72rem" onclick="converterProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}','${esc(p.empresa||'')}','${esc(p.whatsapp||'')}','${esc(p.uf||'')}','${esc(p.segmento||'')}','${esc(p.indicado_por||'')}')" title="Converter em cliente">→ Cliente</button>` : ''}
+              <div style="display:flex;gap:3px;justify-content:flex-end;flex-wrap:nowrap">
+                <button style="font-size:.65rem;padding:2px 6px;background:rgba(76,197,215,.12);border:1px solid var(--primary);border-radius:4px;color:var(--primary);cursor:pointer;white-space:nowrap" onclick='abrirEditarProspect(${JSON.stringify(p)})' title="Editar">✏ Editar</button>
+                <button style="font-size:.65rem;padding:2px 6px;background:rgba(249,115,22,.12);border:1px solid #f97316;border-radius:4px;color:#f97316;cursor:pointer" onclick="abrirEnviarCampanhaProspect(${p.id},'${esc(empresa)}')" title="Enviar campanha">📧</button>
+                <button style="font-size:.65rem;padding:2px 6px;background:rgba(239,68,68,.12);border:1px solid #ef4444;border-radius:4px;color:#ef4444;cursor:pointer" onclick="excluirProspect(${p.id})" title="Excluir">🗑</button>
               </div>
             </td>
           </tr>`;
         }).join('')}
       </tbody>
     </table></div>`;
+  }
+
+  async function excluirProspect(id) {
+    if (!confirm('Excluir este lead?')) return;
+    try {
+      await fetch(`${API}/prospects/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      toast('Lead excluído', 'success');
+      carregarProspects();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function carregarCampanhasParaLote() {
+    try {
+      const r = await fetch(`${API}/api/marketing/campanhas`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      const sel = document.getElementById('pf-lote-campanha');
+      if (!sel) return;
+      const campanhas = (d.dados || []).filter(c => c.status !== 'excluida');
+      sel.innerHTML = '<option value="">Enviar campanha…</option>' +
+        campanhas.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+    } catch (e) {}
   }
 
   async function moverProspect(id, novoStatus) {
@@ -9359,13 +9672,15 @@ ${nomes}${dados.length > 5 ? `
     document.getElementById('prospect-modal-titulo').textContent = 'Novo Lead';
     document.getElementById('pr-id').value = '';
     ['pr-nome','pr-empresa','pr-email','pr-whatsapp','pr-responsavel','pr-notas','pr-indicado-por','pr-edital',
-      'pr-cnpj','pr-cargo','pr-cidade','pr-valor-potencial','pr-proximo-contato','pr-interacao-desc'].forEach(fid => {
+      'pr-cnpj','pr-cargo','pr-cidade','pr-valor-potencial','pr-proximo-contato','pr-interacao-desc',
+      'pr-nicho','pr-responsavel-nome','pr-responsavel-cargo','pr-anotacoes'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
     });
     const seg = document.getElementById('pr-segmento'); if(seg) seg.value = '';
     const est = document.getElementById('pr-estado'); if(est) est.value = '';
     const can = document.getElementById('pr-canal-origem'); if(can) can.value = 'manual';
     document.getElementById('pr-status').value = 'novo_lead';
+    const scEl = document.getElementById('pr-status-contato'); if(scEl) scEl.value = 'novo_lead';
     const hsec = document.getElementById('pr-historico-section'); if(hsec) hsec.style.display = 'none';
     hideAlert('alert-prospect');
     document.getElementById('modal-prospect').classList.add('visible');
@@ -9375,16 +9690,22 @@ ${nomes}${dados.length > 5 ? `
     document.getElementById('prospect-modal-titulo').textContent = 'Editar Lead';
     document.getElementById('pr-id').value           = p.id;
     document.getElementById('pr-nome').value         = p.nome||'';
-    document.getElementById('pr-empresa').value      = p.empresa||'';
+    document.getElementById('pr-empresa').value      = p.nome_empresa||p.empresa||'';
     document.getElementById('pr-email').value        = p.email||'';
-    document.getElementById('pr-whatsapp').value     = p.whatsapp||'';
+    document.getElementById('pr-whatsapp').value     = p.whatsapp||p.telefone||'';
     document.getElementById('pr-responsavel').value  = p.responsavel||'';
     document.getElementById('pr-notas').value        = p.notas||'';
     const ipEl = document.getElementById('pr-indicado-por'); if(ipEl) ipEl.value = p.indicado_por||'';
     const edEl = document.getElementById('pr-edital');       if(edEl) edEl.value = p.edital||'';
     const sgEl = document.getElementById('pr-segmento');     if(sgEl) sgEl.value = p.segmento||'';
     document.getElementById('pr-status').value = p.status||'novo_lead';
-    // Novos campos CRM
+    // Campos SDR
+    const scEl = document.getElementById('pr-status-contato'); if(scEl) scEl.value = p.status_contato||p.status||'novo_lead';
+    const nic  = document.getElementById('pr-nicho');           if(nic)  nic.value  = p.nicho||p.segmento||'';
+    const rnEl = document.getElementById('pr-responsavel-nome'); if(rnEl) rnEl.value = p.responsavel_nome||'';
+    const rcEl = document.getElementById('pr-responsavel-cargo');if(rcEl) rcEl.value = p.responsavel_cargo||'';
+    const anEl = document.getElementById('pr-anotacoes');       if(anEl) anEl.value = p.anotacoes||'';
+    // Campos CRM
     const cnEl = document.getElementById('pr-cnpj');             if(cnEl) cnEl.value = p.cnpj||'';
     const cgEl = document.getElementById('pr-cargo');            if(cgEl) cgEl.value = p.cargo||'';
     const cdEl = document.getElementById('pr-cidade');           if(cdEl) cdEl.value = p.cidade||'';
@@ -9415,26 +9736,36 @@ ${nomes}${dados.length > 5 ? `
 
   async function salvarProspect() {
     const id   = document.getElementById('pr-id').value;
-    const nome = document.getElementById('pr-nome').value.trim();
-    if (!nome) { showAlert('alert-prospect', 'Nome é obrigatório', 'error'); return; }
+    const nomeVal = document.getElementById('pr-nome').value.trim();
+    const empresaVal = document.getElementById('pr-empresa').value.trim();
+    if (!nomeVal && !empresaVal) { showAlert('alert-prospect', 'Nome ou empresa é obrigatório', 'error'); return; }
+    const nome = nomeVal || empresaVal;
+    const sc = document.getElementById('pr-status-contato')?.value || 'novo_lead';
     const body = {
       nome,
-      empresa:      document.getElementById('pr-empresa').value.trim()||null,
-      email:        document.getElementById('pr-email').value.trim()||null,
-      whatsapp:     document.getElementById('pr-whatsapp').value.trim()||null,
-      status:       document.getElementById('pr-status').value,
-      responsavel:  document.getElementById('pr-responsavel').value.trim()||null,
-      notas:                document.getElementById('pr-notas').value.trim()||null,
-      indicado_por:         document.getElementById('pr-indicado-por')?.value.trim()||null,
-      edital:               document.getElementById('pr-edital')?.value.trim()||null,
-      segmento:             document.getElementById('pr-segmento')?.value||null,
-      cnpj:                 document.getElementById('pr-cnpj')?.value.trim()||null,
-      cargo:                document.getElementById('pr-cargo')?.value.trim()||null,
-      cidade:               document.getElementById('pr-cidade')?.value.trim()||null,
-      estado:               document.getElementById('pr-estado')?.value||null,
-      valor_potencial:      document.getElementById('pr-valor-potencial')?.value||null,
+      empresa:           empresaVal||null,
+      nome_empresa:      empresaVal||null,
+      email:             document.getElementById('pr-email').value.trim()||null,
+      whatsapp:          document.getElementById('pr-whatsapp').value.trim()||null,
+      telefone:          document.getElementById('pr-whatsapp').value.trim()||null,
+      status:            sc,
+      status_contato:    sc,
+      responsavel:       document.getElementById('pr-responsavel').value.trim()||null,
+      notas:             document.getElementById('pr-notas').value.trim()||null,
+      indicado_por:      document.getElementById('pr-indicado-por')?.value.trim()||null,
+      edital:            document.getElementById('pr-edital')?.value.trim()||null,
+      segmento:          document.getElementById('pr-nicho')?.value.trim() || document.getElementById('pr-segmento')?.value||null,
+      nicho:             document.getElementById('pr-nicho')?.value.trim()||null,
+      responsavel_nome:  document.getElementById('pr-responsavel-nome')?.value.trim()||null,
+      responsavel_cargo: document.getElementById('pr-responsavel-cargo')?.value.trim()||null,
+      anotacoes:         document.getElementById('pr-anotacoes')?.value.trim()||null,
+      cnpj:              document.getElementById('pr-cnpj')?.value.trim()||null,
+      cargo:             document.getElementById('pr-cargo')?.value.trim()||null,
+      cidade:            document.getElementById('pr-cidade')?.value.trim()||null,
+      estado:            document.getElementById('pr-estado')?.value||null,
+      valor_potencial:   document.getElementById('pr-valor-potencial')?.value||null,
       data_proximo_contato: document.getElementById('pr-proximo-contato')?.value||null,
-      canal_origem:         document.getElementById('pr-canal-origem')?.value||'manual',
+      canal_origem:      document.getElementById('pr-canal-origem')?.value||'manual',
     };
     try {
       const r = await fetch(`${API}/prospects${id ? `/${id}` : ''}`, {
@@ -10803,6 +11134,46 @@ img { max-height: 22px !important; width: auto !important; display: block; }
 </div>
 
 <!-- Modal criar/editar prospect -->
+<!-- Modal: Importar planilha de leads -->
+<div class="modal-overlay" id="modal-importar-planilha" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="modal-header">
+      <h3>↑ Importar planilha de leads</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-importar-planilha').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <!-- Dica de colunas -->
+      <div style="background:rgba(76,197,215,.06);border:1px solid rgba(76,197,215,.2);border-radius:8px;padding:12px;font-size:.8rem;color:var(--t2);line-height:1.6">
+        Sua planilha deve ter colunas como: <strong>Nome/Empresa, Email, Telefone, Nicho, CNPJ</strong>.<br>
+        O sistema aceita variações de nome nas colunas automaticamente (.xlsx ou .csv).
+      </div>
+      <!-- Modelo para download -->
+      <div>
+        <a href="${API || ''}/prospects/modelo-planilha" style="color:#4CC5D7;font-size:.82rem;text-decoration:none" download>
+          ↓ Baixar modelo de planilha (.xlsx)
+        </a>
+      </div>
+      <!-- Upload -->
+      <div>
+        <label style="font-size:.82rem;font-weight:600;color:var(--t1);display:block;margin-bottom:6px">Arquivo *</label>
+        <div style="border:2px dashed rgba(76,197,215,.4);border-radius:8px;padding:20px;text-align:center;cursor:pointer" onclick="document.getElementById('imp-arquivo').click()">
+          <div style="font-size:.85rem;color:var(--t2)">Clique para selecionar ou arraste o arquivo aqui</div>
+          <div id="imp-nome-arquivo" style="font-size:.78rem;color:var(--primary);margin-top:4px"></div>
+        </div>
+        <input type="file" id="imp-arquivo" accept=".xlsx,.csv,.xls" style="display:none" onchange="imp_onFileChange(this)">
+      </div>
+      <!-- Preview -->
+      <div id="imp-preview" style="display:none"></div>
+      <!-- Resultado -->
+      <div id="imp-resultado" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-importar-planilha').classList.remove('visible')">Fechar</button>
+      <button id="imp-btn-importar" class="btn btn-primary" onclick="importarPlanilhaEnviar()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-prospect" onclick="this.classList.remove('visible')">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
     <div class="modal-header">
@@ -10851,15 +11222,36 @@ img { max-height: 22px !important; width: auto !important; display: block; }
         </div>
       </div>
       <div class="form-group"><label>Edital (número ou link PNCP)</label><input type="text" id="pr-edital" placeholder="Ex: 00884057000152-1-000001/2024 ou link" /></div>
+      <!-- Campos SDR -->
+      <div class="form-row" style="margin-top:4px">
+        <div class="form-group"><label>Nicho / Segmento</label><input type="text" id="pr-nicho" placeholder="Ex: Material de Construção" /></div>
+        <div class="form-group">
+          <label>Status de contato</label>
+          <select id="pr-status-contato">
+            <option value="novo_lead">Novo lead</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="contato_feito">Contato feito</option>
+            <option value="respondido">Respondido</option>
+            <option value="proposta_enviada">Proposta enviada</option>
+            <option value="sem_interesse">Sem interesse</option>
+            <option value="fechado">Fechado</option>
+          </select>
+        </div>
+      </div>
       <div class="form-row">
-        <div class="form-group"><label>Responsável</label><input type="text" id="pr-responsavel" placeholder="Nome do responsável" /></div>
+        <div class="form-group"><label>Nome do contato (responsável)</label><input type="text" id="pr-responsavel-nome" placeholder="Ex: João Silva" /></div>
+        <div class="form-group"><label>Cargo do contato</label><input type="text" id="pr-responsavel-cargo" placeholder="Ex: Diretor de compras" /></div>
+      </div>
+      <div class="form-group"><label>Anotações internas</label><textarea id="pr-anotacoes" rows="2" placeholder="Histórico livre, observações sobre o lead…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável SDR</label><input type="text" id="pr-responsavel" placeholder="Nome do responsável" /></div>
         <div class="form-group"><label>Indicado por</label><input type="text" id="pr-indicado-por" placeholder="Fonte ou indicação" /></div>
       </div>
       <div class="form-group"><label>Notas internas</label><textarea id="pr-notas" rows="2" placeholder="Observações internas sobre o lead…"></textarea></div>
-      <!-- Novos campos CRM -->
-      <div class="form-row" style="margin-top:10px;">
+      <!-- Campos CRM -->
+      <div class="form-row" style="margin-top:6px">
         <div class="form-group"><label>CNPJ</label><input type="text" id="pr-cnpj" placeholder="00.000.000/0001-00" /></div>
-        <div class="form-group"><label>Cargo</label><input type="text" id="pr-cargo" placeholder="Ex: Gerente de compras" /></div>
+        <div class="form-group"><label>Cargo antigo</label><input type="text" id="pr-cargo" placeholder="Ex: Gerente de compras" /></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Cidade</label><input type="text" id="pr-cidade" placeholder="Ex: Belo Horizonte" /></div>
@@ -11843,23 +12235,197 @@ function ibgeCidadeAutoComplete(inputId, datalistId) {
 // MARKETING
 // ════════════════════════════════════════════════════════════
 
-let mktTabAtiva = 'templates';
+let mktTabAtiva = 'campanhas';
 
 async function carregarMarketing() {
-  if (mktTabAtiva === 'templates') mktCarregarTemplates();
+  if (mktTabAtiva === 'campanhas') mktCarregarCampanhas();
+  else if (mktTabAtiva === 'templates') mktCarregarTemplates();
   else if (mktTabAtiva === 'logs') mktCarregarLogs();
-  else if (mktTabAtiva === 'campanha') mktAbrirCampanha();
 }
 
 function mktSwitchTab(tab) {
   mktTabAtiva = tab;
-  ['templates','logs','campanha'].forEach(t => {
+  ['campanhas','templates','logs'].forEach(t => {
     document.getElementById(`mkt-tab-${t}`)?.classList.toggle('active', t === tab);
     const panel = document.getElementById(`mkt-panel-${t}`);
     if (panel) panel.style.display = t === tab ? '' : 'none';
   });
-  if (tab === 'templates') mktCarregarTemplates();
+  if (tab === 'campanhas') mktCarregarCampanhas();
+  else if (tab === 'templates') mktCarregarTemplates();
   else if (tab === 'logs') mktCarregarLogs();
+}
+
+async function mktCarregarCampanhas() {
+  const area = document.getElementById('mkt-campanhas-area');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/api/marketing/campanhas`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    const lista = d.dados || [];
+    if (!lista.length) {
+      area.innerHTML = '<div class="state-box"><p>Nenhuma campanha criada. Clique em "+ Nova Campanha".</p></div>';
+      return;
+    }
+    const statusCor = { rascunho:'#6b7280', agendada:'#f59e0b', enviada:'#22c55e' };
+    area.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+      ${lista.map(c => `
+        <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="font-weight:700;font-size:.95rem">${esc(c.nome)}</div>
+            <span style="background:${(statusCor[c.status]||'#6b7280')}22;color:${statusCor[c.status]||'#6b7280'};border:1px solid ${(statusCor[c.status]||'#6b7280')}44;border-radius:20px;padding:2px 8px;font-size:.7rem;font-weight:600;white-space:nowrap">${c.status}</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:.78rem;color:var(--t2)">
+            <span>${c.tipo === 'email' ? '✉ Email' : '📱 WhatsApp'}</span>
+            ${c.total_enviados ? `<span>· ${c.total_enviados} enviados</span>` : ''}
+            ${c.criador_nome ? `<span style="margin-left:auto;font-size:.72rem">por ${esc(c.criador_nome)}</span>` : ''}
+          </div>
+          ${c.assunto ? `<div style="font-size:.78rem;color:var(--t3);font-style:italic">${esc(c.assunto)}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button style="flex:1;padding:5px;font-size:.75rem;background:rgba(76,197,215,.12);border:1px solid var(--primary);border-radius:6px;color:var(--primary);cursor:pointer" onclick="abrirDispararCampanha(${c.id},'${esc(c.nome)}')">▶ Disparar</button>
+            <button style="padding:5px 8px;font-size:.75rem;background:transparent;border:1px solid var(--bd);border-radius:6px;color:var(--t2);cursor:pointer" onclick="editarCampanha(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏</button>
+            <button style="padding:5px 8px;font-size:.75rem;background:transparent;border:1px solid rgba(239,68,68,.3);border-radius:6px;color:#ef4444;cursor:pointer" onclick="excluirCampanha(${c.id})">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+function abrirModalNovaCampanha() {
+  document.getElementById('camp-modal-titulo').textContent = 'Nova Campanha';
+  document.getElementById('camp-id').value   = '';
+  document.getElementById('camp-nome').value = '';
+  document.getElementById('camp-tipo').value = 'email';
+  document.getElementById('camp-assunto').value = '';
+  document.getElementById('camp-corpo').value   = '';
+  document.getElementById('camp-assunto-wrap').style.display = '';
+  hideAlert?.('alert-camp');
+  document.getElementById('modal-nova-campanha').classList.add('visible');
+}
+
+function editarCampanha(c) {
+  document.getElementById('camp-modal-titulo').textContent = 'Editar Campanha';
+  document.getElementById('camp-id').value      = c.id;
+  document.getElementById('camp-nome').value    = c.nome||'';
+  document.getElementById('camp-tipo').value    = c.tipo||'email';
+  document.getElementById('camp-assunto').value = c.assunto||'';
+  document.getElementById('camp-corpo').value   = c.corpo||'';
+  campTipoChange();
+  document.getElementById('modal-nova-campanha').classList.add('visible');
+}
+
+function campTipoChange() {
+  const tipo = document.getElementById('camp-tipo').value;
+  document.getElementById('camp-assunto-wrap').style.display = tipo === 'email' ? '' : 'none';
+}
+
+async function salvarCampanha() {
+  const id    = document.getElementById('camp-id').value;
+  const nome  = document.getElementById('camp-nome').value.trim();
+  const corpo = document.getElementById('camp-corpo').value.trim();
+  if (!nome || !corpo) { toast('Nome e corpo são obrigatórios', 'error'); return; }
+  const body = {
+    nome,
+    tipo:    document.getElementById('camp-tipo').value,
+    assunto: document.getElementById('camp-assunto').value.trim()||null,
+    corpo,
+  };
+  try {
+    const url = id ? `${API}/api/marketing/campanhas/${id}` : `${API}/api/marketing/campanhas`;
+    const r = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    document.getElementById('modal-nova-campanha').classList.remove('visible');
+    toast(id ? 'Campanha atualizada!' : 'Campanha criada!', 'success');
+    mktCarregarCampanhas();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function excluirCampanha(id) {
+  if (!confirm('Excluir esta campanha?')) return;
+  try {
+    const r = await fetch(`${API}/api/marketing/campanhas/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Campanha excluída', 'success');
+    mktCarregarCampanhas();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+let _dispModoAtivo = 'filtro';
+function dispModo(modo) {
+  _dispModoAtivo = modo;
+  document.getElementById('disp-modo-filtro').classList.toggle('active', modo === 'filtro');
+  document.getElementById('disp-modo-manual').classList.toggle('active', modo === 'manual');
+  document.getElementById('disp-panel-filtro').style.display = modo === 'filtro' ? '' : 'none';
+  document.getElementById('disp-panel-manual').style.display = modo === 'manual' ? '' : 'none';
+  if (modo === 'manual') carregarListaManualDisparo();
+}
+
+async function carregarListaManualDisparo() {
+  const div = document.getElementById('disp-lista-manual');
+  div.innerHTML = '<div style="font-size:.8rem;color:var(--t2)">Carregando...</div>';
+  try {
+    const r = await fetch(`${API}/prospects?limit=200`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    const lista = d.dados || [];
+    if (!lista.length) { div.innerHTML = '<div style="font-size:.8rem;color:var(--t3)">Nenhum prospect cadastrado.</div>'; return; }
+    div.innerHTML = lista.map(p => {
+      const empresa = p.nome_empresa || p.empresa || p.nome || '';
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:.8rem;border:1px solid transparent" onmouseover="this.style.borderColor='rgba(76,197,215,.3)'" onmouseout="this.style.borderColor='transparent'">
+        <input type="checkbox" class="disp-cb" data-pid="${p.id}" style="cursor:pointer">
+        <span style="font-weight:600">${esc(empresa)}</span>
+        ${p.email ? `<span style="color:var(--t3);font-size:.72rem">${esc(p.email)}</span>` : ''}
+      </label>`;
+    }).join('');
+  } catch (e) { div.innerHTML = `<div style="color:var(--danger);font-size:.8rem">${e.message}</div>`; }
+}
+
+async function abrirDispararCampanha(campId, campNome) {
+  document.getElementById('disp-camp-id').value = campId;
+  document.getElementById('disp-camp-nome').textContent = campNome;
+  document.getElementById('disp-alcance').textContent = '— Calcular alcance';
+  document.getElementById('disp-filtro-status').value = '';
+  document.getElementById('disp-filtro-nicho').value  = '';
+  _dispModoAtivo = 'filtro';
+  dispModo('filtro');
+  document.getElementById('modal-disparar-campanha').classList.add('visible');
+}
+
+async function confirmarDisparo() {
+  const campId = document.getElementById('disp-camp-id').value;
+  let body = {};
+  if (_dispModoAtivo === 'filtro') {
+    body.filtro = {
+      status_contato: document.getElementById('disp-filtro-status').value||undefined,
+      nicho:          document.getElementById('disp-filtro-nicho').value.trim()||undefined,
+    };
+  } else {
+    const ids = [...document.querySelectorAll('.disp-cb:checked')].map(c => parseInt(c.dataset.pid));
+    if (!ids.length) { toast('Selecione ao menos 1 prospect', 'error'); return; }
+    body.prospect_ids = ids;
+  }
+  const btn = document.getElementById('btn-confirmar-disparo');
+  btn.disabled = true; btn.textContent = 'Disparando…';
+  try {
+    const r = await fetch(`${API}/api/marketing/campanhas/${campId}/disparar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    document.getElementById('modal-disparar-campanha').classList.remove('visible');
+    toast(`Campanha disparada para ${d.enviados} lead${d.enviados !== 1 ? 's' : ''}${d.erros?.length ? ` (${d.erros.length} erro${d.erros.length > 1 ? 's' : ''})` : ''}`, 'success');
+    mktCarregarCampanhas();
+  } catch (e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Confirmar disparo';
+  }
 }
 
 async function mktCarregarTemplates() {

@@ -1,5 +1,9 @@
 const db    = require('../database/db');
 const axios = require('axios');
+const multer = require('multer');
+const XLSX   = require('xlsx');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'wjrlicitacoes@gmail.com';
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP || '';
@@ -45,33 +49,45 @@ async function notificarAdmin(prospect) {
 // ── CRUD autenticado ──────────────────────────────────────────────────────────
 
 async function listar(req, res) {
-  const { status, segmento, data_de, data_ate, origem, q } = req.query;
+  const { status, status_contato, segmento, nicho, data_de, data_ate, origem, q,
+          responsavel_id, page, limit } = req.query;
   const conds = [];
   const vals  = [];
 
-  if (status)   { vals.push(status);   conds.push(`p.status = $${vals.length}`); }
-  if (segmento) { vals.push(segmento); conds.push(`p.segmento = $${vals.length}`); }
-  if (origem)   { vals.push(origem);   conds.push(`p.origem = $${vals.length}`); }
+  if (status)          { vals.push(status);          conds.push(`p.status = $${vals.length}`); }
+  if (status_contato)  { vals.push(status_contato);  conds.push(`p.status_contato = $${vals.length}`); }
+  if (segmento)        { vals.push(segmento);         conds.push(`p.segmento = $${vals.length}`); }
+  if (nicho)           { vals.push(`%${nicho}%`);     conds.push(`p.nicho ILIKE $${vals.length}`); }
+  if (origem)          { vals.push(origem);            conds.push(`p.origem = $${vals.length}`); }
+  if (responsavel_id)  { vals.push(responsavel_id);   conds.push(`p.responsavel_id = $${vals.length}`); }
   if (data_de)  { vals.push(data_de);  conds.push(`p.created_at >= $${vals.length}`); }
   if (data_ate) { vals.push(data_ate); conds.push(`p.created_at <= $${vals.length} + interval '1 day'`); }
   if (q) {
     vals.push(`%${q}%`);
     const n = vals.length;
-    conds.push(`(p.nome ILIKE $${n} OR p.empresa ILIKE $${n} OR p.email ILIKE $${n})`);
+    conds.push(`(p.nome ILIKE $${n} OR p.empresa ILIKE $${n} OR p.nome_empresa ILIKE $${n} OR p.email ILIKE $${n} OR p.cnpj ILIKE $${n})`);
   }
 
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const lim   = Math.min(parseInt(limit) || 200, 500);
+  const off   = ((parseInt(page) || 1) - 1) * lim;
 
   try {
     const { rows } = await db.query(
-      `SELECT p.*, ae.status AS analise_status
+      `SELECT p.*, ae.status AS analise_status,
+              u.nome AS responsavel_nome_usuario
          FROM prospects p
          LEFT JOIN analises_edson ae ON ae.id = p.analise_edson_id
+         LEFT JOIN usuarios u ON u.id = p.responsavel_id
          ${where}
-         ORDER BY p.created_at DESC`,
-      vals,
+         ORDER BY p.created_at DESC
+         LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
+      [...vals, lim, off],
     );
-    return res.json({ total: rows.length, dados: rows });
+    const { rows: [{ n }] } = await db.query(
+      `SELECT COUNT(*) AS n FROM prospects p ${where}`, vals,
+    );
+    return res.json({ total: parseInt(n), dados: rows });
   } catch (e) {
     console.error('[Prospects] listar:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -551,4 +567,194 @@ async function kpis(req, res) {
   }
 }
 
-module.exports = { listar, obterPorId, criar, atualizar, remover, eventos, analisar, receberLanding, webhookBrevo, registrarInteracao, followup, kpis };
+// ── Importação por planilha ────────────────────────────────────────────────────
+
+function normKey(k) {
+  return String(k).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '_');
+}
+
+function mapCol(row, ...candidates) {
+  for (const key of Object.keys(row)) {
+    const norm = normKey(key);
+    if (candidates.some(c => norm.includes(c))) return String(row[key] || '').trim();
+  }
+  return '';
+}
+
+async function importarPlanilha(req, res) {
+  if (!req.file) return res.status(400).json({ erro: 'Arquivo não enviado' });
+  try {
+    const wb   = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    let importados = 0, atualizados = 0;
+    const erros = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const lead = {
+          nome_empresa:    mapCol(row, 'nome', 'empresa', 'razao'),
+          email:           mapCol(row, 'email'),
+          telefone:        mapCol(row, 'telefone', 'tel', 'celular', 'whatsapp'),
+          nicho:           mapCol(row, 'nicho', 'segmento', 'setor', 'ramo'),
+          cnpj:            mapCol(row, 'cnpj').replace(/\D/g, '') || null,
+          responsavel_nome: mapCol(row, 'contato', 'responsavel'),
+          responsavel_cargo: mapCol(row, 'cargo', 'funcao'),
+          origem:          'importacao',
+          status_contato:  'novo_lead',
+          status:          'novo_lead',
+        };
+
+        // nome_empresa ou email são obrigatórios
+        if (!lead.nome_empresa && !lead.email) continue;
+
+        // Verificar duplicata por email ou cnpj
+        let existente = null;
+        if (lead.email || lead.cnpj) {
+          const conds = [];
+          const vals  = [];
+          if (lead.email) { vals.push(lead.email); conds.push(`email = $${vals.length}`); }
+          if (lead.cnpj)  { vals.push(lead.cnpj);  conds.push(`cnpj = $${vals.length}`); }
+          const { rows: ex } = await db.query(
+            `SELECT id FROM prospects WHERE ${conds.join(' OR ')} LIMIT 1`, vals,
+          );
+          existente = ex[0] || null;
+        }
+
+        if (existente) {
+          await db.query(
+            `UPDATE prospects SET
+               nome_empresa = COALESCE(NULLIF($1,''), nome_empresa),
+               telefone     = COALESCE(NULLIF($2,''), telefone),
+               nicho        = COALESCE(NULLIF($3,''), nicho),
+               responsavel_nome  = COALESCE(NULLIF($4,''), responsavel_nome),
+               responsavel_cargo = COALESCE(NULLIF($5,''), responsavel_cargo),
+               updated_at   = NOW()
+             WHERE id = $6`,
+            [lead.nome_empresa||null, lead.telefone||null, lead.nicho||null,
+             lead.responsavel_nome||null, lead.responsavel_cargo||null, existente.id],
+          );
+          atualizados++;
+        } else {
+          const nome = lead.nome_empresa || lead.email || 'Lead importado';
+          await db.query(
+            `INSERT INTO prospects
+               (nome, empresa, nome_empresa, email, telefone, nicho, cnpj,
+                responsavel_nome, responsavel_cargo, origem, status, status_contato)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+            [nome, lead.nome_empresa||null, lead.nome_empresa||null,
+             lead.email||null, lead.telefone||null, lead.nicho||null, lead.cnpj||null,
+             lead.responsavel_nome||null, lead.responsavel_cargo||null,
+             'importacao', 'novo_lead', 'novo_lead'],
+          );
+          importados++;
+        }
+      } catch (e) {
+        erros.push({ linha: i + 2, erro: e.message });
+      }
+    }
+
+    return res.json({ importados, atualizados, erros, total: importados + atualizados });
+  } catch (err) {
+    console.error('[IMPORT PROSPECTS]', err.message);
+    return res.status(500).json({ erro: err.message });
+  }
+}
+
+function modeloPlanilha(req, res) {
+  const dados = [
+    ['Nome/Empresa', 'Email', 'Telefone/WhatsApp', 'Nicho/Segmento', 'CNPJ', 'Nome do Contato', 'Cargo'],
+    ['Distribuidora Silva Ltda', 'contato@silva.com.br', '31999990000', 'Material de Construção', '12.345.678/0001-99', 'João Silva', 'Diretor'],
+    ['Tech Soluções ME', 'tech@tech.com.br', '31988880000', 'Tecnologia', '98.765.432/0001-11', 'Maria Tech', 'CEO'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(dados);
+  ws['!cols'] = [30,30,20,25,20,25,20].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="modelo_leads_conlicit.xlsx"');
+  return res.send(buf);
+}
+
+async function atualizarStatus(req, res) {
+  const { id } = req.params;
+  const { status_contato, data_ultimo_contato } = req.body ?? {};
+  if (!status_contato) return res.status(400).json({ erro: 'status_contato é obrigatório' });
+  try {
+    const { rows: [p] } = await db.query(
+      `UPDATE prospects SET
+         status_contato = $1,
+         status = $1,
+         data_ultimo_contato = COALESCE($2, NOW()),
+         updated_at = NOW()
+       WHERE id = $3 RETURNING id, status_contato, status`,
+      [status_contato, data_ultimo_contato || null, id],
+    );
+    if (!p) return res.status(404).json({ erro: 'Prospect não encontrado' });
+    await registrarEvento(id, 'status_alterado',
+      `Status alterado para "${status_contato}" por ${req.usuario?.email || 'sistema'}`);
+    return res.json(p);
+  } catch (e) {
+    console.error('[Prospects] atualizarStatus:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function atualizarStatusLote(req, res) {
+  const { ids, status_contato, responsavel_id } = req.body ?? {};
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ erro: 'ids é obrigatório' });
+  try {
+    const sets = ['updated_at = NOW()'];
+    const vals = [];
+    if (status_contato) { vals.push(status_contato); sets.push(`status_contato = $${vals.length}`, `status = $${vals.length}`); }
+    if (responsavel_id) { vals.push(responsavel_id); sets.push(`responsavel_id = $${vals.length}`); }
+    if (vals.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
+    vals.push(ids);
+    await db.query(`UPDATE prospects SET ${sets.join(', ')} WHERE id = ANY($${vals.length}::int[])`, vals);
+    return res.json({ ok: true, atualizados: ids.length });
+  } catch (e) {
+    console.error('[Prospects] atualizarStatusLote:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+async function exportarLote(req, res) {
+  const idsRaw = req.query.ids;
+  if (!idsRaw) return res.status(400).json({ erro: 'ids é obrigatório' });
+  const ids = String(idsRaw).split(',').map(Number).filter(Boolean);
+  try {
+    const { rows } = await db.query(
+      `SELECT nome_empresa, email, telefone, nicho, cnpj, responsavel_nome, responsavel_cargo,
+              status_contato, created_at
+       FROM prospects WHERE id = ANY($1::int[]) ORDER BY id`,
+      [ids],
+    );
+    const header = ['Empresa', 'Email', 'Telefone', 'Nicho', 'CNPJ', 'Contato', 'Cargo', 'Status', 'Criado em'];
+    const data = rows.map(r => [
+      r.nome_empresa, r.email, r.telefone, r.nicho, r.cnpj,
+      r.responsavel_nome, r.responsavel_cargo, r.status_contato,
+      r.created_at ? new Date(r.created_at).toLocaleDateString('pt-BR') : '',
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    ws['!cols'] = header.map(() => ({ wch: 22 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_exportados.xlsx"');
+    return res.send(buf);
+  } catch (e) {
+    console.error('[Prospects] exportarLote:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+module.exports = {
+  listar, obterPorId, criar, atualizar, remover, eventos, analisar,
+  receberLanding, webhookBrevo, registrarInteracao, followup, kpis,
+  importarPlanilha, modeloPlanilha, upload,
+  atualizarStatus, atualizarStatusLote, exportarLote,
+};
