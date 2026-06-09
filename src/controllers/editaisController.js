@@ -2,8 +2,12 @@ const axios = require('axios');
 const db = require('../database/db');
 const { contarCacheAtivo } = require('../services/pncpSyncService');
 
-const PNCP_BASE_URL = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_BASE_URL   = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_SEARCH_URL = 'https://pncp.gov.br/api/search';
 const PNCP_PORTAL_URL = 'https://pncp.gov.br/app/editais';
+
+// Cache de municipio_id interno do PNCP: "cidade-uf" → id
+const pncpMunicipioCache = new Map();
 
 const MODALIDADES = {
   'pregao eletronico': 6, 'pregão eletrônico': 6,
@@ -65,6 +69,66 @@ function formatarData(d) {
 
 function semAcento(texto) {
   return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Resolve o municipio_id interno do PNCP a partir do nome da cidade + UF.
+// O PNCP usa IDs próprios (ex: 2310 para BH), diferentes do código IBGE.
+async function getPncpMunicipioId(nomeCidade, uf) {
+  const key = `${semAcento(nomeCidade.trim())}-${(uf || '').toLowerCase()}`;
+  if (pncpMunicipioCache.has(key)) return pncpMunicipioCache.get(key);
+
+  try {
+    const params = new URLSearchParams({ q: nomeCidade.trim(), tipos_documento: 'edital', pagina: '1', tam: '20' });
+    if (uf) params.append('ufs', uf.toUpperCase());
+
+    const resp = await axios.get(`${PNCP_SEARCH_URL}?${params}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
+      timeout: 8000,
+    });
+    const items = resp.data?.items || [];
+    const normNome = semAcento(nomeCidade.trim());
+    const found = items.find(item => semAcento(item.municipio_nome || '') === normNome);
+    const id = found?.municipio_id ? String(found.municipio_id) : null;
+    if (id) pncpMunicipioCache.set(key, id);
+    console.log(`[PNCP municipio] ${nomeCidade}/${uf} → id=${id}`);
+    return id;
+  } catch (e) {
+    console.error('[PNCP municipio lookup]', e.message);
+    return null;
+  }
+}
+
+// Formata item do endpoint /api/search para o padrão Hub
+function formatarEditalSearch(item) {
+  const cnpj = item.orgao_cnpj;
+  const ano  = item.ano;
+  const seq  = item.numero_sequencial;
+  const link = cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null;
+
+  // Remove prefixo de portal do objeto: "[Portal X] - Texto" → "Texto"
+  const descRaw = item.description || item.title || '';
+  const objeto  = descRaw.replace(/^\[[^\]]+\]\s*-\s*/, '').trim() || null;
+
+  // data_fim_vigencia é o melhor proxy disponível para "encerramento" nos resultados de busca
+  const fimVig = item.data_fim_vigencia || null;
+  const dataEncISO = fimVig ? fimVig.substring(0, 10) : null;
+
+  return {
+    numeroEdital:             item.numero_controle_pncp || null,
+    orgao:                    item.orgao_nome || null,
+    objeto,
+    valorEstimado:            item.valor_global ? formatarMoeda(item.valor_global) : null,
+    dataPublicacao:           item.data_publicacao_pncp ? formatarData(item.data_publicacao_pncp.substring(0, 10)) : null,
+    dataEncerramentoProposta: dataEncISO ? formatarData(dataEncISO) : null,
+    modalidade:               item.modalidade_licitacao_nome || null,
+    estado:                   item.uf || null,
+    municipio:                item.municipio_nome || null,
+    link,
+    linkSistemaOrigem:        null,
+    dataEncerramento:         dataEncISO ? `${dataEncISO}T12:00:00-03:00` : null,
+    dataAberturaProposta:     item.data_inicio_vigencia || null,
+    portal_disputa:           'PNCP',
+  };
 }
 
 function montarLink(cnpj, ano, sequencial) {
@@ -266,9 +330,9 @@ async function listarEditais(req, res) {
     valorMax,
   } = req.query;
 
-  if (!dataInicial) {
+  if (!dataInicial && !q) {
     return res.status(400).json({
-      erro: 'O parâmetro dataInicial é obrigatório (formato: YYYYMMDD)',
+      erro: 'O parâmetro dataInicial é obrigatório (formato: YYYYMMDD) quando nenhuma busca por palavra-chave (q) é informada',
     });
   }
   // dataFinal opcional — padrão: 90 dias a partir de hoje
@@ -298,6 +362,49 @@ async function listarEditais(req, res) {
   const filtraLocal = !!(q || uf || cidade || portal || portais.length > 0 || modalidades.length > 0 || vMin != null || vMax != null);
 
   try {
+    // ── Busca por palavra-chave: usa /api/search do PNCP (suporta full-text search) ──
+    if (q) {
+      let municipioId = null;
+      if (cidade) {
+        municipioId = await getPncpMunicipioId(cidade.trim(), uf || null);
+        if (!municipioId) {
+          console.warn(`[Editais] municipio_id não encontrado para "${cidade}" — buscando sem filtro de município`);
+        }
+      }
+
+      const searchParams = new URLSearchParams({
+        q,
+        tipos_documento: 'edital',
+        status: 'recebendo_proposta',
+        pagina: String(paginaSolicitada),
+        tam: String(tamanhoSolicitado),
+      });
+      if (uf) searchParams.append('ufs', uf.toUpperCase());
+      if (municipioId) searchParams.append('municipios', municipioId);
+
+      console.log(`[Editais] PNCP search: ${PNCP_SEARCH_URL}?${searchParams}`);
+
+      const resp = await axios.get(`${PNCP_SEARCH_URL}?${searchParams}`, {
+        headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
+        timeout: 15000,
+      });
+
+      const items = resp.data?.items || [];
+      const total = resp.data?.total ?? items.length;
+
+      if (items.length === 0) {
+        return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
+      }
+
+      return res.json({
+        total,
+        pagina: paginaSolicitada,
+        tamanhoPagina: tamanhoSolicitado,
+        fonte: 'pncp-search',
+        dados: items.map(formatarEditalSearch),
+      });
+    }
+
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
     if (!filtraLocal) {
       const resposta = await axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
