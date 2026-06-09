@@ -8,7 +8,7 @@ const TODOS_MODULOS = [
   'gerador_proposta','relatorios',
   // Chaves de visibilidade do sidebar (frontend)
   'edson_ia','buscar_editais','oportunidades','robo_pregao',
-  'minha_area','pregoes','proposta_comercial','documentacao',
+  'minha_area','pregoes','proposta_comercial','documentacao','marketing',
 ];
 
 const PERMISSOES_ROLE = {
@@ -34,7 +34,7 @@ const PERMISSOES_ROLE = {
     'dashboard','editais','boletins','prospects','calendario',
     'buscar_editais','prospects',
   ],
-  social_media:      ['dashboard','documentacao'],
+  social_media:      ['dashboard','documentacao','marketing'],
   cliente:           ['minha_area','pregoes','edson','edson_ia'],
 };
 

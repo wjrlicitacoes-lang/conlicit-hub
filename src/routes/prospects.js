@@ -8,7 +8,10 @@ router.post('/',               ctrl.criar);
 // estáticas antes de /:id para não serem capturadas como param
 router.get('/followup',        ctrl.followup);
 router.get('/kpis',            ctrl.kpis);
-router.get('/email-templates', email.listarTemplates);
+router.get('/email-templates',     email.listarTemplates);
+router.post('/email-templates',    email.criarTemplate);
+router.get('/email-logs-global',   email.listarLogsGlobal);
+router.post('/campanha',           email.enviarCampanha);
 router.get('/:id',             ctrl.obterPorId);
 router.patch('/:id',           ctrl.atualizar);
 router.delete('/:id',          ctrl.remover);

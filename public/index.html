@@ -1649,6 +1649,10 @@
           <span class="nav-icon"><i class="ti ti-trophy"></i></span>
           <span class="nav-label">Pós-Vitória</span>
         </button>
+        <button class="nav-item" data-nav="marketing" onclick="navTo('marketing')" id="nav-marketing" hidden>
+          <span class="nav-icon"><i class="ti ti-mail-fast"></i></span>
+          <span class="nav-label">Marketing</span>
+        </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
@@ -1763,11 +1767,15 @@
           <div class="busca-linha">
             <div class="busca-campo busca-campo-md">
               <label class="busca-label">Cidade de referência</label>
-              <input type="text" id="cidade" placeholder="Ex: Belo Horizonte" />
+              <input type="text" id="cidade" placeholder="Ex: Belo Horizonte" autocomplete="off"
+                oninput="ibgeCidadeAutoComplete('cidade','ibge-dl-cidade')" list="ibge-dl-cidade" />
+              <datalist id="ibge-dl-cidade"></datalist>
             </div>
             <div class="busca-campo busca-campo-xs">
-              <label class="busca-label">Raio (km)</label>
-              <input type="number" id="raio_km" placeholder="Ex: 80" min="0" max="5000" step="10" />
+              <label class="busca-label">Raio — <span id="raio_km_label">0 km</span></label>
+              <input type="range" id="raio_km" min="0" max="500" step="10" value="0"
+                style="width:100%;accent-color:var(--primary)"
+                oninput="document.getElementById('raio_km_label').textContent=this.value>0?this.value+' km':'qualquer'" />
             </div>
             <div class="busca-campo busca-campo-sm">
               <label class="busca-label">Valor mínimo (R$)</label>
@@ -2664,6 +2672,61 @@
         </div>
       </section>
 
+      <!-- ═══════════════════ MARKETING ═══════════════════ -->
+      <section id="section-marketing" class="section">
+        <div class="section-header">
+          <h1>Marketing</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarMarketing()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-mkt-template').showModal()">+ Novo Template</button>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:16px">
+          <button id="mkt-tab-templates" class="tab-btn active" onclick="mktSwitchTab('templates')">Templates</button>
+          <button id="mkt-tab-logs"      class="tab-btn"        onclick="mktSwitchTab('logs')">Histórico</button>
+          <button id="mkt-tab-campanha"  class="tab-btn"        onclick="mktSwitchTab('campanha')">Disparar Campanha</button>
+        </div>
+
+        <div id="mkt-panel-templates">
+          <div id="mkt-templates-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+
+        <div id="mkt-panel-logs" style="display:none">
+          <div id="mkt-logs-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+
+        <div id="mkt-panel-campanha" style="display:none">
+          <div style="max-width:520px;display:grid;gap:16px">
+            <div>
+              <label class="form-label">Template de email *</label>
+              <select id="mkt-camp-template" class="form-control"><option value="">Carregando…</option></select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label class="form-label">Segmento (opcional)</label>
+                <input id="mkt-camp-segmento" class="form-control" placeholder="Ex: construção civil">
+              </div>
+              <div>
+                <label class="form-label">UF (opcional)</label>
+                <input id="mkt-camp-uf" class="form-control" placeholder="Ex: MG" maxlength="2" style="text-transform:uppercase">
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Limite de envios</label>
+              <input id="mkt-camp-limite" class="form-control" type="number" min="1" max="500" value="50">
+            </div>
+            <div style="background:#FEF3C7;color:#92400E;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;line-height:1.5">
+              <strong>Atenção:</strong> Os emails serão enviados aos prospects que têm endereço de email cadastrado, filtrados pelos critérios acima. Verifique sempre a lista antes de disparar.
+            </div>
+            <div>
+              <button id="btn-mkt-enviar" class="btn btn-primary" onclick="mktEnviarCampanha()">Disparar Campanha</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -2762,6 +2825,44 @@
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-nf').close()">Cancelar</button>
       <button class="btn btn-primary" onclick="pvSalvarNF()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Modal: Novo Template de Email -->
+<dialog id="modal-mkt-template" style="border:none;border-radius:12px;padding:0;width:min(600px,95vw);background:var(--surface);color:var(--text)">
+  <div style="padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;font-size:1.1rem">Novo Template de Email</h2>
+      <button onclick="document.getElementById('modal-mkt-template').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Slug (identificador) *</label>
+          <input id="mkt-new-slug" class="form-control" placeholder="Ex: prospecto_novo">
+        </div>
+        <div>
+          <label class="form-label">Nome *</label>
+          <input id="mkt-new-nome" class="form-control" placeholder="Ex: Prospecção — Novo Lead">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Assunto *</label>
+        <input id="mkt-new-assunto" class="form-control" placeholder="Ex: {{nome}}, temos uma oportunidade para você">
+      </div>
+      <div>
+        <label class="form-label">Corpo do Email (HTML ou texto) *</label>
+        <textarea id="mkt-new-corpo" class="form-control" rows="8" placeholder="Olá {{nome}},&#10;&#10;Texto do email…&#10;&#10;Atenciosamente,&#10;{{remetente_nome}}"></textarea>
+      </div>
+      <div>
+        <label class="form-label">Variáveis disponíveis <span style="color:var(--text-muted);font-weight:400">(separadas por vírgula)</span></label>
+        <input id="mkt-new-vars" class="form-control" placeholder="Ex: nome, empresa, link_ferramenta, remetente_nome">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-mkt-template').close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="mktSalvarTemplate()">Criar Template</button>
     </div>
   </div>
 </dialog>
@@ -3262,6 +3363,7 @@
     document.getElementById('nav-proposta').hidden      = !permiteModulo('proposta_comercial') || cliente;
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-pos-vitoria').hidden   = !admin || cliente;
+    document.getElementById('nav-marketing').hidden     = !permiteModulo('marketing') || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
@@ -3269,7 +3371,8 @@
        document.getElementById('nav-documentacao').hidden &&
        document.getElementById('nav-proposta').hidden &&
        document.getElementById('nav-financeiro').hidden &&
-       document.getElementById('nav-pos-vitoria').hidden);
+       document.getElementById('nav-pos-vitoria').hidden &&
+       document.getElementById('nav-marketing').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -3308,6 +3411,7 @@
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'pos-vitoria')     carregarPosVitoria();
+    else if (section === 'marketing')       carregarMarketing();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -4856,6 +4960,7 @@
     { id:'prospects',         label:'Prospects',          icon:'ti-target' },
     { id:'documentacao',      label:'Documentação',       icon:'ti-folder' },
     { id:'proposta_comercial',label:'Proposta Comercial', icon:'ti-file' },
+    { id:'marketing',         label:'Marketing',          icon:'ti-mail-fast' },
     { id:'usuarios',          label:'Usuários',           icon:'ti-users-group' },
   ];
 
@@ -5400,7 +5505,7 @@
     const cidadeEl = document.getElementById('cidade');
     const raioEl   = document.getElementById('raio_km');
     if (cidadeEl) cidadeEl.value = '';
-    if (raioEl)   raioEl.value  = '';
+    if (raioEl)   { raioEl.value = '0'; const lbl = document.getElementById('raio_km_label'); if (lbl) lbl.textContent = 'qualquer'; }
     const vMinEl = document.getElementById('filtro-valor-min');
     const vMaxEl = document.getElementById('filtro-valor-max');
     if (vMinEl) vMinEl.value = '';
@@ -11618,6 +11723,199 @@ async function pvRegistrarRecebimento(id) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
+// ────────────────────────────────────────────────────────────
+// IBGE — autocomplete de cidades
+// ────────────────────────────────────────────────────────────
+
+const _ibgeTimers = {};
+function ibgeCidadeAutoComplete(inputId, datalistId) {
+  clearTimeout(_ibgeTimers[inputId]);
+  _ibgeTimers[inputId] = setTimeout(async () => {
+    const val = document.getElementById(inputId)?.value?.trim() || '';
+    if (val.length < 2) return;
+    try {
+      const r = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=${encodeURIComponent(val)}&orderBy=nome`);
+      const dados = await r.json();
+      const dl = document.getElementById(datalistId);
+      if (dl) dl.innerHTML = dados.slice(0, 12).map(m =>
+        `<option value="${m.nome} - ${m.microrregiao.mesorregiao.UF.sigla}">`
+      ).join('');
+    } catch (_) {}
+  }, 350);
+}
+
+// ════════════════════════════════════════════════════════════
+// MARKETING
+// ════════════════════════════════════════════════════════════
+
+let mktTabAtiva = 'templates';
+
+async function carregarMarketing() {
+  if (mktTabAtiva === 'templates') mktCarregarTemplates();
+  else if (mktTabAtiva === 'logs') mktCarregarLogs();
+  else if (mktTabAtiva === 'campanha') mktAbrirCampanha();
+}
+
+function mktSwitchTab(tab) {
+  mktTabAtiva = tab;
+  ['templates','logs','campanha'].forEach(t => {
+    document.getElementById(`mkt-tab-${t}`)?.classList.toggle('active', t === tab);
+    const panel = document.getElementById(`mkt-panel-${t}`);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'templates') mktCarregarTemplates();
+  else if (tab === 'logs') mktCarregarLogs();
+}
+
+async function mktCarregarTemplates() {
+  const area = document.getElementById('mkt-templates-area');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/prospects/email-templates`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    const lista = d.dados || [];
+    if (!lista.length) {
+      area.innerHTML = '<div class="state-box"><p>Nenhum template cadastrado.</p></div>';
+      return;
+    }
+    area.innerHTML = `
+      <div style="display:grid;gap:12px">
+        ${lista.map(t => `
+          <div style="background:var(--surface-alt,#1e2535);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div>
+              <div style="font-weight:700;margin-bottom:2px">${t.nome}</div>
+              <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:4px"><code style="background:var(--border);padding:1px 6px;border-radius:4px">${t.slug}</code></div>
+              <div style="font-size:.82rem;color:var(--text-muted)">${t.assunto}</div>
+              ${t.variaveis_disponiveis?.length ? `<div style="font-size:.75rem;color:var(--primary);margin-top:6px">Variáveis: {{${t.variaveis_disponiveis.join('}}, {{')}}}</div>` : ''}
+            </div>
+            <span style="background:${t.ativo?'#22c55e22':'#6b728022'};color:${t.ativo?'#22c55e':'#6b7280'};border-radius:20px;padding:2px 10px;font-size:.72rem;font-weight:600;white-space:nowrap">${t.ativo?'Ativo':'Inativo'}</span>
+          </div>`).join('')}
+      </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+async function mktCarregarLogs() {
+  const area = document.getElementById('mkt-logs-area');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/prospects/email-logs-global?limite=200`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    const logs = d.dados || [];
+    if (!logs.length) { area.innerHTML = '<div class="state-box"><p>Nenhum envio registrado.</p></div>'; return; }
+
+    const totalEnv  = logs.filter(l => l.status === 'enviado').length;
+    const totalErr  = logs.filter(l => l.status === 'erro').length;
+
+    area.innerHTML = `
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="background:var(--surface-alt,#1e2535);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:700;color:#22c55e">${totalEnv}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Enviados</div>
+        </div>
+        <div style="background:var(--surface-alt,#1e2535);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:700;color:#ef4444">${totalErr}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Com erro</div>
+        </div>
+        <div style="background:var(--surface-alt,#1e2535);border:1px solid var(--border);border-radius:8px;padding:10px 16px;min-width:120px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:700;color:var(--primary)">${logs.length}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Total</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tabela-padrao">
+          <thead><tr>
+            <th>Data</th><th>Template</th><th>Destinatário</th><th>Prospect</th><th>Status</th><th>Enviado por</th>
+          </tr></thead>
+          <tbody>${logs.map(l => `
+            <tr>
+              <td style="white-space:nowrap">${new Date(l.enviado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</td>
+              <td><code style="font-size:.75rem">${l.template_slug || '—'}</code></td>
+              <td style="font-size:.8rem">${l.destinatario_email}</td>
+              <td style="font-size:.8rem">${l.prospect_nome || l.prospect_empresa || '—'}</td>
+              <td>${l.status === 'enviado'
+                ? '<span style="background:#22c55e22;color:#22c55e;border-radius:20px;padding:2px 8px;font-size:.72rem;font-weight:600">enviado</span>'
+                : `<span style="background:#ef444422;color:#ef4444;border-radius:20px;padding:2px 8px;font-size:.72rem;font-weight:600" title="${l.erro_mensagem||''}">erro</span>`}
+              </td>
+              <td style="font-size:.8rem">${l.enviado_por_nome || '—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+function mktAbrirCampanha() {
+  // Renderiza form na panel de campanha se ainda não existir
+  const panel = document.getElementById('mkt-panel-campanha');
+  if (!panel) return;
+  if (!panel.dataset.rendered) {
+    panel.dataset.rendered = '1';
+    mktCarregarSelectTemplates();
+  }
+}
+
+async function mktCarregarSelectTemplates() {
+  try {
+    const r = await fetch(`${API}/prospects/email-templates`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    const sel = document.getElementById('mkt-camp-template');
+    if (sel) sel.innerHTML = '<option value="">Selecione o template…</option>' +
+      (d.dados || []).map(t => `<option value="${t.slug}">${t.nome}</option>`).join('');
+  } catch (_) {}
+}
+
+async function mktEnviarCampanha() {
+  const template_id = document.getElementById('mkt-camp-template')?.value;
+  const segmento    = document.getElementById('mkt-camp-segmento')?.value?.trim() || '';
+  const uf          = document.getElementById('mkt-camp-uf')?.value?.trim() || '';
+  const limite      = parseInt(document.getElementById('mkt-camp-limite')?.value || '50', 10);
+
+  if (!template_id) { toast('Selecione um template','error'); return; }
+  if (!confirm(`Enviar campanha para até ${limite} prospects${segmento?' do segmento "'+segmento+'"':''}${uf?' no UF '+uf:''}?`)) return;
+
+  const btn = document.getElementById('btn-mkt-enviar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+
+  try {
+    const r = await fetch(`${API}/prospects/campanha`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template_id, segmento: segmento || undefined, uf: uf || undefined, limite }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro ao enviar campanha');
+    toast(`Campanha enviada! ${d.enviados} emails / ${d.erros} erros`, d.erros > 0 ? 'error' : 'success');
+    mktCarregarLogs();
+    mktSwitchTab('logs');
+  } catch (e) { toast(e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Disparar Campanha'; } }
+}
+
+async function mktSalvarTemplate() {
+  const slug   = document.getElementById('mkt-new-slug')?.value?.trim();
+  const nome   = document.getElementById('mkt-new-nome')?.value?.trim();
+  const assunto = document.getElementById('mkt-new-assunto')?.value?.trim();
+  const corpo  = document.getElementById('mkt-new-corpo')?.value?.trim();
+  const vars   = (document.getElementById('mkt-new-vars')?.value || '').split(',').map(v => v.trim()).filter(Boolean);
+
+  if (!slug || !nome || !assunto || !corpo) { toast('Preencha todos os campos obrigatórios','error'); return; }
+
+  try {
+    const r = await fetch(`${API}/prospects/email-templates`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, nome, assunto, corpo_html: corpo, variaveis_disponiveis: vars }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
+    toast('Template criado!', 'success');
+    document.getElementById('modal-mkt-template').close();
+    mktCarregarTemplates();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
 </script>
 
 <!-- MODAL: Alterar senha -->
@@ -11921,16 +12219,15 @@ async function pvRegistrarRecebimento(id) {
         <div class="form-row">
           <div class="form-group">
             <label>Cidade <span style="color:var(--danger)">*</span></label>
-            <input type="text" id="mp-gm-cidade" placeholder="Ex: Belo Horizonte" />
+            <input type="text" id="mp-gm-cidade" placeholder="Ex: Belo Horizonte" autocomplete="off"
+              oninput="ibgeCidadeAutoComplete('mp-gm-cidade','ibge-dl-gmaps')" list="ibge-dl-gmaps" />
+            <datalist id="ibge-dl-gmaps"></datalist>
           </div>
           <div class="form-group">
-            <label>Raio de busca</label>
-            <select id="mp-gm-raio">
-              <option value="5">5 km</option>
-              <option value="10" selected>10 km</option>
-              <option value="25">25 km</option>
-              <option value="50">50 km</option>
-            </select>
+            <label>Raio de busca — <span id="mp-gm-raio-label">10 km</span></label>
+            <input type="range" id="mp-gm-raio" min="1" max="200" step="1" value="10"
+              style="width:100%;accent-color:var(--primary)"
+              oninput="document.getElementById('mp-gm-raio-label').textContent=this.value+' km'" />
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
