@@ -727,6 +727,41 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     )
   `);
 
+  // ── Pagamentos flexíveis por cliente ─────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cliente_pagamentos_config (
+      id           SERIAL PRIMARY KEY,
+      cliente_id   INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+      descricao    TEXT,
+      tipo_recorrencia TEXT NOT NULL,
+      valor        NUMERIC(12,2) NOT NULL,
+      dia_mes      INTEGER,
+      numero_dia_util INTEGER,
+      dia_semana   INTEGER,
+      datas_customizadas JSONB,
+      ativo        BOOLEAN DEFAULT TRUE,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cliente_pagamentos_lancamentos (
+      id              SERIAL PRIMARY KEY,
+      cliente_id      INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+      config_id       INTEGER REFERENCES cliente_pagamentos_config(id) ON DELETE SET NULL,
+      valor           NUMERIC(12,2) NOT NULL,
+      data_vencimento DATE NOT NULL,
+      data_pagamento  DATE,
+      status          TEXT NOT NULL DEFAULT 'pendente',
+      observacao      TEXT,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_cliente    ON cliente_pagamentos_lancamentos(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_vencimento ON cliente_pagamentos_lancamentos(data_vencimento)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_status     ON cliente_pagamentos_lancamentos(status)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

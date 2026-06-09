@@ -3,6 +3,7 @@ const express    = require('express');
 const router     = express.Router();
 const autenticar = require('../middleware/autenticar');
 const db         = require('../database/db');
+const { calcularMRR } = require('../controllers/pagamentosController');
 
 function ok(res, data)        { res.json({ sucesso: true,  dados: data }); }
 function erro(res, msg, s=400){ res.status(s).json({ sucesso: false, erro: msg }); }
@@ -20,10 +21,13 @@ router.get('/', autenticar, cap(async (req, res) => {
   );
   const userNome = userRow?.rows[0]?.nome || req.usuario.email || '';
 
-  // Clientes ativos + MRR
+  // Clientes ativos
   const clientesRow = await safe(() =>
-    db.query('SELECT COUNT(*)::int AS total, COALESCE(SUM(valor_contrato),0) AS mrr FROM clientes WHERE ativo = TRUE')
+    db.query('SELECT COUNT(*)::int AS total FROM clientes WHERE ativo = TRUE')
   );
+
+  // MRR calculado a partir das configs de pagamento + fallback para valor_contrato antigo
+  const mrrCalculado = await safe(() => calcularMRR());
 
   // Contagens de pregões + volume vencido
   const pregoesRow = await safe(() =>
@@ -77,18 +81,34 @@ router.get('/', autenticar, cap(async (req, res) => {
     `)
   );
 
-  // Contas a vencer nos próximos 7 dias — exclusivo para gestores
+  // Contas a vencer nos próximos 7 dias — lançamentos novos + mensalidades antigas
   const isGestor = ['socio_fundador', 'admin'].includes(req.usuario.role);
   const contasRow = isGestor ? await safe(() =>
     db.query(`
-      SELECT m.id, m.mes_ano, m.valor, m.data_vencimento, m.status,
-             c.nome AS cliente_nome
+      SELECT l.id, l.valor, l.data_vencimento, l.status,
+             c.nome AS cliente_nome,
+             COALESCE(cfg.descricao, 'Mensalidade') AS descricao
+      FROM cliente_pagamentos_lancamentos l
+      JOIN clientes c ON c.id = l.cliente_id
+      LEFT JOIN cliente_pagamentos_config cfg ON cfg.id = l.config_id
+      WHERE l.status = 'pendente'
+        AND c.ativo = TRUE
+        AND l.data_vencimento >= CURRENT_DATE
+        AND l.data_vencimento <= CURRENT_DATE + INTERVAL '7 days'
+      UNION ALL
+      SELECT m.id::text::integer, m.valor, m.data_vencimento, m.status,
+             c.nome AS cliente_nome, 'Mensalidade' AS descricao
       FROM mensalidades m
-      LEFT JOIN clientes c ON c.id = m.cliente_id
-      WHERE m.status IN ('pendente', 'enviada', 'atrasada')
+      JOIN clientes c ON c.id = m.cliente_id
+      WHERE m.status IN ('pendente','enviada','atrasada')
+        AND c.ativo = TRUE
         AND m.data_vencimento >= CURRENT_DATE
         AND m.data_vencimento <= CURRENT_DATE + INTERVAL '7 days'
-      ORDER BY m.data_vencimento ASC
+        AND NOT EXISTS (
+          SELECT 1 FROM cliente_pagamentos_config cpc
+          WHERE cpc.cliente_id = c.id AND cpc.ativo = TRUE
+        )
+      ORDER BY data_vencimento ASC
       LIMIT 10
     `)
   ) : null;
@@ -97,7 +117,7 @@ router.get('/', autenticar, cap(async (req, res) => {
     usuario:            { nome: userNome, role: req.usuario.role },
     metricas: {
       clientes_ativos:  clientesRow?.rows[0]?.total        ?? 0,
-      mrr:              clientesRow?.rows[0]?.mrr           ?? 0,
+      mrr:              mrrCalculado                        ?? 0,
       pregoes_abertos:  pregoesRow?.rows[0]?.abertos        ?? 0,
       pregoes_vencidos: pregoesRow?.rows[0]?.vencidos       ?? 0,
       prospects:        prospectsRow?.rows[0]?.total        ?? 0,

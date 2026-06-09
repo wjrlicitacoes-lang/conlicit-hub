@@ -2975,6 +2975,112 @@
   </div>
 </div>
 
+<!-- MODAL: Marcar pagamento como pago -->
+<div class="modal-overlay" id="modal-pagar-lancamento" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:400px">
+    <div class="modal-header">
+      <h3>✓ Confirmar pagamento</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-pagar-lancamento').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <div id="pag-info-data" style="font-size:.82rem;color:var(--t2)"></div>
+      <div class="form-group" style="margin:0">
+        <label>Data do pagamento *</label>
+        <input type="date" id="pag-data-pagamento">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Observação</label>
+        <input type="text" id="pag-obs" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-pagar-lancamento').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-pag" onclick="confirmarPagamento()" style="background:#22c55e;border-color:#22c55e">✓ Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nova configuração de cobrança -->
+<div class="modal-overlay" id="modal-nova-config-pag" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:500px">
+    <div class="modal-header">
+      <h3>💰 Adicionar cobrança</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-nova-config-pag').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="form-group" style="margin:0">
+        <label>Descrição</label>
+        <input type="text" id="nc-descricao" placeholder="Ex: Mensalidade, Taxa setup...">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group" style="margin:0">
+          <label>Valor (R$) *</label>
+          <input type="number" id="nc-valor" min="0" step="0.01" placeholder="0,00">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Tipo de recorrência *</label>
+          <select id="nc-tipo" onchange="ncTipoChange()">
+            <option value="mensal_dia_fixo">Mensal (dia fixo)</option>
+            <option value="mensal_dia_util">Mensal (dia útil)</option>
+            <option value="semanal">Semanal</option>
+            <option value="quinzenal">Quinzenal</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- painel mensal_dia_fixo -->
+      <div id="nc-panel-dia-mes" class="form-group" style="margin:0">
+        <label>Dia do mês (1–31)</label>
+        <input type="number" id="nc-dia-mes" min="1" max="31" placeholder="Ex: 10" oninput="ncAtualizarPreview()">
+      </div>
+
+      <!-- painel mensal_dia_util -->
+      <div id="nc-panel-dia-util" class="form-group" style="margin:0;display:none">
+        <label>Nº do dia útil</label>
+        <select id="nc-num-du" onchange="ncAtualizarPreview()">
+          <option value="1">1º dia útil</option>
+          <option value="2">2º dia útil</option>
+          <option value="3">3º dia útil</option>
+          <option value="5">5º dia útil</option>
+          <option value="10">10º dia útil</option>
+        </select>
+      </div>
+
+      <!-- painel semanal -->
+      <div id="nc-panel-semanal" class="form-group" style="margin:0;display:none">
+        <label>Dia da semana</label>
+        <select id="nc-dia-sem" onchange="ncAtualizarPreview()">
+          <option value="0">Domingo</option>
+          <option value="1">Segunda-feira</option>
+          <option value="2">Terça-feira</option>
+          <option value="3">Quarta-feira</option>
+          <option value="4">Quinta-feira</option>
+          <option value="5" selected>Sexta-feira</option>
+          <option value="6">Sábado</option>
+        </select>
+      </div>
+
+      <!-- painel personalizado -->
+      <div id="nc-panel-custom" style="display:none">
+        <label style="font-size:.8rem;color:var(--t2);font-weight:600;display:block;margin-bottom:6px">Datas específicas</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" id="nc-data-nova" style="flex:1">
+          <button class="btn btn-ghost btn-sm" onclick="ncAdicionarData()">+ Adicionar</button>
+        </div>
+        <div id="nc-datas-list" style="margin-top:8px;max-height:120px;overflow-y:auto"></div>
+      </div>
+
+      <!-- preview próximas datas -->
+      <div id="nc-preview" style="font-size:.75rem;color:#4CC5D7;min-height:16px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-nova-config-pag').classList.remove('visible')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-nc" onclick="salvarNovaConfig()">Salvar cobrança</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Nova Oportunidade -->
 <div class="modal-overlay" id="modal-nova-oportunidade" onclick="this.classList.remove('visible')">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
@@ -3263,6 +3369,7 @@
         <button class="tab-btn active" data-tab="dados"        onclick="switchTab2('dados')">Dados</button>
         <button class="tab-btn"        data-tab="pregoes"      onclick="switchTab2('pregoes')">Pregões</button>
         <button class="tab-btn" data-tab="mensalidades" onclick="switchTab2('mensalidades')" data-admin-only>Mensalidades</button>
+        <button class="tab-btn" data-tab="pagamentos"   onclick="switchTab2('pagamentos')" data-admin-only>💰 Pagamentos</button>
         <button class="tab-btn"        data-tab="documentos"   onclick="switchTab2('documentos')">Documentos</button>
         <button class="tab-btn"        data-tab="interesses"   onclick="switchTab2('interesses')">Interesses</button>
         <button class="tab-btn"        data-tab="acessos"      onclick="switchTab2('acessos')">🔑 Acessos</button>
@@ -3272,6 +3379,7 @@
       <div id="tab-dados"        class="tab-pane active"></div>
       <div id="tab-pregoes"      class="tab-pane"></div>
       <div id="tab-mensalidades" class="tab-pane"></div>
+      <div id="tab-pagamentos"   class="tab-pane"></div>
       <div id="tab-documentos"   class="tab-pane"></div>
       <div id="tab-interesses"   class="tab-pane"></div>
       <div id="tab-acessos"       class="tab-pane"></div>
@@ -3868,11 +3976,12 @@
     abrirFormCliente(c);
   }
 
-  const TAB_NAMES = ['dados','pregoes','mensalidades','documentos','interesses'];
+  const TAB_NAMES = ['dados','pregoes','mensalidades','pagamentos','documentos','interesses'];
 
   function switchTab2(name) {
     TAB_NAMES.forEach(t => {
-      document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
+      const el = document.getElementById(`tab-${t}`);
+      if (el) el.classList.toggle('active', t === name);
     });
     document.querySelectorAll('#modal-detalhe .tab-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === name);
@@ -3882,6 +3991,7 @@
       if (name === 'dados')            preencherTabDados(clienteAtual);
       else if (name === 'pregoes')     carregarPregoesTab();
       else if (name === 'mensalidades') carregarMensalidadesTab();
+      else if (name === 'pagamentos')   carregarPagamentosTab();
       else if (name === 'documentos')   carregarDocumentosTab();
       else if (name === 'acessos')        carregarAcessosTab();
       else if (name === 'docs-hub')      carregarDocsHubTab();
@@ -4245,6 +4355,345 @@
   }
 
   // ── TAB: MENSALIDADES ──
+  // ── TAB: PAGAMENTOS FLEXÍVEIS ──────────────────────────────────────────────
+
+  let pagFiltroStatus = '';
+  let pagFiltroMes = '';
+  const PAG_STATUS_COR = { pendente:'#6b7280', pago:'#22c55e', atrasado:'#ef4444', cancelado:'#94a3b8' };
+
+  function pagStatusBadge(s) {
+    const cor = PAG_STATUS_COR[s] || '#6b7280';
+    return `<span style="padding:2px 8px;border-radius:12px;font-size:.7rem;font-weight:600;background:${cor}22;color:${cor};border:1px solid ${cor}44">${s}</span>`;
+  }
+
+  function descRecorrencia(c) {
+    if (c.tipo_recorrencia === 'mensal_dia_fixo')  return `Todo dia ${c.dia_mes} do mês`;
+    if (c.tipo_recorrencia === 'mensal_dia_util')  return `Todo ${c.numero_dia_util}º dia útil do mês`;
+    if (c.tipo_recorrencia === 'semanal') {
+      const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      return `Toda ${dias[c.dia_semana] || c.dia_semana}`;
+    }
+    if (c.tipo_recorrencia === 'quinzenal')   return 'A cada 15 dias';
+    if (c.tipo_recorrencia === 'personalizado') return 'Datas específicas';
+    return c.tipo_recorrencia;
+  }
+
+  async function carregarPagamentosTab() {
+    if (!clienteAtual) return;
+    const tab = document.getElementById('tab-pagamentos');
+    tab.innerHTML = '<div class="spinner" style="margin:1rem auto"></div>';
+
+    try {
+      const [rConf, rLanc] = await Promise.all([
+        fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/config`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/lancamentos?limit=60`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const { dados: configs = [] } = await rConf.json();
+      const { dados: lancamentos = [] } = await rLanc.json();
+
+      const totalMensal = configs.reduce((s, c) => {
+        if (c.tipo_recorrencia === 'semanal')    return s + parseFloat(c.valor) * 4.33;
+        if (c.tipo_recorrencia === 'quinzenal')  return s + parseFloat(c.valor) * 2;
+        return s + parseFloat(c.valor);
+      }, 0);
+
+      tab.innerHTML = `
+        <!-- Configurações -->
+        <div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--primary);letter-spacing:.06em;text-transform:uppercase">Configurações de cobrança</div>
+              ${configs.length ? `<div style="font-size:.78rem;color:var(--t2);margin-top:2px">Total mensal estimado: <strong style="color:var(--t1)">${fmtBRL(totalMensal)}</strong></div>` : ''}
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNovaConfig()">+ Adicionar cobrança</button>
+          </div>
+          <div id="pag-configs-lista" style="display:flex;flex-direction:column;gap:8px">
+            ${configs.length === 0 ? `<div style="color:var(--t3);font-size:.82rem;padding:8px 0">Nenhuma configuração de cobrança. Clique em "+ Adicionar cobrança".</div>` :
+              configs.map(c => `
+              <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+                <div>
+                  <div style="font-size:.85rem;font-weight:600;color:var(--t1)">💰 ${esc(c.descricao || 'Cobrança')}</div>
+                  <div style="font-size:.78rem;color:var(--t2);margin-top:2px">${fmtBRL(c.valor)} · ${descRecorrencia(c)}</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0">
+                  <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:.72rem;color:#ef4444" onclick="desativarConfig(${c.id})" title="Remover">✕</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Lançamentos -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div style="font-size:.75rem;font-weight:700;color:var(--primary);letter-spacing:.06em;text-transform:uppercase">Agenda de pagamentos</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <div style="display:flex;gap:4px">
+                ${['','pendente','pago','atrasado'].map(s => `<button class="pf-chip ${pagFiltroStatus===s?'active':''}" onclick="filtrarLancamentos('${s}')">${s||'Todos'}</button>`).join('')}
+              </div>
+              <input type="month" id="pag-filtro-mes" value="${pagFiltroMes}" onchange="filtrarLancamentosMes(this.value)"
+                style="font-size:.75rem;padding:3px 8px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;color:var(--t1)">
+            </div>
+          </div>
+          <div id="pag-lancamentos-lista">
+            ${renderLancamentosTable(lancamentos)}
+          </div>
+        </div>`;
+    } catch (e) {
+      tab.innerHTML = `<div style="color:var(--danger);padding:1rem">${e.message}</div>`;
+    }
+  }
+
+  function renderLancamentosTable(lancamentos) {
+    if (!lancamentos.length) return '<div style="color:var(--t3);font-size:.82rem;padding:8px 0">Nenhum lançamento encontrado.</div>';
+
+    // Rodapé totais
+    const total    = lancamentos.reduce((s,l) => s + parseFloat(l.valor), 0);
+    const recebido = lancamentos.filter(l => l.status === 'pago').reduce((s,l) => s + parseFloat(l.valor), 0);
+    const pendente = lancamentos.filter(l => ['pendente','atrasado'].includes(l.status)).reduce((s,l) => s + parseFloat(l.valor), 0);
+
+    return `<div class="table-wrap"><table class="data-table" style="font-size:.8rem">
+      <thead><tr>
+        <th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Pago em</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${lancamentos.map(l => {
+          const dataVenc = l.data_vencimento ? new Date(l.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+          const dataPag  = l.data_pagamento  ? new Date(l.data_pagamento  + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+          const valorCor = l.status === 'pago' ? '#22c55e' : l.status === 'atrasado' ? '#ef4444' : 'var(--t1)';
+          const acoes = l.status === 'pago'
+            ? `<button style="font-size:.68rem;padding:2px 6px;background:rgba(100,116,139,.15);border:1px solid #64748b;border-radius:4px;color:#94a3b8;cursor:pointer" onclick="desfazerPagamento(${l.id})">↩ Desfazer</button>`
+            : `<button style="font-size:.68rem;padding:2px 7px;background:rgba(34,197,94,.12);border:1px solid #22c55e;border-radius:4px;color:#22c55e;cursor:pointer" onclick="abrirModalPagar(${l.id},'${dataVenc}')">✓ Pago</button>`;
+          return `<tr>
+            <td style="white-space:nowrap">${dataVenc}</td>
+            <td style="color:var(--t2)">${esc(l.config_descricao || 'Pagamento')}</td>
+            <td style="font-weight:600;color:${valorCor}">${fmtBRL(l.valor)}</td>
+            <td>${pagStatusBadge(l.status)}</td>
+            <td style="font-size:.75rem;color:var(--t3)">${dataPag}</td>
+            <td>${acoes}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="2" style="font-size:.75rem;color:var(--t3);padding-top:8px">Total do período</td>
+        <td style="font-weight:600">${fmtBRL(total)}</td>
+        <td colspan="2" style="font-size:.75rem;color:var(--t3)">Recebido: <span style="color:#22c55e">${fmtBRL(recebido)}</span> · Pendente: <span style="color:#f59e0b">${fmtBRL(pendente)}</span></td>
+        <td></td>
+      </tr></tfoot>
+    </table></div>`;
+  }
+
+  async function filtrarLancamentos(status) {
+    pagFiltroStatus = status;
+    await recarregarLancamentos();
+  }
+
+  async function filtrarLancamentosMes(mes) {
+    pagFiltroMes = mes;
+    await recarregarLancamentos();
+  }
+
+  async function recarregarLancamentos() {
+    if (!clienteAtual) return;
+    const div = document.getElementById('pag-lancamentos-lista');
+    if (!div) return;
+    div.innerHTML = '<div class="spinner" style="margin:.5rem auto"></div>';
+    let url = `${API}/clientes/${clienteAtual.id}/pagamentos/lancamentos?limit=60`;
+    if (pagFiltroStatus) url += `&status=${pagFiltroStatus}`;
+    if (pagFiltroMes)    url += `&mes=${pagFiltroMes}`;
+    try {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      div.innerHTML = renderLancamentosTable(dados);
+      // atualizar chips visuais
+      document.querySelectorAll('#tab-pagamentos .pf-chip').forEach(b => {
+        b.classList.toggle('active', b.textContent.toLowerCase().replace('todos','') === pagFiltroStatus);
+      });
+    } catch (e) { div.innerHTML = `<div style="color:var(--danger)">${e.message}</div>`; }
+  }
+
+  // ── Desativar config ──────────────────────────────────────────────────────
+
+  async function desativarConfig(configId) {
+    if (!confirm('Remover esta configuração de cobrança? Os lançamentos existentes não serão excluídos.')) return;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/config/${configId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Configuração removida', 'success');
+      tabsLoaded['pagamentos'] = false;
+      carregarPagamentosTab();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Modal: marcar como pago ───────────────────────────────────────────────
+
+  let _pagLancId = null;
+
+  function abrirModalPagar(lancId, dataVenc) {
+    _pagLancId = lancId;
+    document.getElementById('pag-data-pagamento').value = new Date().toISOString().split('T')[0];
+    document.getElementById('pag-obs').value = '';
+    document.getElementById('pag-info-data').textContent = `Vencimento: ${dataVenc}`;
+    document.getElementById('modal-pagar-lancamento').classList.add('visible');
+  }
+
+  async function confirmarPagamento() {
+    if (!_pagLancId || !clienteAtual) return;
+    const dataPag  = document.getElementById('pag-data-pagamento').value;
+    const obs      = document.getElementById('pag-obs').value.trim();
+    const btn      = document.getElementById('btn-confirmar-pag');
+    btn.disabled = true;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/lancamentos/${_pagLancId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'pago', data_pagamento: dataPag || null, observacao: obs || null }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      document.getElementById('modal-pagar-lancamento').classList.remove('visible');
+      toast('Pagamento registrado!', 'success');
+      tabsLoaded['pagamentos'] = false;
+      carregarPagamentosTab();
+    } catch (e) { toast(e.message, 'error'); }
+    finally { btn.disabled = false; }
+  }
+
+  async function desfazerPagamento(lancId) {
+    if (!confirm('Reverter para "pendente"?')) return;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/lancamentos/${lancId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'pendente', data_pagamento: null }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Status revertido', 'success');
+      tabsLoaded['pagamentos'] = false;
+      carregarPagamentosTab();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Modal: nova configuração de cobrança ─────────────────────────────────
+
+  function abrirModalNovaConfig() {
+    document.getElementById('nc-descricao').value = '';
+    document.getElementById('nc-valor').value     = '';
+    document.getElementById('nc-tipo').value      = 'mensal_dia_fixo';
+    document.getElementById('nc-dia-mes').value   = '';
+    document.getElementById('nc-num-du').value    = '1';
+    document.getElementById('nc-dia-sem').value   = '5';
+    document.getElementById('nc-datas-list').innerHTML = '';
+    ncTipoChange();
+    document.getElementById('modal-nova-config-pag').classList.add('visible');
+  }
+
+  function ncTipoChange() {
+    const tipo = document.getElementById('nc-tipo').value;
+    document.getElementById('nc-panel-dia-mes').style.display  = tipo === 'mensal_dia_fixo'  ? '' : 'none';
+    document.getElementById('nc-panel-dia-util').style.display = tipo === 'mensal_dia_util'  ? '' : 'none';
+    document.getElementById('nc-panel-semanal').style.display  = tipo === 'semanal'           ? '' : 'none';
+    document.getElementById('nc-panel-custom').style.display   = tipo === 'personalizado'     ? '' : 'none';
+    ncAtualizarPreview();
+  }
+
+  function ncAtualizarPreview() {
+    const tipo = document.getElementById('nc-tipo').value;
+    const prev = document.getElementById('nc-preview');
+    const hoje = new Date();
+    const proximos = [];
+
+    if (tipo === 'mensal_dia_fixo') {
+      const dia = parseInt(document.getElementById('nc-dia-mes').value);
+      if (dia >= 1 && dia <= 31) {
+        for (let m = 0; m < 3; m++) {
+          const d = new Date(hoje.getFullYear(), hoje.getMonth() + m, dia);
+          if (d >= hoje) proximos.push(d.toLocaleDateString('pt-BR'));
+        }
+      }
+    } else if (tipo === 'semanal') {
+      const diaSem = parseInt(document.getElementById('nc-dia-sem').value);
+      let c = new Date(hoje);
+      while (c.getDay() !== diaSem) c.setDate(c.getDate() + 1);
+      for (let w = 0; w < 3; w++) {
+        proximos.push(c.toLocaleDateString('pt-BR'));
+        c = new Date(c); c.setDate(c.getDate() + 7);
+      }
+    } else if (tipo === 'mensal_dia_util') {
+      const n = parseInt(document.getElementById('nc-num-du').value);
+      for (let m = 0; m < 3; m++) {
+        let count = 0;
+        const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + m + 1, 0).getDate();
+        for (let d = 1; d <= diasNoMes; d++) {
+          const dt = new Date(hoje.getFullYear(), hoje.getMonth() + m, d);
+          if (dt.getDay() !== 0 && dt.getDay() !== 6) {
+            count++;
+            if (count === n) { proximos.push(dt.toLocaleDateString('pt-BR')); break; }
+          }
+        }
+      }
+    }
+
+    prev.textContent = proximos.length ? `Próximos: ${proximos.slice(0,3).join(' · ')}` : '';
+  }
+
+  let _ncDatasCustom = [];
+
+  function ncAdicionarData() {
+    const val = document.getElementById('nc-data-nova').value;
+    if (!val) return;
+    if (!_ncDatasCustom.includes(val)) {
+      _ncDatasCustom.push(val);
+      _ncDatasCustom.sort();
+      ncRenderDatasCustom();
+    }
+    document.getElementById('nc-data-nova').value = '';
+  }
+
+  function ncRemoverData(d) {
+    _ncDatasCustom = _ncDatasCustom.filter(x => x !== d);
+    ncRenderDatasCustom();
+  }
+
+  function ncRenderDatasCustom() {
+    document.getElementById('nc-datas-list').innerHTML = _ncDatasCustom.map(d =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.8rem">
+         <span>${new Date(d + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+         <button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.8rem" onclick="ncRemoverData('${d}')">✕</button>
+       </div>`
+    ).join('');
+  }
+
+  async function salvarNovaConfig() {
+    const tipo  = document.getElementById('nc-tipo').value;
+    const valor = parseFloat(document.getElementById('nc-valor').value);
+    const desc  = document.getElementById('nc-descricao').value.trim();
+    if (!valor || isNaN(valor)) { toast('Informe o valor', 'error'); return; }
+
+    const body = { descricao: desc || null, tipo_recorrencia: tipo, valor };
+    if (tipo === 'mensal_dia_fixo')  body.dia_mes           = parseInt(document.getElementById('nc-dia-mes').value);
+    if (tipo === 'mensal_dia_util')  body.numero_dia_util   = parseInt(document.getElementById('nc-num-du').value);
+    if (tipo === 'semanal')          body.dia_semana        = parseInt(document.getElementById('nc-dia-sem').value);
+    if (tipo === 'personalizado')    body.datas_customizadas = _ncDatasCustom;
+
+    const btn = document.getElementById('btn-salvar-nc');
+    btn.disabled = true;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pagamentos/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      document.getElementById('modal-nova-config-pag').classList.remove('visible');
+      toast(`Cobrança criada! ${d.lancamentos_gerados} lançamentos gerados.`, 'success');
+      tabsLoaded['pagamentos'] = false;
+      carregarPagamentosTab();
+    } catch (e) { toast(e.message, 'error'); }
+    finally { btn.disabled = false; }
+  }
+
   async function carregarMensalidadesTab() {
     if (!clienteAtual) return;
     const tab = document.getElementById('tab-mensalidades');

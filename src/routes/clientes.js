@@ -6,6 +6,7 @@ const pregoes          = require('../controllers/pregoesController');
 const mensalidades     = require('../controllers/mensalidadesController');
 const documentos       = require('../controllers/documentosController');
 const acessos          = require('../controllers/acessosController');
+const pagamentos       = require('../controllers/pagamentosController');
 const protegerCliente  = require('../middleware/protegerCliente');
 
 const router = express.Router();
@@ -53,5 +54,12 @@ router.get('/:id/acessos',             acessos.listar);
 router.post('/:id/acessos',            acessos.criar);
 router.patch('/:id/acessos/:aid',      acessos.atualizar);
 router.delete('/:id/acessos/:aid',     acessos.remover);
+
+// Pagamentos flexíveis
+router.get('/:id/pagamentos/config',                   pagamentos.listarConfigs);
+router.post('/:id/pagamentos/config',                  pagamentos.criarConfig);
+router.delete('/:id/pagamentos/config/:config_id',     pagamentos.desativarConfig);
+router.get('/:id/pagamentos/lancamentos',              pagamentos.listarLancamentos);
+router.patch('/:id/pagamentos/lancamentos/:lancamento_id', pagamentos.atualizarLancamento);
 
 module.exports = router;

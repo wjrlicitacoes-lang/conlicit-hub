@@ -95,6 +95,9 @@ app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/financeiro',      financeiroRoutes);
 app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 
+// Cron: gerar lançamentos de pagamento mensalmente
+app.get('/api/cron/gerar-lancamentos', require('./controllers/pagamentosController').cronGerarLancamentos);
+
 // POST /api/prospects/google-maps-search — stub para integração futura
 app.post('/api/prospects/google-maps-search', autenticar, (req, res) => {
   res.json({
