@@ -686,6 +686,9 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_tipo ON financeiro_lancamentos(tipo)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_data ON financeiro_lancamentos(data)`);
 
+  // Campo função específica do colaborador (distinto de cargo)
+  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS funcao TEXT`);
+
   console.log('Migrações executadas com sucesso');
 }
 

@@ -128,7 +128,7 @@ async function listarUsuarios(req, res) {
 
   try {
     const { rows } = await db.query(
-      `SELECT u.id, u.nome, u.email, u.role, u.cargo, u.area, u.telefone, u.bio,
+      `SELECT u.id, u.nome, u.email, u.role, u.cargo, u.funcao, u.area, u.telefone, u.bio,
               u.ativo, u.data_entrada, u.whatsapp, u.cliente_id, u.clientes_ids,
               u.gestor_id, g.nome AS gestor_nome, u.criado_em,
               c.nome AS cliente_nome
@@ -149,7 +149,7 @@ async function editarUsuario(req, res) {
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
-  const { nome, email, role, cliente_id, cargo, area, gestor_id, clientes_ids, telefone, bio, ativo, data_entrada } = req.body ?? {};
+  const { nome, email, role, cliente_id, cargo, funcao, area, gestor_id, clientes_ids, telefone, bio, ativo, data_entrada } = req.body ?? {};
 
   if (role && !ROLES_VALIDOS.includes(role))
     return res.status(400).json({ erro: `Role inválido. Valores aceitos: ${ROLES_VALIDOS.join(', ')}` });
@@ -162,6 +162,7 @@ async function editarUsuario(req, res) {
     if (email        !== undefined) { campos.push(`email = $${idx++}`);         valores.push(email.trim().toLowerCase()); }
     if (role         !== undefined) { campos.push(`role = $${idx++}`);          valores.push(role); }
     if (cargo        !== undefined) { campos.push(`cargo = $${idx++}`);         valores.push(cargo || null); }
+    if (funcao       !== undefined) { campos.push(`funcao = $${idx++}`);        valores.push(funcao || null); }
     if (area         !== undefined) { campos.push(`area = $${idx++}`);          valores.push(area || null); }
     if (telefone     !== undefined) { campos.push(`telefone = $${idx++}`);      valores.push(telefone || null); }
     if (bio          !== undefined) { campos.push(`bio = $${idx++}`);           valores.push(bio || null); }
@@ -265,11 +266,11 @@ async function patchPermissao(req, res) {
   }
 }
 
-// PUT /auth/usuarios/:id/permissoes — atualização em lote (só socio_fundador)
+// PUT /auth/usuarios/:id/permissoes — atualização em lote
 // Aceita array [{modulo, liberado}] ou objeto {modulo: bool}
 async function atualizarPermissoes(req, res) {
-  if (!['socio_fundador'].includes(req.usuario.role))
-    return res.status(403).json({ erro: 'Apenas sócios fundadores podem alterar permissões' });
+  if (!ROLES_GESTORES.includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
   const { permissoes } = req.body ?? {};

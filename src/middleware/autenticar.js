@@ -2,21 +2,40 @@ const jwt = require('jsonwebtoken');
 const db  = require('../database/db');
 
 const TODOS_MODULOS = [
+  // Chaves de proteção de rotas (backend — não alterar)
   'dashboard','clientes','editais','boletins','edson',
   'calendario','monitor','prospects','usuarios','financeiro',
   'gerador_proposta','relatorios',
+  // Chaves de visibilidade do sidebar (frontend)
+  'edson_ia','buscar_editais','oportunidades','robo_pregao',
+  'minha_area','pregoes','proposta_comercial','documentacao',
 ];
 
 const PERMISSOES_ROLE = {
   socio_fundador:    [...TODOS_MODULOS],
   admin:             [...TODOS_MODULOS],
-  assistente:        ['dashboard','clientes','editais','boletins','calendario','edson','monitor'],
-  assistente_junior: ['dashboard','clientes','editais','boletins','calendario'],
-  diretor_comercial: ['dashboard','editais','calendario','prospects','edson','gerador_proposta'],
-  operador:          ['dashboard','clientes','editais','boletins','edson','monitor','calendario'],
-  sdr:               ['dashboard','editais','boletins','prospects','calendario'],
+  assistente:        [
+    'dashboard','clientes','editais','boletins','calendario','edson','monitor',
+    'buscar_editais','edson_ia','robo_pregao','oportunidades',
+  ],
+  assistente_junior: [
+    'dashboard','clientes','editais','boletins','calendario',
+    'buscar_editais','edson_ia',
+  ],
+  diretor_comercial: [
+    'dashboard','editais','calendario','prospects','edson','gerador_proposta',
+    'buscar_editais','edson_ia','proposta_comercial','oportunidades','prospects',
+  ],
+  operador:          [
+    'dashboard','clientes','editais','boletins','edson','monitor','calendario',
+    'buscar_editais','edson_ia','robo_pregao','oportunidades',
+  ],
+  sdr:               [
+    'dashboard','editais','boletins','prospects','calendario',
+    'buscar_editais','prospects',
+  ],
   social_media:      ['dashboard','documentacao'],
-  cliente:           ['minha_area','meus_pregoes','edson'],
+  cliente:           ['minha_area','pregoes','edson','edson_ia'],
 };
 
 function verificarPermissao(modulo) {

@@ -3104,29 +3104,35 @@
     const admin   = isAdmin();
     const cliente = isCliente();
 
-    // Itens staff com controle de módulo
+    // Itens staff com controle de módulo (chaves novas do sidebar)
     const navModulos = {
-      'editais':   'editais',   'clientes': 'clientes',
-      'boletins':  'boletins',  'monitor':  'monitor',
-      'calendario':'calendario','edson':    'edson',
+      'editais':      'buscar_editais',
+      'clientes':     'clientes',
+      'boletins':     'boletins',
+      'monitor':      'monitor',
+      'calendario':   'calendario',
+      'edson':        'edson_ia',
+      'oportunidades':'oportunidades',
+      'robo':         'robo_pregao',
     };
     Object.entries(navModulos).forEach(([nav, mod]) => {
       const el = document.querySelector(`[data-nav="${nav}"]`);
       if (el) el.hidden = cliente || !permiteModulo(mod);
     });
-    document.querySelector('[data-nav="dashboard"]').hidden = cliente;
+    document.querySelector('[data-nav="dashboard"]').hidden = cliente || !permiteModulo('dashboard');
 
     // Seção Admin
     document.getElementById('nav-usuarios').hidden      = !permiteModulo('usuarios') || cliente;
-    document.getElementById('nav-pregoes-todos').hidden = !admin || cliente;
+    document.getElementById('nav-pregoes-todos').hidden = !permiteModulo('pregoes') || cliente;
     document.getElementById('nav-prospects').hidden     = !permiteModulo('prospects') || cliente;
-    document.getElementById('nav-documentacao').hidden   = !permiteModulo('prospects') || cliente;
-    document.getElementById('nav-proposta').hidden      = !permiteModulo('gerador_proposta') || cliente;
+    document.getElementById('nav-documentacao').hidden  = !permiteModulo('documentacao') || cliente;
+    document.getElementById('nav-proposta').hidden      = !permiteModulo('proposta_comercial') || cliente;
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
        document.getElementById('nav-prospects').hidden &&
+       document.getElementById('nav-documentacao').hidden &&
        document.getElementById('nav-proposta').hidden &&
        document.getElementById('nav-financeiro').hidden);
 
@@ -4700,19 +4706,21 @@
   };
 
   const MODULOS_DISPONIVEIS = [
-    { id:'dashboard',        label:'Dashboard',         icon:'ti-layout-dashboard' },
-    { id:'clientes',         label:'Clientes',          icon:'ti-users' },
-    { id:'editais',          label:'Editais / Busca',   icon:'ti-search' },
-    { id:'boletins',         label:'Boletins',          icon:'ti-mail' },
-    { id:'edson',            label:'Edson IA',          icon:'ti-robot' },
-    { id:'calendario',       label:'Calendário',        icon:'ti-calendar' },
-    { id:'monitor',          label:'Monitor Pregões',   icon:'ti-bell' },
-    { id:'prospects',        label:'Prospecção',        icon:'ti-target' },
-    { id:'usuarios',         label:'Gestão de Pessoas', icon:'ti-users-group' },
-    { id:'financeiro',       label:'Financeiro',        icon:'ti-coin' },
-    { id:'gerador_proposta', label:'Gerador Proposta',  icon:'ti-file-text' },
-    { id:'relatorios',       label:'Relatórios',        icon:'ti-chart-bar' },
-    { id:'documentacao',     label:'Documentação',      icon:'ti-file' },
+    { id:'dashboard',         label:'Dashboard',          icon:'ti-layout-dashboard' },
+    { id:'edson_ia',          label:'Edson IA',           icon:'ti-robot' },
+    { id:'buscar_editais',    label:'Buscar Editais',     icon:'ti-search' },
+    { id:'oportunidades',     label:'Oportunidades',      icon:'ti-target' },
+    { id:'clientes',          label:'Clientes',           icon:'ti-users' },
+    { id:'boletins',          label:'Boletins',           icon:'ti-mail' },
+    { id:'monitor',           label:'Monitor',            icon:'ti-bell' },
+    { id:'calendario',        label:'Calendário',         icon:'ti-calendar' },
+    { id:'robo_pregao',       label:'Robô de Pregão',     icon:'ti-bolt' },
+    { id:'minha_area',        label:'Minha Área',         icon:'ti-home' },
+    { id:'pregoes',           label:'Pregões',            icon:'ti-file-text' },
+    { id:'prospects',         label:'Prospects',          icon:'ti-target' },
+    { id:'documentacao',      label:'Documentação',       icon:'ti-folder' },
+    { id:'proposta_comercial',label:'Proposta Comercial', icon:'ti-file' },
+    { id:'usuarios',          label:'Usuários',           icon:'ti-users-group' },
   ];
 
   let permUsuarioId = null;
@@ -7812,6 +7820,7 @@
     document.getElementById('eu-email').value       = u.email;
     document.getElementById('eu-role').value        = u.role;
     document.getElementById('eu-cargo').value       = u.cargo || '';
+    document.getElementById('eu-funcao').value      = u.funcao || '';
     document.getElementById('eu-area').value        = u.area || '';
     document.getElementById('eu-telefone').value    = u.telefone || '';
     document.getElementById('eu-bio').value         = u.bio || '';
@@ -7830,6 +7839,7 @@
 
     // Carregar permissões
     const permContainer = document.getElementById('eu-perm-lista');
+    const ehSocioFundador = u.role === 'socio_fundador';
     permContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:.5rem;color:var(--text-muted);font-size:.8rem">Carregando…</div>';
     try {
       const permR = await fetch(`${API}/auth/usuarios/${u.id}/permissoes`, {
@@ -7838,11 +7848,17 @@
       if (permR.ok) {
         const { permissoes } = await permR.json();
         const permMap = Object.fromEntries(permissoes.map(p => [p.modulo, p.liberado]));
-        permContainer.innerHTML = MODULOS_DISPONIVEIS.map(m => `
-          <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer;padding:4px 6px;border-radius:5px;background:var(--card-bg)">
-            <input type="checkbox" id="eu-perm-${m.id}" ${permMap[m.id] ? 'checked' : ''} style="cursor:pointer;flex-shrink:0">
+        permContainer.innerHTML = MODULOS_DISPONIVEIS.map(m => {
+          const checked = ehSocioFundador || permMap[m.id] !== false;
+          const disabled = ehSocioFundador;
+          return `<label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:${disabled?'default':'pointer'};padding:4px 6px;border-radius:5px;background:var(--card-bg);${disabled?'opacity:.65':''}">
+            <input type="checkbox" id="eu-perm-${m.id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} style="cursor:${disabled?'not-allowed':'pointer'};flex-shrink:0">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${m.label}">${m.label}</span>
-          </label>`).join('');
+          </label>`;
+        }).join('');
+        if (ehSocioFundador) {
+          permContainer.insertAdjacentHTML('afterbegin', '<div style="grid-column:1/-1;font-size:.72rem;color:var(--text-muted);padding:.25rem .4rem;margin-bottom:2px">Sócio fundador tem acesso total (não editável)</div>');
+        }
       } else {
         permContainer.innerHTML = '<div style="grid-column:1/-1;font-size:.78rem;color:var(--danger);padding:.25rem">Não foi possível carregar permissões</div>';
       }
@@ -7878,6 +7894,7 @@
       email:       document.getElementById('eu-email').value.trim(),
       role,
       cargo:       document.getElementById('eu-cargo').value.trim() || null,
+      funcao:      document.getElementById('eu-funcao').value.trim() || null,
       area:        document.getElementById('eu-area').value.trim() || null,
       telefone:    document.getElementById('eu-telefone').value.trim() || null,
       bio:         document.getElementById('eu-bio').value.trim() || null,
@@ -10330,6 +10347,10 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       <div class="form-row">
         <div class="form-group"><label>Cargo / Função</label><input type="text" id="eu-cargo" placeholder="Ex: Analista de Licitações" /></div>
         <div class="form-group"><label>Área</label><input type="text" id="eu-area" placeholder="Ex: Operações" /></div>
+      </div>
+      <div class="form-group">
+        <label>Função específica</label>
+        <input type="text" id="eu-funcao" placeholder="Ex: Especialista em Licitações" />
       </div>
       <div class="form-row">
         <div class="form-group">
