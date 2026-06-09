@@ -371,6 +371,7 @@ async function receberLanding(req, res) {
     }
 
     notificarAdmin(prospect);
+    syncBrevoContact(prospect).catch(() => {});
     if (prospect.edital?.trim()) {
       processarAnaliseProspect(prospect).catch(e =>
         console.error('[Prospects] processarAnaliseProspect:', e.message),
@@ -380,6 +381,40 @@ async function receberLanding(req, res) {
   } catch (e) {
     console.error('[Prospects] receberLanding:', e.message);
     return res.status(500).json({ erro: 'Erro interno' });
+  }
+}
+
+// ── Sync de contato no Brevo ─────────────────────────────────────────────────
+
+async function syncBrevoContact(prospect) {
+  const apiKey  = process.env.BREVO_API_KEY;
+  const listId  = parseInt(process.env.BREVO_LIST_ID || '0');
+  if (!apiKey || !prospect.email) return;
+
+  try {
+    const payload = {
+      email:          prospect.email,
+      attributes:     { NOME: prospect.nome || '', EMPRESA: prospect.empresa || '', SEGMENTO: prospect.segmento || '' },
+      listIds:        listId ? [listId] : [],
+      updateEnabled:  true,
+    };
+
+    const { data } = await axios.post('https://api.brevo.com/v3/contacts', payload, {
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 10000,
+    });
+
+    const contactId = data?.id ? String(data.id) : null;
+    if (contactId) {
+      await db.query(
+        `UPDATE prospects SET brevo_contact_id=$1, updated_at=NOW() WHERE id=$2`,
+        [contactId, prospect.id],
+      );
+      await registrarEvento(prospect.id, 'brevo_sync',
+        `Contato sincronizado no Brevo (id: ${contactId})`);
+    }
+  } catch (e) {
+    console.error('[Prospects] syncBrevoContact:', e.response?.data?.message || e.message);
   }
 }
 

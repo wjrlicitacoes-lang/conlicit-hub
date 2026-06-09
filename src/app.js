@@ -102,6 +102,10 @@ app.post('/admin/migrar', autenticar, async (req, res) => {
   }
 });
 
+app.get('/analise-gratuita', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'analise-gratuita.html'));
+});
+
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
 });

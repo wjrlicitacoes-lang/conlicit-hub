@@ -665,6 +665,9 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
+  // brevo_contact_id — ID do contato na lista Brevo (sync de prospecção)
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_contact_id VARCHAR(100)`);
+
   // ── Módulo Financeiro Interno ────────────────────────────────────────────────
   await db.query(`
     CREATE TABLE IF NOT EXISTS financeiro_lancamentos (

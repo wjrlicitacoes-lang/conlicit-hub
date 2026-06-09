@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análise Gratuita de Edital — Conlicit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0d1b25;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #162A39;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(76,197,215,0.15);
+    }
+    header img { height: 32px; }
+    header .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4CC5D7;
+      letter-spacing: -.3px;
+    }
+    .hero {
+      background: #162A39;
+      padding: 56px 32px 48px;
+      text-align: center;
+      border-bottom: 1px solid rgba(76,197,215,0.12);
+    }
+    .hero-tag {
+      display: inline-block;
+      background: rgba(76,197,215,0.12);
+      color: #4CC5D7;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(76,197,215,0.2);
+    }
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 40px);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero h1 span { color: #4CC5D7; }
+    .hero p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      max-width: 500px;
+      margin: 0 auto 8px;
+      line-height: 1.6;
+    }
+    .hero-bullets {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .hero-bullet {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero-bullet::before { content: '✓'; color: #4CC5D7; font-weight: 700; }
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 40px 24px 60px;
+    }
+    .card {
+      background: #162A39;
+      border: 1px solid rgba(76,197,215,0.15);
+      border-radius: 16px;
+      padding: 36px 40px;
+      width: 100%;
+      max-width: 580px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #fff;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } .card { padding: 24px 20px; } }
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 6px;
+    }
+    label .req { color: #4CC5D7; }
+    input[type=text], input[type=email], input[type=tel], select, textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(76,197,215,0.2);
+      color: #fff;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #4CC5D7; background: rgba(76,197,215,0.06); }
+    select option { background: #162A39; color: #fff; }
+    textarea { resize: vertical; min-height: 80px; }
+    .radio-group { display: flex; gap: 14px; margin-top: 4px; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 7px;
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      color: rgba(255,255,255,0.75); text-transform: none;
+      letter-spacing: 0; margin: 0;
+    }
+    .radio-group input[type=radio] { accent-color: #4CC5D7; width: 16px; height: 16px; cursor: pointer; }
+    .btn-submit {
+      width: 100%;
+      background: #4CC5D7;
+      color: #162A39;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .msg-sucesso {
+      display: none;
+      background: rgba(76,197,215,0.1);
+      border: 1px solid rgba(76,197,215,0.3);
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .msg-sucesso .check { font-size: 40px; margin-bottom: 12px; }
+    .msg-sucesso h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #4CC5D7; }
+    .msg-sucesso p { font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.6; }
+    .msg-erro {
+      display: none;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #f87171;
+      margin-bottom: 12px;
+    }
+    .divider { height: 1px; background: rgba(76,197,215,0.1); margin: 24px 0; }
+    .garantia {
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      line-height: 1.6;
+    }
+    footer {
+      background: #162A39;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 20px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo-text">conlicit</span>
+</header>
+
+<div class="hero">
+  <div class="hero-tag">Gratuito · Sem cadastro · Resultado em até 30 min</div>
+  <h1>Receba o <span>resumo completo</span> do seu edital — de graça</h1>
+  <p>Envie um edital e nossa IA gera o checklist de documentos, habilitação necessária e pontos de atenção.</p>
+  <div class="hero-bullets">
+    <span class="hero-bullet">Resumo executivo em minutos</span>
+    <span class="hero-bullet">Habilitação detalhada</span>
+    <span class="hero-bullet">Pontos de atenção</span>
+    <span class="hero-bullet">Entregue por e-mail</span>
+  </div>
+</div>
+
+<main>
+  <div class="card">
+    <h2>Solicitar análise gratuita</h2>
+
+    <div id="msg-erro" class="msg-erro"></div>
+
+    <form id="form-analise" onsubmit="enviarFormulario(event)">
+
+      <div class="form-row">
+        <div class="field">
+          <label>Nome <span class="req">*</span></label>
+          <input type="text" id="f-nome" placeholder="Seu nome" required />
+        </div>
+        <div class="field">
+          <label>Empresa <span class="req">*</span></label>
+          <input type="text" id="f-empresa" placeholder="Nome da empresa" required />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>E-mail <span class="req">*</span></label>
+          <input type="email" id="f-email" placeholder="seu@email.com" required />
+        </div>
+        <div class="field">
+          <label>WhatsApp</label>
+          <input type="tel" id="f-whatsapp" placeholder="(31) 9 9999-9999" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Segmento de atuação <span class="req">*</span></label>
+        <select id="f-segmento" required>
+          <option value="">Selecione...</option>
+          <option value="Saúde">Saúde / Medicamentos / Equipamentos médicos</option>
+          <option value="Engenharia">Engenharia / Construção / Obras</option>
+          <option value="EPI">EPI / Uniformes / Segurança do trabalho</option>
+          <option value="Transporte">Transporte / Frota / Logística</option>
+          <option value="Limpeza">Limpeza / Higiene / Conservação</option>
+          <option value="Ambiental">Ambiental / Resíduos / Licenciamento</option>
+          <option value="TI">TI / Tecnologia / Software</option>
+          <option value="Alimentação">Alimentação / Gêneros alimentícios</option>
+          <option value="Material de escritório">Material de escritório / Papelaria</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Como vai informar o edital <span class="req">*</span></label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="tipo_edital" value="numero" checked onchange="alternarEdital('numero')" />
+            Número do edital
+          </label>
+          <label>
+            <input type="radio" name="tipo_edital" value="link" onchange="alternarEdital('link')" />
+            Link do edital
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label id="label-edital">Número do edital <span class="req">*</span></label>
+        <input type="text" id="f-edital" placeholder="Ex: Pregão 001/2025 — Prefeitura de BH" required />
+      </div>
+
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="f-obs" placeholder="Alguma dúvida específica? Diga aqui..."></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <button type="submit" class="btn-submit" id="btn-enviar">
+        → Enviar meu edital para análise gratuita
+      </button>
+
+      <div class="garantia" style="margin-top:14px">
+        Você receberá o resumo no e-mail informado em até 30 minutos.<br>
+        Seus dados não são compartilhados. Sem spam.
+      </div>
+    </form>
+
+    <div id="msg-sucesso" class="msg-sucesso">
+      <div class="check">✅</div>
+      <h3>Análise em processamento!</h3>
+      <p id="txt-sucesso">Você receberá o resumo no email em até 30 minutos.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Conlicit — Consultoria em Licitações · Belo Horizonte, MG<br>
+  <a href="/" style="color:rgba(255,255,255,0.4);text-decoration:none">Acessar painel</a>
+</footer>
+
+<script>
+  const API = '';
+
+  function alternarEdital(tipo) {
+    const label = document.getElementById('label-edital');
+    const input = document.getElementById('f-edital');
+    if (tipo === 'numero') {
+      label.innerHTML = 'Número do edital <span style="color:#4CC5D7">*</span>';
+      input.placeholder = 'Ex: Pregão 001/2025 — Prefeitura de BH';
+      input.type = 'text';
+    } else {
+      label.innerHTML = 'Link do edital <span style="color:#4CC5D7">*</span>';
+      input.placeholder = 'https://...';
+      input.type = 'url';
+    }
+  }
+
+  async function enviarFormulario(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-enviar');
+    const msgErro = document.getElementById('msg-erro');
+    msgErro.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    const tipo_edital = document.querySelector('input[name=tipo_edital]:checked').value;
+    const payload = {
+      nome:        document.getElementById('f-nome').value.trim(),
+      empresa:     document.getElementById('f-empresa').value.trim(),
+      email:       document.getElementById('f-email').value.trim(),
+      whatsapp:    document.getElementById('f-whatsapp').value.trim() || null,
+      segmento:    document.getElementById('f-segmento').value,
+      tipo_edital,
+      edital:      document.getElementById('f-edital').value.trim(),
+      obs:         document.getElementById('f-obs').value.trim() || null,
+      origem:      'landing_page',
+    };
+
+    try {
+      const r = await fetch('/api/prospects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+
+      if (!r.ok && r.status !== 409) {
+        throw new Error(data.erro || data.message || 'Erro ao enviar');
+      }
+
+      document.getElementById('form-analise').style.display = 'none';
+      document.getElementById('txt-sucesso').textContent =
+        `✓ Análise em processamento. Você recebe o resumo no email ${payload.email} em até 30 minutos.`;
+      document.getElementById('msg-sucesso').style.display = 'block';
+    } catch (err) {
+      msgErro.textContent = err.message || 'Erro ao enviar. Tente novamente.';
+      msgErro.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '→ Enviar meu edital para análise gratuita';
+    }
+  }
+</script>
+</body>
+</html>
