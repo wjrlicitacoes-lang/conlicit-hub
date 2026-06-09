@@ -1645,6 +1645,10 @@
           <span class="nav-icon"><i class="ti ti-report-money"></i></span>
           <span class="nav-label">Financeiro</span>
         </button>
+        <button class="nav-item" data-nav="pos-vitoria" onclick="navTo('pos-vitoria')" id="nav-pos-vitoria" hidden>
+          <span class="nav-icon"><i class="ti ti-trophy"></i></span>
+          <span class="nav-label">Pós-Vitória</span>
+        </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
@@ -2629,9 +2633,138 @@
         </div>
       </section>
 
+      <!-- ═══════════════════ PÓS-VITÓRIA ═══════════════════ -->
+      <section id="section-pos-vitoria" class="section">
+        <div class="section-header">
+          <h1>Pós-Vitória</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarPosVitoria()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="pvAbrirNovoContrato()">+ Novo Contrato</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div id="pv-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px"></div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:16px">
+          <button id="pv-tab-contratos"  class="tab-btn active" onclick="pvSwitchTab('contratos')">Contratos</button>
+          <button id="pv-tab-nfs"        class="tab-btn"        onclick="pvSwitchTab('nfs')">Notas Fiscais</button>
+          <button id="pv-tab-comissoes"  class="tab-btn"        onclick="pvSwitchTab('comissoes')">Comissões</button>
+        </div>
+
+        <div id="pv-panel-contratos">
+          <div id="pv-contratos-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+        <div id="pv-panel-nfs" style="display:none">
+          <div id="pv-nfs-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+        <div id="pv-panel-comissoes" style="display:none">
+          <div id="pv-comissoes-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
+
+<!-- Modal: Novo Contrato Pós-Vitória -->
+<dialog id="modal-pv-contrato" style="border:none;border-radius:12px;padding:0;width:min(540px,95vw);background:var(--surface);color:var(--text)">
+  <div style="padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;font-size:1.1rem">Novo Contrato</h2>
+      <button onclick="document.getElementById('modal-pv-contrato').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div>
+        <label class="form-label">Cliente *</label>
+        <select id="pvc-cliente" class="form-control"><option value="">Carregando…</option></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Nº do Contrato</label>
+          <input id="pvc-numero" class="form-control" placeholder="Ex: CT-2024-001">
+        </div>
+        <div>
+          <label class="form-label">Objeto</label>
+          <input id="pvc-objeto" class="form-control" placeholder="Objeto do contrato">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Valor Total (R$)</label>
+          <input id="pvc-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+        </div>
+        <div>
+          <label class="form-label">% Comissão</label>
+          <input id="pvc-comissao" class="form-control" type="number" step="0.1" min="0" max="100" placeholder="0">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Início da Vigência</label>
+          <input id="pvc-inicio" class="form-control" type="date">
+        </div>
+        <div>
+          <label class="form-label">Fim da Vigência</label>
+          <input id="pvc-fim" class="form-control" type="date">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Observações</label>
+        <textarea id="pvc-obs" class="form-control" rows="2" placeholder="Observações internas…"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-contrato').close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="pvSalvarContrato()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Modal: Nova NF Pós-Vitória -->
+<dialog id="modal-pv-nf" style="border:none;border-radius:12px;padding:0;width:min(480px,95vw);background:var(--surface);color:var(--text)">
+  <div style="padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;font-size:1.1rem">Emitir Nota Fiscal</h2>
+      <button onclick="document.getElementById('modal-pv-nf').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div>
+        <label class="form-label">Contrato</label>
+        <select id="pvnf-contrato" class="form-control"><option value="">Selecione…</option></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Nº da NF</label>
+          <input id="pvnf-numero" class="form-control" placeholder="000000">
+        </div>
+        <div>
+          <label class="form-label">Valor (R$)</label>
+          <input id="pvnf-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Emissão</label>
+          <input id="pvnf-emissao" class="form-control" type="date">
+        </div>
+        <div>
+          <label class="form-label">Vencimento</label>
+          <input id="pvnf-vencimento" class="form-control" type="date">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Observações</label>
+        <textarea id="pvnf-obs" class="form-control" rows="2" placeholder="Observações…"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-nf').close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="pvSalvarNF()">Salvar</button>
+    </div>
+  </div>
+</dialog>
 
 <!-- MODAL: Nova Oportunidade -->
 <div class="modal-overlay" id="modal-nova-oportunidade" onclick="this.classList.remove('visible')">
@@ -3128,13 +3261,15 @@
     document.getElementById('nav-documentacao').hidden  = !permiteModulo('documentacao') || cliente;
     document.getElementById('nav-proposta').hidden      = !permiteModulo('proposta_comercial') || cliente;
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
+    document.getElementById('nav-pos-vitoria').hidden   = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
        document.getElementById('nav-prospects').hidden &&
        document.getElementById('nav-documentacao').hidden &&
        document.getElementById('nav-proposta').hidden &&
-       document.getElementById('nav-financeiro').hidden);
+       document.getElementById('nav-financeiro').hidden &&
+       document.getElementById('nav-pos-vitoria').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -3172,6 +3307,7 @@
     else if (section === 'financeiro')      carregarFinanceiro();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
+    else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -11188,6 +11324,298 @@ async function salvarOportunidade() {
     document.getElementById('modal-nova-oportunidade').classList.remove('visible');
     navTo('oportunidades');
   } catch(e) { toast(e.message,'error'); }
+}
+
+// ════════════════════════════════════════════════════════════
+// PÓS-VITÓRIA
+// ════════════════════════════════════════════════════════════
+
+let pvTabAtiva = 'contratos';
+
+async function carregarPosVitoria() {
+  await Promise.all([pvCarregarKPIs(), pvCarregarContratos()]);
+  if (pvTabAtiva === 'nfs') pvCarregarNFs();
+  else if (pvTabAtiva === 'comissoes') pvCarregarComissoes();
+}
+
+function pvSwitchTab(tab) {
+  pvTabAtiva = tab;
+  ['contratos','nfs','comissoes'].forEach(t => {
+    document.getElementById(`pv-tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`pv-panel-${t}`).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'contratos')  pvCarregarContratos();
+  else if (tab === 'nfs')   pvCarregarNFs();
+  else                      pvCarregarComissoes();
+}
+
+async function pvCarregarKPIs() {
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/kpis`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('pv-kpis').innerHTML = [
+      { label: 'Contratos Ativos', val: d.contratos_ativos ?? 0,          fmt: 'num' },
+      { label: 'Valor em Carteira', val: d.valor_total_ativo ?? 0,         fmt: 'brl' },
+      { label: 'NFs Pendentes',    val: d.nfs_pendentes ?? 0,             fmt: 'num' },
+      { label: 'Comissões Pend.',  val: d.comissoes_pendentes_valor ?? 0, fmt: 'brl' },
+      { label: 'Comissões Rec.',   val: d.comissoes_recebidas_valor ?? 0, fmt: 'brl' },
+    ].map(k => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">${k.label}</div>
+        <div style="font-size:1.25rem;font-weight:700;color:var(--primary)">
+          ${k.fmt === 'brl' ? 'R$ ' + Number(k.val).toLocaleString('pt-BR',{minimumFractionDigits:2}) : k.val}
+        </div>
+      </div>`).join('');
+  } catch (_) {}
+}
+
+function pvStatusBadge(status, tipo) {
+  const mapContrato  = { assinando:'#f59e0b', ativo:'#4CC5D7', aguardando_nf:'#8b5cf6', concluido:'#22c55e', rescindido:'#ef4444' };
+  const mapNF        = { pendente:'#f59e0b', cobranca_enviada:'#8b5cf6', recebido:'#22c55e', atrasado:'#ef4444', negociando:'#f97316' };
+  const mapComissao  = { pendente:'#f59e0b', enviada:'#8b5cf6', recebida:'#22c55e', atrasada:'#ef4444', negociando:'#f97316', cancelada:'#6b7280' };
+  const map = tipo === 'contrato' ? mapContrato : tipo === 'nf' ? mapNF : mapComissao;
+  const cor = map[status] || '#6b7280';
+  return `<span style="background:${cor}22;color:${cor};border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:600">${status.replace(/_/g,' ')}</span>`;
+}
+
+async function pvCarregarContratos() {
+  const area = document.getElementById('pv-contratos-area');
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/contratos`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error('Erro ao carregar');
+    const { contratos } = await r.json();
+    if (!contratos?.length) { area.innerHTML = '<div class="state-box"><p>Nenhum contrato cadastrado.</p></div>'; return; }
+    area.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="tabela-padrao">
+          <thead><tr>
+            <th>Nº Contrato</th><th>Cliente</th><th>Objeto</th>
+            <th>Valor</th><th>Status</th><th>Vigência</th><th>Ações</th>
+          </tr></thead>
+          <tbody>${contratos.map(c => `
+            <tr>
+              <td>${c.numero_contrato || '—'}</td>
+              <td>${c.cliente_nome || c.cliente_id}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.objeto || '—'}</td>
+              <td>R$ ${Number(c.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+              <td>${pvStatusBadge(c.status,'contrato')}</td>
+              <td style="white-space:nowrap">${c.data_inicio ? new Date(c.data_inicio).toLocaleDateString('pt-BR') : '—'} → ${c.data_fim ? new Date(c.data_fim).toLocaleDateString('pt-BR') : '—'}</td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-ghost btn-sm" onclick="pvAlterarStatusContrato(${c.id},'${c.status}')">Status</button>
+                <button class="btn btn-ghost btn-sm" onclick="pvVerRelatorio(${c.id})">Relatório</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+async function pvCarregarNFs() {
+  const area = document.getElementById('pv-nfs-area');
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/notas-fiscais`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error('Erro ao carregar');
+    const { notas } = await r.json();
+    if (!notas?.length) {
+      area.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px">
+        <p style="color:var(--text-muted)">Nenhuma nota fiscal cadastrada.</p>
+        <button class="btn btn-primary btn-sm" onclick="pvAbrirNovaNF()">+ Emitir NF</button>
+      </div>`;
+      return;
+    }
+    area.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-primary btn-sm" onclick="pvAbrirNovaNF()">+ Emitir NF</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tabela-padrao">
+          <thead><tr>
+            <th>Nº NF</th><th>Contrato</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Ações</th>
+          </tr></thead>
+          <tbody>${notas.map(n => `
+            <tr>
+              <td>${n.numero_nf || '—'}</td>
+              <td>${n.contrato_numero || n.contrato_id}</td>
+              <td>R$ ${Number(n.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+              <td>${pvStatusBadge(n.status,'nf')}</td>
+              <td>${n.data_vencimento ? new Date(n.data_vencimento).toLocaleDateString('pt-BR') : '—'}</td>
+              <td>
+                <button class="btn btn-ghost btn-sm" onclick="pvAlterarStatusNF(${n.id},'${n.status}')">Status</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+async function pvCarregarComissoes() {
+  const area = document.getElementById('pv-comissoes-area');
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/comissoes`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error('Erro ao carregar');
+    const { comissoes } = await r.json();
+    if (!comissoes?.length) { area.innerHTML = '<div class="state-box"><p>Nenhuma comissão registrada.</p></div>'; return; }
+    area.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="tabela-padrao">
+          <thead><tr>
+            <th>Colaborador</th><th>Contrato</th><th>% Comissão</th><th>Valor Est.</th><th>Status</th><th>Ações</th>
+          </tr></thead>
+          <tbody>${comissoes.map(c => `
+            <tr>
+              <td>${c.colaborador_nome || '—'}</td>
+              <td>${c.contrato_numero || c.contrato_id}</td>
+              <td>${c.percentual ?? '—'}%</td>
+              <td>R$ ${Number(c.valor_estimado||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+              <td>${pvStatusBadge(c.status,'comissao')}</td>
+              <td>
+                ${c.status !== 'recebida' && c.status !== 'cancelada'
+                  ? `<button class="btn btn-ghost btn-sm" onclick="pvRegistrarRecebimento(${c.id})">Recebido</button>`
+                  : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) { area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`; }
+}
+
+async function pvAbrirNovoContrato() {
+  const modal = document.getElementById('modal-pv-contrato');
+  // Carregar clientes no select
+  const sel = document.getElementById('pvc-cliente');
+  try {
+    const r = await fetch(`${API}/clientes?ativo=true`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    sel.innerHTML = '<option value="">Selecione…</option>' +
+      (d.dados || d.clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  } catch (_) { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+  ['pvc-numero','pvc-objeto','pvc-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pvc-valor','pvc-comissao'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pvc-inicio','pvc-fim'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  modal.showModal();
+}
+
+async function pvSalvarContrato() {
+  const cliente_id = document.getElementById('pvc-cliente').value;
+  if (!cliente_id) { toast('Selecione um cliente','error'); return; }
+  const body = {
+    cliente_id: parseInt(cliente_id),
+    numero_contrato: document.getElementById('pvc-numero').value.trim() || null,
+    objeto: document.getElementById('pvc-objeto').value.trim() || null,
+    valor_total: parseFloat(document.getElementById('pvc-valor').value) || 0,
+    percentual_comissao: parseFloat(document.getElementById('pvc-comissao').value) || 0,
+    data_inicio: document.getElementById('pvc-inicio').value || null,
+    data_fim: document.getElementById('pvc-fim').value || null,
+    observacoes: document.getElementById('pvc-obs').value.trim() || null,
+  };
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/contratos`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+    toast('Contrato criado!', 'success');
+    document.getElementById('modal-pv-contrato').close();
+    pvCarregarContratos(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function pvAlterarStatusContrato(id, statusAtual) {
+  const opcoes = ['assinando','ativo','aguardando_nf','concluido','rescindido'];
+  const novoStatus = prompt(`Status atual: ${statusAtual}\nNovo status (${opcoes.join(', ')}):`, statusAtual);
+  if (!novoStatus || !opcoes.includes(novoStatus)) return;
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/contratos/${id}/status`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: novoStatus }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao atualizar');
+    toast('Status atualizado', 'success');
+    pvCarregarContratos(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function pvVerRelatorio(id) {
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/contratos/${id}/relatorio`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error('Erro ao carregar relatório');
+    const d = await r.json();
+    renderModalRelatorio(d);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function pvAbrirNovaNF() {
+  const modal = document.getElementById('modal-pv-nf');
+  const sel = document.getElementById('pvnf-contrato');
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/contratos`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    sel.innerHTML = '<option value="">Selecione…</option>' +
+      (d.contratos || []).map(c => `<option value="${c.id}">${c.numero_contrato || c.objeto || c.id}</option>`).join('');
+  } catch (_) { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+  ['pvnf-numero','pvnf-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pvnf-valor'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pvnf-emissao','pvnf-vencimento'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  modal.showModal();
+}
+
+async function pvSalvarNF() {
+  const contrato_id = document.getElementById('pvnf-contrato').value;
+  if (!contrato_id) { toast('Selecione um contrato','error'); return; }
+  const body = {
+    contrato_id: parseInt(contrato_id),
+    numero_nf: document.getElementById('pvnf-numero').value.trim() || null,
+    valor: parseFloat(document.getElementById('pvnf-valor').value) || 0,
+    data_emissao: document.getElementById('pvnf-emissao').value || null,
+    data_vencimento: document.getElementById('pvnf-vencimento').value || null,
+    observacoes: document.getElementById('pvnf-obs').value.trim() || null,
+  };
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/notas-fiscais`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+    toast('NF registrada!', 'success');
+    document.getElementById('modal-pv-nf').close();
+    pvCarregarNFs(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function pvAlterarStatusNF(id, statusAtual) {
+  const opcoes = ['pendente','cobranca_enviada','recebido','atrasado','negociando'];
+  const novoStatus = prompt(`Status atual: ${statusAtual}\nNovo status (${opcoes.join(', ')}):`, statusAtual);
+  if (!novoStatus || !opcoes.includes(novoStatus)) return;
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/notas-fiscais/${id}/status`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: novoStatus }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao atualizar');
+    toast('Status da NF atualizado', 'success');
+    pvCarregarNFs(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function pvRegistrarRecebimento(id) {
+  const dataStr = prompt('Data de recebimento (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+  if (!dataStr) return;
+  try {
+    const r = await fetch(`${API}/api/pos-vitoria/comissoes/${id}/recebimento`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_recebimento: dataStr }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao registrar');
+    toast('Recebimento registrado!', 'success');
+    pvCarregarComissoes(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 </script>
