@@ -27,6 +27,8 @@ const oportunidadesRoutes = require('./routes/oportunidades');
 const posVitoriaRoutes    = require('./routes/posVitoria');
 const documentosRoutes         = require('./routes/documentos');
 const documentosClienteRoutes  = require('./routes/documentosCliente');
+const dashboardRoutes          = require('./routes/dashboard');
+const financeiroRoutes         = require('./routes/financeiro');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -84,6 +86,8 @@ app.use('/oportunidades', autenticar, oportunidadesRoutes);
 app.use('/api/pos-vitoria', autenticar, posVitoriaRoutes);
 app.use('/documentos',          autenticar, documentosRoutes);
 app.use('/documentos-cliente',  documentosClienteRoutes);
+app.use('/api/dashboard',       dashboardRoutes);
+app.use('/api/financeiro',      financeiroRoutes);
 
 // Endpoint temporário para forçar migrations pontuais via API
 app.post('/admin/migrar', autenticar, async (req, res) => {

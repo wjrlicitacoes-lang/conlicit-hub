@@ -103,6 +103,51 @@ router.post('/comissoes/:id/recebimento', cap(async (req, res) => {
   ok(res, await db.registrarRecebimento(req.params.id, req.body));
 }));
 
+// GET /api/pos-vitoria/contratos/:id/relatorio
+router.get('/contratos/:id/relatorio', cap(async (req, res) => {
+  const db = require('../database/db');
+
+  const [contrato, nfs, comissoes] = await Promise.all([
+    db.query('SELECT * FROM contratos WHERE id = $1', [req.params.id]),
+    db.query(
+      `SELECT * FROM notas_fiscais WHERE contrato_id = $1 ORDER BY data_emissao`,
+      [req.params.id]
+    ),
+    db.query(
+      `SELECT cm.*, nf.numero_nf, nf.data_emissao
+       FROM comissoes cm
+       JOIN notas_fiscais nf ON nf.id = cm.nota_fiscal_id
+       WHERE cm.contrato_id = $1
+       ORDER BY nf.data_emissao`,
+      [req.params.id]
+    ),
+  ]);
+
+  if (!contrato.rows.length) return erro(res, 'Contrato não encontrado', 404);
+
+  const c = contrato.rows[0];
+  const totalFaturado = nfs.rows.reduce((s,n) => s + parseFloat(n.valor_nf || 0), 0);
+  const totalRecebido = comissoes.rows
+    .filter(cm => cm.status === 'recebida')
+    .reduce((s,cm) => s + parseFloat(cm.valor_recebido || 0), 0);
+  const totalPendente = comissoes.rows
+    .filter(cm => ['pendente','enviada','atrasada'].includes(cm.status))
+    .reduce((s,cm) => s + parseFloat(cm.valor_esperado || 0), 0);
+
+  ok(res, {
+    contrato: c,
+    notas_fiscais: nfs.rows,
+    comissoes: comissoes.rows,
+    resumo: {
+      total_nfs:      nfs.rows.length,
+      total_faturado: totalFaturado,
+      total_comissao: parseFloat(c.comissao_total || 0),
+      total_recebido: totalRecebido,
+      total_pendente: totalPendente,
+    },
+  });
+}));
+
 router.use((err, req, res, next) => {
   console.error('[pos-vitoria]', err.message);
   if (err.code === '23505') return erro(res, 'Registro duplicado', 409);

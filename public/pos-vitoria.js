@@ -109,7 +109,7 @@ async function carregarContratos() {
 function renderContratos() {
   const tbody = document.getElementById('tbody-contratos');
   if (!contratos.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="icon">📋</div>Nenhum contrato encontrado.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="icon">📋</div>Nenhum contrato encontrado.</div></td></tr>';
     return;
   }
   tbody.innerHTML = contratos.map(c => `
@@ -122,8 +122,144 @@ function renderContratos() {
       <td>${fmtBRL(c.comissao_total)}</td>
       <td>${badgeStatus(c.status)}</td>
       <td>${fmtDate(c.data_vitoria)}</td>
+      <td onclick="event.stopPropagation()">
+        <button onclick="abrirRelatorioContrato(${c.id})"
+          style="background:rgba(76,197,215,0.12);color:#4CC5D7;border:1px solid rgba(76,197,215,0.25);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">
+          📊 Relatório
+        </button>
+      </td>
     </tr>
   `).join('');
+}
+
+async function abrirRelatorioContrato(contratoId) {
+  mostrarToast('Gerando relatório…', 'info');
+  try {
+    const { dados } = await fetchAPI(`/api/pos-vitoria/contratos/${contratoId}/relatorio`);
+    renderModalRelatorio(dados);
+  } catch(e) { mostrarToast('Erro ao gerar relatório: ' + e.message, 'err'); }
+}
+
+function renderModalRelatorio(dados) {
+  const { contrato: c, notas_fiscais, comissoes, resumo } = dados;
+  const fmt   = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+  const fmtDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  const STATUS = { recebida:'✔ Recebida', pendente:'⏳ Pendente', enviada:'📨 Enviada', atrasada:'⚠ Atrasada' };
+
+  let modal = document.getElementById('modal-relatorio-pv');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-relatorio-pv';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+    modal.onclick = e => { if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  const esc = s => (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  modal.innerHTML = `
+    <div id="relatorio-conteudo-pv" style="background:#fff;color:#111;width:100%;max-width:760px;border-radius:12px;font-family:sans-serif;overflow:hidden">
+      <div style="background:#182A39;padding:28px 32px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="color:#4CC5D7;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">conlicit</div>
+          <div style="color:#fff;font-size:18px;font-weight:700">Relatório de Contrato</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="color:#fff;font-size:13px;font-weight:600">${esc(c.modalidade||'')}</div>
+          <div style="color:#4CC5D7;font-size:15px;font-weight:700">${esc(c.numero_pregao||'')}</div>
+        </div>
+      </div>
+      <div style="padding:24px 32px;border-bottom:1px solid #eee">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          ${[['Cliente',c.cliente_nome],['Órgão',c.orgao],['Objeto',c.objeto||'—'],
+             ['Data da Vitória',fmtDt(c.data_vitoria)],
+             ['Vigência',c.data_vigencia_inicio?fmtDt(c.data_vigencia_inicio)+' → '+fmtDt(c.data_vigencia_fim):'—'],
+             ['Status',c.status]].map(([l,v]) => `
+            <div>
+              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">${l}</div>
+              <div style="font-size:14px;font-weight:500">${esc(v||'—')}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #eee">
+        ${[['Valor do Contrato',fmt(c.valor_contrato),'#182A39'],
+           ['Comissão ('+(c.percentual_comissao||0)+'%)',fmt(resumo.total_comissao),'#4CC5D7'],
+           ['Total Recebido',fmt(resumo.total_recebido),'#16a34a'],
+           ['Pendente',fmt(resumo.total_pendente),resumo.total_pendente>0?'#d97706':'#16a34a'],
+          ].map(([l,v,cor]) => `
+          <div style="padding:16px 20px;border-right:1px solid #eee">
+            <div style="font-size:11px;color:#888;margin-bottom:4px">${l}</div>
+            <div style="font-size:16px;font-weight:700;color:${cor}">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div style="padding:24px 32px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#182A39">Notas Fiscais e Comissões</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f5f7f9">
+              <th style="padding:8px 12px;text-align:left;color:#555;border-bottom:2px solid #e5e7eb">NF</th>
+              <th style="padding:8px 12px;text-align:left;color:#555;border-bottom:2px solid #e5e7eb">Emissão</th>
+              <th style="padding:8px 12px;text-align:right;color:#555;border-bottom:2px solid #e5e7eb">Valor NF</th>
+              <th style="padding:8px 12px;text-align:right;color:#555;border-bottom:2px solid #e5e7eb">Comissão</th>
+              <th style="padding:8px 12px;text-align:center;color:#555;border-bottom:2px solid #e5e7eb">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(notas_fiscais||[]).map((nf,i) => {
+              const cm = (comissoes||[]).find(cm => cm.nota_fiscal_id === nf.id);
+              return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+                <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0">${esc(nf.numero_nf||'')}</td>
+                <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;color:#666">${fmtDt(nf.data_emissao)}</td>
+                <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:500">${fmt(nf.valor_nf)}</td>
+                <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;color:#182A39">${fmt(nf.valor_comissao)}</td>
+                <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:12px">${cm?(STATUS[cm.status]||cm.status):'—'}</td>
+              </tr>`;}).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:#182A39;color:#fff">
+              <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
+              <td style="padding:10px 12px;text-align:right;font-weight:700">${fmt(resumo.total_faturado)}</td>
+              <td style="padding:10px 12px;text-align:right;font-weight:700;color:#4CC5D7">${fmt(resumo.total_comissao)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div style="padding:16px 32px;background:#f8f9fa;border-top:1px solid #eee;font-size:11px;color:#888;display:flex;justify-content:space-between">
+        <span>Conlicit — Consultoria em Licitações · Belo Horizonte, MG</span>
+        <span>Documento gerado pelo Conlicit Hub</span>
+      </div>
+    </div>
+    <div id="relatorio-acoes-pv" style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:300">
+      <button onclick="document.getElementById('modal-relatorio-pv').remove()"
+        style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px)">
+        Fechar
+      </button>
+      <button onclick="imprimirRelatorioPV()"
+        style="background:#4CC5D7;color:#182A39;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+        🖨️ Imprimir / Salvar PDF
+      </button>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
+function imprimirRelatorioPV() {
+  const style = document.createElement('style');
+  style.id = 'print-style-pv';
+  style.innerHTML = `
+    @media print {
+      body > *:not(#modal-relatorio-pv) { display: none !important; }
+      #modal-relatorio-pv { position: static !important; background: white !important; padding: 0 !important; overflow: visible !important; }
+      #relatorio-acoes-pv { display: none !important; }
+      #relatorio-conteudo-pv { border-radius: 0 !important; max-width: 100% !important; }
+      @page { margin: 0; size: A4; }
+    }
+  `;
+  document.head.appendChild(style);
+  window.print();
+  setTimeout(() => { const s = document.getElementById('print-style-pv'); if (s) s.remove(); }, 1000);
 }
 
 // ── Modal Novo Contrato ───────────────────────────────────────────────────────

@@ -665,6 +665,24 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
+  // ── Módulo Financeiro Interno ────────────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS financeiro_lancamentos (
+      id           SERIAL PRIMARY KEY,
+      tipo         VARCHAR(10) NOT NULL CHECK (tipo IN ('receita','despesa')),
+      categoria    VARCHAR(100) NOT NULL,
+      descricao    VARCHAR(255) NOT NULL,
+      valor        NUMERIC(14,2) NOT NULL,
+      data         DATE NOT NULL,
+      recorrente   BOOLEAN DEFAULT FALSE,
+      referencia   VARCHAR(50),
+      created_at   TIMESTAMP DEFAULT NOW(),
+      updated_at   TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_tipo ON financeiro_lancamentos(tipo)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_data ON financeiro_lancamentos(data)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

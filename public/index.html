@@ -1644,6 +1644,10 @@
           <span class="nav-icon"><i class="ti ti-folder"></i></span>
           <span class="nav-label">Documentação</span>
         </button>
+        <button class="nav-item" data-nav="financeiro" onclick="navTo('financeiro')" id="nav-financeiro" hidden>
+          <span class="nav-icon"><i class="ti ti-report-money"></i></span>
+          <span class="nav-label">Financeiro</span>
+        </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
@@ -1669,15 +1673,41 @@
             <button class="btn btn-ghost btn-sm" onclick="carregarDashboard()"><i class="ti ti-refresh"></i> Atualizar</button>
           </div>
         </div>
-        <div id="dashboard-metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1.5rem">
-          <div style="grid-column:1/-1;padding:2rem;text-align:center"><div class="spinner spinner-lg"></div></div>
+
+        <!-- KPIs -->
+        <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+          <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem" id="dashboard-grid-principal">
-          <div id="dashboard-pregoes-proximos" style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem"></div>
-          <div id="dashboard-prospects-funil" style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem"></div>
+
+        <!-- Alerta de vencimentos -->
+        <div id="dash-alertas" style="margin-bottom:20px"></div>
+
+        <!-- Dois blocos lado a lado -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- Bloco A: Pregões em andamento -->
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:14px;font-weight:600">Pregões em Andamento</span>
+              <span id="dash-count-pregoes" style="font-size:12px;color:var(--t3)"></span>
+            </div>
+            <div id="dash-lista-pregoes" style="max-height:420px;overflow-y:auto">
+              <div style="padding:32px;text-align:center"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Bloco B: Contratos e vitórias -->
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:14px;font-weight:600">Contratos e Vitórias</span>
+              <span id="dash-count-contratos" style="font-size:12px;color:var(--t3)"></span>
+            </div>
+            <div id="dash-lista-contratos" style="max-height:420px;overflow-y:auto">
+              <div style="padding:32px;text-align:center"><div class="spinner"></div></div>
+            </div>
+          </div>
+
         </div>
-        <div id="dashboard-quick" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.5rem"></div>
-        <div id="dashboard-pendencias"></div>
       </section>
 
       <!-- ── EDITAIS ── -->
@@ -2048,6 +2078,55 @@
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:12px;display:block;margin:0 auto 12px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           <div style="font-size:14px;margin-top:12px;">Nenhum documento encontrado</div>
           <div style="font-size:12px;margin-top:4px;">Adicione arquivos clicando em "+ Adicionar arquivo"</div>
+        </div>
+      </section>
+
+      <!-- ── FINANCEIRO INTERNO ── -->
+      <section id="section-financeiro" class="section">
+        <div class="section-header">
+          <h1>Financeiro</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarFinanceiro()"><i class="ti ti-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+
+        <!-- Seletor de mês + botões -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <input type="month" id="fin-mes"
+            style="background:var(--card-bg);border:1px solid var(--bd);color:var(--t1);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer"
+            onchange="carregarFinanceiro()">
+          <button onclick="abrirModalLancamento('despesa')"
+            style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+            − Lançar Despesa
+          </button>
+          <button onclick="abrirModalLancamento('receita')"
+            style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+            + Lançar Receita
+          </button>
+        </div>
+
+        <!-- Cards de resumo -->
+        <div id="fin-resumo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+          <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
+        </div>
+
+        <!-- Dois blocos -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- Despesas por categoria -->
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:18px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--t1)">Despesas por Categoria</div>
+            <div id="fin-categorias"></div>
+          </div>
+
+          <!-- Lista de lançamentos -->
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);font-size:14px;font-weight:600;color:var(--t1)">
+              Lançamentos do Mês
+            </div>
+            <div id="fin-lancamentos" style="max-height:380px;overflow-y:auto"></div>
+          </div>
+
         </div>
       </section>
 
@@ -3046,11 +3125,13 @@
     document.getElementById('nav-prospects').hidden     = !permiteModulo('prospects') || cliente;
     document.getElementById('nav-documentacao').hidden   = !permiteModulo('prospects') || cliente;
     document.getElementById('nav-proposta').hidden      = !permiteModulo('gerador_proposta') || cliente;
+    document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
        document.getElementById('nav-prospects').hidden &&
-       document.getElementById('nav-proposta').hidden);
+       document.getElementById('nav-proposta').hidden &&
+       document.getElementById('nav-financeiro').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -3085,14 +3166,14 @@
     else if (section === 'pregoes-todos')  carregarPregoesTodos();
     else if (section === 'prospects')       carregarProspects();
     else if (section === 'documentacao')    carregarDocumentosInternos();
+    else if (section === 'financeiro')      carregarFinanceiro();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
-  // ─────────────────────────────────────────
-  // DASHBOARD
-  // ─────────────────────────────────────────
+  // ─── DASHBOARD CONSOLIDADO ───────────────────────────────────────────────
+
   async function carregarDashboard() {
     const hora = new Date().getHours();
     const saud = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
@@ -3100,204 +3181,119 @@
     const elSaud = document.getElementById('dashboard-saudacao');
     if (elSaud) elSaud.textContent = `${saud}${nomeUser ? ', ' + nomeUser : ''}! Aqui está o resumo de hoje.`;
 
-    document.getElementById('dashboard-metrics').innerHTML =
-      '<div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>';
-    const ppEl = document.getElementById('dashboard-pregoes-proximos');
-    const pfEl = document.getElementById('dashboard-prospects-funil');
-    if (ppEl) ppEl.innerHTML = '<div class="spinner"></div>';
-    if (pfEl) pfEl.innerHTML = '<div class="spinner"></div>';
-
     try {
-      const r = await fetch(`${API}/clientes/dashboard-stats`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API}/api/dashboard/consolidado`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (r.status === 401) { logout(); return; }
-      const { stats: s, pregoes_proximos = [], pendencias = [] } = await r.json();
-
-      const adminOnly = (typeof permiteModulo === 'function' && permiteModulo('financeiro')) || usuarioLogado?.role === 'socio_fundador';
-
-      document.getElementById('dashboard-metrics').innerHTML = `
-        <div class="metric-card" onclick="navTo('clientes')" style="cursor:pointer">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${s.clientes_ativos ?? 0}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Clientes ativos</div>
-            </div>
-            <i class="ti ti-users" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.total_clientes ?? 0} no total</div>
-        </div>
-        ${adminOnly ? `
-        <div class="metric-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:#4ade80">${fmtBRL(s.mrr)}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">MRR</div>
-            </div>
-            <i class="ti ti-coin" style="font-size:1.4rem;color:#4ade80;opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">contratos ativos</div>
-        </div>` : ''}
-        <div class="metric-card" onclick="navTo('pregoes-todos')" style="cursor:pointer">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:var(--primary)">${s.pregoes_abertos ?? 0}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Pregões abertos</div>
-            </div>
-            <i class="ti ti-gavel" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.pregoes_vencidos ?? 0} vencidos · ${s.pregoes_perdidos ?? 0} perdidos</div>
-        </div>
-        <div class="metric-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:#f59e0b">${s.prospects_ativos ?? 0}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Prospects ativos</div>
-            </div>
-            <i class="ti ti-target" style="font-size:1.4rem;color:#f59e0b;opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">${s.prospects_convertidos ?? 0} convertidos</div>
-        </div>
-        ${adminOnly ? `
-        <div class="metric-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${fmtBRL(s.valor_vencido_total)}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Volume vencido</div>
-            </div>
-            <i class="ti ti-trophy" style="font-size:1.4rem;color:#4ade80;opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">total em pregões ganhos</div>
-        </div>` : ''}
-        <div class="metric-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-size:1.75rem;font-weight:700;color:var(--t1)">${s.total_equipe ?? 0}</div>
-              <div style="font-size:.75rem;color:var(--t2);margin-top:2px">Equipe ativa</div>
-            </div>
-            <i class="ti ti-building-community" style="font-size:1.4rem;color:var(--primary);opacity:.7"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--t3);margin-top:8px">colaboradores no hub</div>
-        </div>
-      `;
-
-      if (ppEl) {
-        if (pregoes_proximos.length) {
-          ppEl.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-              <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">
-                <i class="ti ti-calendar-event" style="margin-right:4px"></i>Próximos pregões
-              </span>
-              <span style="font-size:.7rem;color:var(--t2)">${pregoes_proximos.length} sessão(ões)</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              ${pregoes_proximos.map(p => {
-                const dataStr = p.data_hora_abertura
-                  ? new Date(p.data_hora_abertura).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
-                  : (p.data_abertura || '—');
-                return `<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
-                  <div style="flex:1;min-width:0">
-                    <div style="font-size:.78rem;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente_nome||'—')}</div>
-                    <div style="font-size:.7rem;color:var(--t2)">${dataStr} · ${esc((p.orgao||'').slice(0,35))}</div>
-                  </div>
-                  ${p.valor_estimado ? `<div style="font-size:.72rem;font-weight:700;color:var(--primary);white-space:nowrap">${fmtBRL(p.valor_estimado)}</div>` : ''}
-                </div>`;
-              }).join('')}
-            </div>`;
-        } else {
-          ppEl.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-              <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-calendar-event" style="margin-right:4px"></i>Próximos pregões</span>
-            </div>
-            <div style="padding:2rem;text-align:center;color:var(--t2);font-size:.8rem">Nenhum pregão agendado nos próximos dias</div>`;
-        }
-      }
-
-      if (pfEl) {
-        const rProsp = await fetch(`${API}/prospects?limit=5`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null);
-        let prospectsRecentes = [];
-        if (rProsp?.ok) { const d = await rProsp.json(); prospectsRecentes = (d.dados||[]).slice(0,5); }
-        const fasesCores = {
-          novo_lead:'#94a3b8', em_negociacao:'#f59e0b', resumo_enviado:'#3b82f6',
-          em_followup:'#8b5cf6', proposta_enviada:'#f97316', aguardando:'#06b6d4',
-          convertido:'#4ade80', perdido:'#f87171'
-        };
-        pfEl.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-            <span style="font-size:.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">
-              <i class="ti ti-funnel" style="margin-right:4px"></i>Prospecção recente
-            </span>
-            <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="navTo('prospects')">Ver tudo</button>
-          </div>
-          ${prospectsRecentes.length ? `<div style="display:flex;flex-direction:column;gap:8px">
-            ${prospectsRecentes.map(p => `
-              <div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04)">
-                <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${fasesCores[p.status]||'#94a3b8'}"></div>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:.78rem;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nome||'—')}</div>
-                  <div style="font-size:.7rem;color:var(--t2)">${esc(p.empresa||'')} · ${(p.status||'').replace(/_/g,' ')}</div>
-                </div>
-              </div>`).join('')}
-          </div>` : `<div style="padding:2rem;text-align:center;color:var(--t2);font-size:.8rem">Nenhum prospect ativo</div>`}`;
-      }
-
-      const ativos = s.clientes_ativos ?? 0;
-      document.getElementById('dashboard-quick').innerHTML = `
-        <div class="quick-card" onclick="navTo('editais')">
-          <div class="quick-card-icon"><i class="ti ti-search"></i></div>
-          <div class="quick-card-info"><h4>Buscar editais</h4><p>Consultar PNCP</p></div>
-        </div>
-        <div class="quick-card" onclick="navTo('clientes')">
-          <div class="quick-card-icon"><i class="ti ti-users"></i></div>
-          <div class="quick-card-info"><h4>Clientes</h4><p>${ativos} ativo${ativos!==1?'s':''}</p></div>
-        </div>
-        <div class="quick-card" onclick="navTo('edson')">
-          <div class="quick-card-icon"><i class="ti ti-robot"></i></div>
-          <div class="quick-card-info"><h4>Edson IA</h4><p>Analisar edital</p></div>
-        </div>
-        <div class="quick-card" onclick="navTo('monitor')">
-          <div class="quick-card-icon"><i class="ti ti-bell"></i></div>
-          <div class="quick-card-info"><h4>Monitor</h4><p>Pregões ao vivo</p></div>
-        </div>
-        <div class="quick-card" onclick="navTo('boletins')">
-          <div class="quick-card-icon"><i class="ti ti-mail"></i></div>
-          <div class="quick-card-info"><h4>Boletins</h4><p>Alertas do dia</p></div>
-        </div>
-        <div class="quick-card" onclick="navTo('prospects')">
-          <div class="quick-card-icon"><i class="ti ti-target"></i></div>
-          <div class="quick-card-info"><h4>Prospects</h4><p>Pipeline comercial</p></div>
-        </div>`;
-
-      const pendDiv = document.getElementById('dashboard-pendencias');
-      if (pendDiv) {
-        if (pendencias.length) {
-          pendDiv.innerHTML = `
-            <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:1.25rem;margin-top:.5rem">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
-                <i class="ti ti-alert-triangle" style="color:#f97316;font-size:1rem"></i>
-                <span style="font-size:.78rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.6px">Contratos pendentes de assinatura</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:.5rem">
-                ${pendencias.map(p => `
-                  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:.7rem 1rem">
-                    <div style="flex:1;min-width:0">
-                      <div style="font-size:.78rem;font-weight:700;color:var(--t1)">Pregão ${esc(p.numero||'—')}</div>
-                      <div style="font-size:.75rem;color:var(--t2)">${esc(p.cliente_nome||'—')}</div>
-                    </div>
-                    ${p.valor_vencido ? `<div style="color:#4ade80;font-weight:700;font-size:.85rem">${fmtBRL(p.valor_vencido)}</div>` : ''}
-                    <button class="btn btn-primary btn-sm" onclick="marcarContratoAssinado(${p.id},${p.cliente_id},this)">
-                      <i class="ti ti-check"></i> Assinar
-                    </button>
-                  </div>`).join('')}
-              </div>
-            </div>`;
-        } else {
-          pendDiv.innerHTML = '';
-        }
-      }
-
-    } catch (e) {
-      document.getElementById('dashboard-metrics').innerHTML =
-        `<p style="color:var(--danger);grid-column:1/-1;padding:1rem">Erro ao carregar métricas: ${e.message}</p>`;
+      const data = await r.json();
+      if (!data.sucesso) throw new Error(data.erro || 'Erro ao carregar dashboard');
+      const { pregoes, contratos, kpis, proximos_vencimentos } = data.dados;
+      _renderDashKPIs(kpis);
+      _renderDashAlertas(proximos_vencimentos);
+      _renderDashPregoes(pregoes);
+      _renderDashContratos(contratos);
+    } catch(e) {
+      document.getElementById('dash-kpis').innerHTML =
+        `<p style="color:var(--danger);grid-column:1/-1;padding:1rem">Erro: ${e.message}</p>`;
     }
+  }
+
+  function _renderDashKPIs(k) {
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    document.getElementById('dash-kpis').innerHTML = `
+      ${_dashKpiCard('Comissão do Mês',   fmt(k.comissao_mes),       'var(--primary)')}
+      ${_dashKpiCard('A Receber',         fmt(k.comissao_a_receber), '#fbbf24')}
+      ${_dashKpiCard('Contratos Ativos',  k.contratos_ativos,        'var(--t1)')}
+      ${_dashKpiCard('Pregões Ativos',    k.pregoes_ativos,          'var(--t1)')}
+    `;
+  }
+
+  function _dashKpiCard(label, valor, cor) {
+    return `
+      <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:16px 18px">
+        <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">${label}</div>
+        <div style="font-size:22px;font-weight:700;color:${cor}">${valor}</div>
+      </div>`;
+  }
+
+  function _renderDashAlertas(vencimentos) {
+    const el = document.getElementById('dash-alertas');
+    if (!vencimentos || !vencimentos.length) { el.innerHTML = ''; return; }
+    const TIPOS = {
+      contrato_social:'Contrato Social', certidao_federal:'Certidão Federal',
+      certidao_estadual:'Certidão Estadual', certidao_municipal:'Certidão Municipal',
+      atestado_capacidade_tecnica:'Atestado', balanco_patrimonial:'Balanço',
+      rg_socio:'RG Sócios', cpf_socio:'CPF Sócios',
+    };
+    el.innerHTML = `
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 16px">
+        <div style="font-size:13px;font-weight:600;color:#fbbf24;margin-bottom:8px">
+          ⚠️ Documentos vencendo em até 15 dias
+        </div>
+        ${vencimentos.map(v => `
+          <div style="font-size:12px;color:var(--t2);padding:3px 0;border-bottom:1px solid var(--bd)">
+            <span style="color:${v.dias_restantes <= 7 ? '#f87171':'#fbbf24'}">${v.dias_restantes}d</span>
+            · ${esc(v.cliente_nome)} — ${TIPOS[v.tipo] || v.tipo}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  function _renderDashPregoes(pregoes) {
+    const el = document.getElementById('dash-lista-pregoes');
+    const ct = document.getElementById('dash-count-pregoes');
+    if (ct) ct.textContent = (pregoes?.length || 0) + ' ativos';
+    if (!pregoes?.length) {
+      el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:13px">Nenhum pregão em andamento</div>`;
+      return;
+    }
+    const STATUS = { publicado:'🔵', em_disputa:'🟡', aguardando_resultado:'🟠', recurso:'🔴', homologado:'🟢' };
+    el.innerHTML = pregoes.map(p => {
+      const ico = STATUS[p.status] || '⚪';
+      const dt  = p.data_abertura ? new Date(p.data_abertura).toLocaleDateString('pt-BR') : '—';
+      return `
+        <div style="padding:12px 18px;border-bottom:1px solid var(--bd);cursor:pointer"
+             onmouseover="this.style.background='var(--row-hover)'" onmouseout="this.style.background='transparent'">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span>${ico}</span>
+            <span style="font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${esc(p.cliente_nome || '—')}</span>
+            <span style="font-size:11px;color:var(--t3)">${dt}</span>
+          </div>
+          <div style="font-size:11px;color:var(--t3);padding-left:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${esc(p.orgao || '')} · ${esc(p.numero || '')}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function _renderDashContratos(contratos) {
+    const el = document.getElementById('dash-lista-contratos');
+    const ct = document.getElementById('dash-count-contratos');
+    if (ct) ct.textContent = (contratos?.length || 0) + ' contratos';
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    if (!contratos?.length) {
+      el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:13px">Nenhum contrato ainda</div>`;
+      return;
+    }
+    el.innerHTML = contratos.map(c => {
+      const dt      = c.data_vitoria ? new Date(c.data_vitoria).toLocaleDateString('pt-BR') : '—';
+      const pendente = parseFloat(c.comissao_pendente) > 0;
+      return `
+        <div style="padding:12px 18px;border-bottom:1px solid var(--bd)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span style="font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${esc(c.cliente_nome)}</span>
+            <span style="font-size:12px;font-weight:600;color:#4ade80">${fmt(c.comissao_total)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px">
+            <span style="color:var(--t3)">${esc(c.orgao || '')} · ${dt}</span>
+            ${pendente
+              ? `<span style="color:#fbbf24;margin-left:auto">⏳ ${fmt(c.comissao_pendente)}</span>`
+              : `<span style="color:#4ade80;margin-left:auto">✔ Recebido</span>`}
+          </div>
+        </div>`;
+    }).join('');
   }
 
   async function marcarContratoAssinado(pid, cid, btn) {
@@ -8370,6 +8366,337 @@ ${nomes}${dados.length > 5 ? `
       toast('Documento salvo!', 'success');
       carregarDocumentosInternos();
     } catch (e) { toast('Erro ao salvar: ' + e.message, 'error'); }
+  }
+
+
+  // ─── FINANCEIRO INTERNO ───────────────────────────────────────────────────
+
+  async function carregarFinanceiro() {
+    const mesEl = document.getElementById('fin-mes');
+    if (!mesEl.value) mesEl.value = new Date().toISOString().slice(0,7);
+    const mes = mesEl.value;
+    try {
+      const r = await fetch(`${API}/api/financeiro/resumo?mes=${mes}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (r.status === 401) { logout(); return; }
+      const data = await r.json();
+      if (!data.sucesso) throw new Error(data.erro);
+      const d = data.dados;
+      _renderResumoFinanceiro(d);
+      _renderFinCategorias(d.despesas.por_categoria, d.despesas.total);
+      _renderFinLancamentos(d.lancamentos);
+    } catch(e) {
+      document.getElementById('fin-resumo').innerHTML =
+        `<p style="color:var(--danger);grid-column:1/-1;padding:1rem">Erro: ${e.message}</p>`;
+    }
+  }
+
+  function _renderResumoFinanceiro(d) {
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    const cor = d.resultado >= 0 ? '#4ade80' : '#f87171';
+    document.getElementById('fin-resumo').innerHTML = `
+      ${_finCard('Receitas do Mês',   fmt(d.receitas.total),  '#4ade80')}
+      ${_finCard('Despesas do Mês',   fmt(d.despesas.total),  '#f87171')}
+      ${_finCard('Resultado Líquido', fmt(d.resultado),       cor)}
+      ${_finCard('Margem',            d.margem + '%',         cor)}
+    `;
+  }
+
+  function _finCard(label, valor, cor) {
+    return `
+      <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:16px 18px">
+        <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">${label}</div>
+        <div style="font-size:22px;font-weight:700;color:${cor}">${valor}</div>
+      </div>`;
+  }
+
+  function _renderFinCategorias(categorias, total) {
+    const el = document.getElementById('fin-categorias');
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    if (!categorias || !categorias.length) {
+      el.innerHTML = `<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px">Nenhuma despesa este mês</div>`;
+      return;
+    }
+    el.innerHTML = [...categorias].sort((a,b) => b.valor - a.valor).map(c => {
+      const pct = total > 0 ? Math.round((c.valor/total)*100) : 0;
+      return `
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="color:var(--t1)">${esc(c.nome)}</span>
+            <span style="color:#f87171;font-weight:600">${fmt(c.valor)}</span>
+          </div>
+          <div style="height:5px;background:var(--bd);border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:#f87171;border-radius:3px;width:${pct}%;opacity:0.7"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function _renderFinLancamentos(lancamentos) {
+    const el = document.getElementById('fin-lancamentos');
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    const NOMES = {
+      pro_labore:'Pró-labore', salario:'Salários', infraestrutura:'Infra',
+      apis:'APIs', ferramentas:'Ferramentas', marketing:'Marketing', outros:'Outros',
+    };
+    if (!lancamentos || !lancamentos.length) {
+      el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:13px">Nenhum lançamento este mês</div>`;
+      return;
+    }
+    el.innerHTML = lancamentos.map(l => {
+      const cor   = l.tipo === 'receita' ? '#4ade80' : '#f87171';
+      const sinal = l.tipo === 'receita' ? '+' : '−';
+      const dt    = new Date(l.data + 'T12:00:00').toLocaleDateString('pt-BR');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--bd)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t1)">${esc(l.descricao)}</div>
+            <div style="font-size:11px;color:var(--t3)">${NOMES[l.categoria]||l.categoria} · ${dt}</div>
+          </div>
+          <span style="font-size:14px;font-weight:700;color:${cor};flex-shrink:0">${sinal}${fmt(l.valor)}</span>
+          <button onclick="deletarLancamento(${l.id})"
+            style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;flex-shrink:0"
+            title="Remover">×</button>
+        </div>`;
+    }).join('');
+  }
+
+  function abrirModalLancamento(tipo) {
+    const corTipo = tipo === 'despesa' ? '#f87171' : '#4ade80';
+    const titulo  = tipo === 'despesa' ? '− Nova Despesa' : '+ Nova Receita';
+    const CATS = tipo === 'despesa'
+      ? {pro_labore:'Pró-labore Sócios', salario:'Salários', infraestrutura:'Infraestrutura',
+         apis:'APIs e Integrações', ferramentas:'Ferramentas SaaS', marketing:'Marketing', outros:'Outros'}
+      : {servico:'Serviço prestado', outros:'Outros'};
+
+    let modal = document.getElementById('modal-lancamento-fin');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-lancamento-fin';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px';
+      modal.onclick = e => { if(e.target===modal) modal.remove(); };
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:24px;width:440px;max-width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <h3 style="font-size:16px;font-weight:700;color:${corTipo}">${titulo}</h3>
+          <button onclick="document.getElementById('modal-lancamento-fin').remove()"
+            style="background:none;border:none;color:var(--t3);font-size:20px;cursor:pointer">×</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--t3);display:block;margin-bottom:5px">Categoria</label>
+          <select id="fin-cat" style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--t1);padding:9px 12px;border-radius:8px;font-family:inherit;font-size:13px">
+            ${Object.entries(CATS).map(([v,n]) => `<option value="${v}">${n}</option>`).join('')}
+          </select>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--t3);display:block;margin-bottom:5px">Descrição *</label>
+          <input id="fin-desc" type="text" placeholder="Ex: Railway mensal"
+            style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--t1);padding:9px 12px;border-radius:8px;font-family:inherit;font-size:13px">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label style="font-size:12px;color:var(--t3);display:block;margin-bottom:5px">Valor (R$) *</label>
+            <input id="fin-valor" type="number" step="0.01" min="0" placeholder="0,00"
+              style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--t1);padding:9px 12px;border-radius:8px;font-family:inherit;font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--t3);display:block;margin-bottom:5px">Data *</label>
+            <input id="fin-data" type="date" value="${new Date().toISOString().slice(0,10)}"
+              style="width:100%;background:var(--input-bg);border:1px solid var(--input-border);color:var(--t1);padding:9px 12px;border-radius:8px;font-family:inherit;font-size:13px">
+          </div>
+        </div>
+        <div style="margin-bottom:18px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;color:var(--t1)">
+            <input type="checkbox" id="fin-recorrente"> Despesa recorrente (mensal)
+          </label>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="document.getElementById('modal-lancamento-fin').remove()"
+            style="background:transparent;border:1px solid var(--bd);color:var(--t3);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit">
+            Cancelar</button>
+          <button onclick="salvarLancamento('${tipo}')"
+            style="background:${tipo === 'receita' ? '#4CC5D7' : '#ef4444'};color:#fff;border:none;padding:8px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">
+            Salvar</button>
+        </div>
+      </div>`;
+    modal.style.display = 'flex';
+  }
+
+  async function salvarLancamento(tipo) {
+    const desc  = document.getElementById('fin-desc').value.trim();
+    const valor = document.getElementById('fin-valor').value;
+    const data  = document.getElementById('fin-data').value;
+    const cat   = document.getElementById('fin-cat').value;
+    const rec   = document.getElementById('fin-recorrente').checked;
+    if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/api/financeiro/lancamentos`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, categoria: cat, descricao: desc, valor: parseFloat(valor), data, recorrente: rec }),
+      });
+      const d = await r.json();
+      if (!d.sucesso) throw new Error(d.erro);
+      document.getElementById('modal-lancamento-fin').remove();
+      carregarFinanceiro();
+    } catch(e) { toast('Erro: ' + e.message, 'error'); }
+  }
+
+  async function deletarLancamento(id) {
+    if (!confirm('Remover este lançamento?')) return;
+    try {
+      const r = await fetch(`${API}/api/financeiro/lancamentos/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!d.sucesso) throw new Error(d.erro);
+      carregarFinanceiro();
+    } catch(e) { toast('Erro: ' + e.message, 'error'); }
+  }
+
+  // ─── RELATÓRIO / EXPORTAÇÃO ───────────────────────────────────────────────
+
+  async function abrirRelatorioContrato(contratoId) {
+    try {
+      const r = await fetch(`${API}/api/pos-vitoria/contratos/${contratoId}/relatorio`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (r.status === 401) { logout(); return; }
+      const data = await r.json();
+      if (!data.sucesso) throw new Error(data.erro);
+      renderModalRelatorio(data.dados);
+    } catch(e) { toast('Erro ao gerar relatório: ' + e.message, 'error'); }
+  }
+
+  function renderModalRelatorio(dados) {
+    const { contrato: c, notas_fiscais, comissoes, resumo } = dados;
+    const fmt   = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
+    const fmtDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+    const STATUS = { recebida:'✔ Recebida', pendente:'⏳ Pendente', enviada:'📨 Enviada', atrasada:'⚠ Atrasada' };
+
+    let modal = document.getElementById('modal-relatorio');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-relatorio';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+      modal.onclick = e => { if(e.target===modal) modal.remove(); };
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div id="relatorio-conteudo" style="background:#fff;color:#111;width:100%;max-width:760px;border-radius:12px;font-family:'DM Sans',sans-serif;overflow:hidden">
+
+        <div style="background:#182A39;padding:28px 32px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="color:#4CC5D7;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">conlicit</div>
+            <div style="color:#fff;font-size:18px;font-weight:700">Relatório de Contrato</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="color:#fff;font-size:13px;font-weight:600">${esc(c.modalidade || '')}</div>
+            <div style="color:#4CC5D7;font-size:15px;font-weight:700">${esc(c.numero_pregao || '')}</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 32px;border-bottom:1px solid #eee">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            ${[['Cliente',c.cliente_nome],['Órgão',c.orgao],['Objeto',c.objeto||'—'],
+               ['Data da Vitória',fmtDt(c.data_vitoria)],
+               ['Vigência',c.data_vigencia_inicio ? fmtDt(c.data_vigencia_inicio)+' → '+fmtDt(c.data_vigencia_fim) : '—'],
+               ['Status',c.status]].map(([l,v]) => `
+              <div>
+                <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">${l}</div>
+                <div style="font-size:14px;font-weight:500">${esc(v||'—')}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #eee">
+          ${[['Valor do Contrato',fmt(c.valor_contrato),'#182A39'],
+             ['Comissão ('+(c.percentual_comissao||0)+'%)',fmt(resumo.total_comissao),'#4CC5D7'],
+             ['Total Recebido',fmt(resumo.total_recebido),'#16a34a'],
+             ['Pendente',fmt(resumo.total_pendente),resumo.total_pendente>0?'#d97706':'#16a34a'],
+            ].map(([l,v,cor]) => `
+            <div style="padding:16px 20px;border-right:1px solid #eee">
+              <div style="font-size:11px;color:#888;margin-bottom:4px">${l}</div>
+              <div style="font-size:16px;font-weight:700;color:${cor}">${v}</div>
+            </div>`).join('')}
+        </div>
+
+        <div style="padding:24px 32px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#182A39">Notas Fiscais e Comissões</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#f5f7f9">
+                <th style="padding:8px 12px;text-align:left;font-weight:600;color:#555;border-bottom:2px solid #e5e7eb">NF</th>
+                <th style="padding:8px 12px;text-align:left;font-weight:600;color:#555;border-bottom:2px solid #e5e7eb">Emissão</th>
+                <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;border-bottom:2px solid #e5e7eb">Valor NF</th>
+                <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;border-bottom:2px solid #e5e7eb">Comissão</th>
+                <th style="padding:8px 12px;text-align:center;font-weight:600;color:#555;border-bottom:2px solid #e5e7eb">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(notas_fiscais||[]).map((nf,i) => {
+                const cm = (comissoes||[]).find(cm => cm.nota_fiscal_id === nf.id);
+                return `<tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+                  <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0">${esc(nf.numero_nf||'')}</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;color:#666">${fmtDt(nf.data_emissao)}</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:500">${fmt(nf.valor_nf)}</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;color:#182A39">${fmt(nf.valor_comissao)}</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:12px">${cm ? (STATUS[cm.status]||cm.status) : '—'}</td>
+                </tr>`;}).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="background:#182A39;color:#fff">
+                <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:700">${fmt(resumo.total_faturado)}</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:700;color:#4CC5D7">${fmt(resumo.total_comissao)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div style="padding:16px 32px;background:#f8f9fa;border-top:1px solid #eee;font-size:11px;color:#888;display:flex;justify-content:space-between">
+          <span>Conlicit — Consultoria em Licitações · Belo Horizonte, MG</span>
+          <span>Documento gerado pelo Conlicit Hub</span>
+        </div>
+      </div>
+
+      <div id="relatorio-acoes" style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:300">
+        <button onclick="document.getElementById('modal-relatorio').remove()"
+          style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px)">
+          Fechar
+        </button>
+        <button onclick="imprimirRelatorio()"
+          style="background:#4CC5D7;color:#182A39;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+          🖨️ Imprimir / Salvar PDF
+        </button>
+      </div>
+    `;
+    modal.style.display = 'flex';
+  }
+
+  function imprimirRelatorio() {
+    const style = document.createElement('style');
+    style.id = 'print-style';
+    style.innerHTML = `
+      @media print {
+        body > *:not(#modal-relatorio) { display: none !important; }
+        #modal-relatorio { position: static !important; background: white !important; padding: 0 !important; overflow: visible !important; }
+        #relatorio-acoes { display: none !important; }
+        #relatorio-conteudo { border-radius: 0 !important; box-shadow: none !important; max-width: 100% !important; }
+        @page { margin: 0; size: A4; }
+      }
+    `;
+    document.head.appendChild(style);
+    window.print();
+    setTimeout(() => { const s = document.getElementById('print-style'); if (s) s.remove(); }, 1000);
   }
 
   async function carregarProspects() {
