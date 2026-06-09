@@ -1713,50 +1713,7 @@
 
       <!-- ── DASHBOARD ── -->
       <section id="section-dashboard" class="section active">
-        <div class="section-header">
-          <div>
-            <h1>Dashboard</h1>
-            <p style="font-size:13px;color:var(--t2);margin:2px 0 0" id="dashboard-saudacao">Carregando...</p>
-          </div>
-          <div class="section-header-actions">
-            <button class="btn btn-ghost btn-sm" onclick="carregarDashboard()"><i class="ti ti-refresh"></i> Atualizar</button>
-          </div>
-        </div>
-
-        <!-- KPIs -->
-        <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-          <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
-        </div>
-
-        <!-- Alerta de vencimentos -->
-        <div id="dash-alertas" style="margin-bottom:20px"></div>
-
-        <!-- Dois blocos lado a lado -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-
-          <!-- Bloco A: Pregões em andamento -->
-          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
-            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:14px;font-weight:600">Pregões em Andamento</span>
-              <span id="dash-count-pregoes" style="font-size:12px;color:var(--t3)"></span>
-            </div>
-            <div id="dash-lista-pregoes" style="max-height:420px;overflow-y:auto">
-              <div style="padding:32px;text-align:center"><div class="spinner"></div></div>
-            </div>
-          </div>
-
-          <!-- Bloco B: Contratos e vitórias -->
-          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
-            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:14px;font-weight:600">Contratos e Vitórias</span>
-              <span id="dash-count-contratos" style="font-size:12px;color:var(--t3)"></span>
-            </div>
-            <div id="dash-lista-contratos" style="max-height:420px;overflow-y:auto">
-              <div style="padding:32px;text-align:center"><div class="spinner"></div></div>
-            </div>
-          </div>
-
-        </div>
+        <div style="padding:2rem;text-align:center"><div class="spinner spinner-lg"></div></div>
       </section>
 
       <!-- ── EDITAIS ── -->
@@ -3465,128 +3422,190 @@
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
-  // ─── DASHBOARD CONSOLIDADO ───────────────────────────────────────────────
+  // ─── DASHBOARD ───────────────────────────────────────────────────────────
 
   async function carregarDashboard() {
-    const hora = new Date().getHours();
-    const saud = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-    const nomeUser = (usuarioLogado?.nome || '').split(' ')[0];
-    const elSaud = document.getElementById('dashboard-saudacao');
-    if (elSaud) elSaud.textContent = `${saud}${nomeUser ? ', ' + nomeUser : ''}! Aqui está o resumo de hoje.`;
+    const section = document.getElementById('section-dashboard');
+    if (!section) return;
+
+    const hora   = new Date().getHours();
+    const saud   = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const meses  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const dias   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const agora  = new Date();
+    const dataStr = `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
+
+    section.innerHTML = `
+      <div style="padding:0 0 2rem 0">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px">
+          <div>
+            <h1 id="dash-saudacao" style="font-size:1.4rem;font-weight:600;color:var(--t1);margin:0 0 4px 0">${saud}…</h1>
+            <p style="color:var(--t3);font-size:.85rem;margin:0">${dataStr}</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="carregarDashboard()">
+            <i class="ti ti-refresh"></i> Atualizar
+          </button>
+        </div>
+
+        <div id="dash-alerta-pendentes" style="display:none;background:rgba(76,197,215,.08);
+          border:1px solid rgba(76,197,215,.3);border-radius:8px;padding:12px 16px;
+          margin-bottom:1.5rem;display:flex;align-items:center;gap:10px">
+          <i class="ti ti-alert-triangle" style="color:#4CC5D7;font-size:20px;flex-shrink:0"></i>
+          <p id="dash-alerta-txt" style="color:var(--t1);font-size:.875rem;font-weight:500;margin:0"></p>
+        </div>
+
+        <div id="dash-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:1.5rem">
+          <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem">
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem">
+            <h3 style="font-size:.8rem;font-weight:600;color:var(--t3);text-transform:uppercase;
+              letter-spacing:.05em;margin:0 0 1rem 0">
+              <i class="ti ti-calendar-event" style="margin-right:6px;color:#4CC5D7"></i>Próximos 7 dias
+            </h3>
+            <div id="dash-pregoes"></div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem">
+            <h3 style="font-size:.8rem;font-weight:600;color:var(--t3);text-transform:uppercase;
+              letter-spacing:.05em;margin:0 0 1rem 0">
+              <i class="ti ti-filter" style="margin-right:6px;color:#4CC5D7"></i>Funil de prospecção
+            </h3>
+            <div id="dash-funil"></div>
+          </div>
+        </div>
+
+        <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1.25rem">
+          <h3 style="font-size:.8rem;font-weight:600;color:var(--t3);text-transform:uppercase;
+            letter-spacing:.05em;margin:0 0 1rem 0">
+            <i class="ti ti-bolt" style="margin-right:6px;color:#4CC5D7"></i>Ações rápidas
+          </h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${[
+              { icon:'ti-search',       label:'Buscar edital',  fn:"navTo('editais')" },
+              { icon:'ti-robot',        label:'Novo Edson',     fn:"navTo('edson')" },
+              { icon:'ti-user-plus',    label:'Novo cliente',   fn:'abrirFormCliente()' },
+              { icon:'ti-calendar-plus',label:'Calendário',     fn:"navTo('calendario')" },
+              { icon:'ti-file-invoice', label:'Nova proposta',  fn:"navTo('proposta')" },
+              { icon:'ti-users',        label:'Ver clientes',   fn:"navTo('clientes')" },
+            ].map(a => `
+              <button onclick="${a.fn}"
+                style="display:flex;align-items:center;gap:8px;background:var(--bg-secondary,#182A39);
+                  border:1px solid var(--bd);border-radius:8px;padding:10px 16px;color:var(--t1);
+                  font-size:13px;cursor:pointer;transition:background .15s;font-family:inherit"
+                onmouseover="this.style.background='var(--row-hover)'"
+                onmouseout="this.style.background='var(--bg-secondary,#182A39)'">
+                <i class="ti ${a.icon}" style="color:#4CC5D7;font-size:16px"></i>${a.label}
+              </button>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
 
     try {
-      const r = await fetch(`${API}/api/dashboard/consolidado`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const r = await fetch(`${API}/api/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (r.status === 401) { logout(); return; }
-      const data = await r.json();
-      if (!data.sucesso) throw new Error(data.erro || 'Erro ao carregar dashboard');
-      const { pregoes, contratos, kpis, proximos_vencimentos } = data.dados;
-      _renderDashKPIs(kpis);
-      _renderDashAlertas(proximos_vencimentos);
-      _renderDashPregoes(pregoes);
-      _renderDashContratos(contratos);
-    } catch(e) {
-      document.getElementById('dash-kpis').innerHTML =
-        `<p style="color:var(--danger);grid-column:1/-1;padding:1rem">Erro: ${e.message}</p>`;
-    }
-  }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
 
-  function _renderDashKPIs(k) {
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
-    document.getElementById('dash-kpis').innerHTML = `
-      ${_dashKpiCard('Comissão do Mês',   fmt(k.comissao_mes),       'var(--primary)')}
-      ${_dashKpiCard('A Receber',         fmt(k.comissao_a_receber), '#fbbf24')}
-      ${_dashKpiCard('Contratos Ativos',  k.contratos_ativos,        'var(--t1)')}
-      ${_dashKpiCard('Pregões Ativos',    k.pregoes_ativos,          'var(--t1)')}
-    `;
-  }
+      // Saudação com nome
+      const nome = (d.usuario?.nome || currentEmail || '').split(' ')[0];
+      document.getElementById('dash-saudacao').textContent = `${saud}, ${nome} 👋`;
 
-  function _dashKpiCard(label, valor, cor) {
-    return `
-      <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:16px 18px">
-        <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">${label}</div>
-        <div style="font-size:22px;font-weight:700;color:${cor}">${valor}</div>
-      </div>`;
-  }
-
-  function _renderDashAlertas(vencimentos) {
-    const el = document.getElementById('dash-alertas');
-    if (!vencimentos || !vencimentos.length) { el.innerHTML = ''; return; }
-    const TIPOS = {
-      contrato_social:'Contrato Social', certidao_federal:'Certidão Federal',
-      certidao_estadual:'Certidão Estadual', certidao_municipal:'Certidão Municipal',
-      atestado_capacidade_tecnica:'Atestado', balanco_patrimonial:'Balanço',
-      rg_socio:'RG Sócios', cpf_socio:'CPF Sócios',
-    };
-    el.innerHTML = `
-      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 16px">
-        <div style="font-size:13px;font-weight:600;color:#fbbf24;margin-bottom:8px">
-          ⚠️ Documentos vencendo em até 15 dias
+      // Cards de métricas
+      const m = d.metricas || {};
+      const fmt = v => (v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits:2 });
+      const cards = [
+        { icon:'ti-users',         label:'Clientes ativos',  value: m.clientes_ativos ?? 0,  color:'#4CC5D7' },
+        { icon:'ti-currency-dollar',label:'MRR',             value: fmt(m.mrr),               color:'#22c55e' },
+        { icon:'ti-file-text',     label:'Pregões abertos',  value: m.pregoes_abertos ?? 0,   color:'#f59e0b' },
+        { icon:'ti-trophy',        label:'Pregões vencidos', value: m.pregoes_vencidos ?? 0,  color:'#a78bfa' },
+        { icon:'ti-user-search',   label:'Prospects ativos', value: m.prospects ?? 0,         color:'#4CC5D7' },
+        { icon:'ti-trending-up',   label:'Volume vencido',   value: fmt(m.volume_total),      color:'#22c55e' },
+      ];
+      document.getElementById('dash-cards').innerHTML = cards.map(c => `
+        <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:1rem">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <i class="ti ${c.icon}" style="font-size:18px;color:${c.color}"></i>
+            <span style="font-size:12px;color:var(--t3)">${c.label}</span>
+          </div>
+          <p style="font-size:1.35rem;font-weight:600;color:var(--t1);margin:0">${c.value}</p>
         </div>
-        ${vencimentos.map(v => `
-          <div style="font-size:12px;color:var(--t2);padding:3px 0;border-bottom:1px solid var(--bd)">
-            <span style="color:${v.dias_restantes <= 7 ? '#f87171':'#fbbf24'}">${v.dias_restantes}d</span>
-            · ${esc(v.cliente_nome)} — ${TIPOS[v.tipo] || v.tipo}
-          </div>`).join('')}
-      </div>`;
-  }
+      `).join('');
 
-  function _renderDashPregoes(pregoes) {
-    const el = document.getElementById('dash-lista-pregoes');
-    const ct = document.getElementById('dash-count-pregoes');
-    if (ct) ct.textContent = (pregoes?.length || 0) + ' ativos';
-    if (!pregoes?.length) {
-      el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:13px">Nenhum pregão em andamento</div>`;
-      return;
-    }
-    const STATUS = { publicado:'🔵', em_disputa:'🟡', aguardando_resultado:'🟠', recurso:'🔴', homologado:'🟢' };
-    el.innerHTML = pregoes.map(p => {
-      const ico = STATUS[p.status] || '⚪';
-      const dt  = p.data_abertura ? new Date(p.data_abertura).toLocaleDateString('pt-BR') : '—';
-      return `
-        <div style="padding:12px 18px;border-bottom:1px solid var(--bd);cursor:pointer"
-             onmouseover="this.style.background='var(--row-hover)'" onmouseout="this.style.background='transparent'">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-            <span>${ico}</span>
-            <span style="font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${esc(p.cliente_nome || '—')}</span>
-            <span style="font-size:11px;color:var(--t3)">${dt}</span>
-          </div>
-          <div style="font-size:11px;color:var(--t3);padding-left:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${esc(p.orgao || '')} · ${esc(p.numero || '')}
-          </div>
-        </div>`;
-    }).join('');
-  }
+      // Alerta contratos pendentes
+      const pendentes = d.contratos_pendentes || [];
+      if (pendentes.length > 0) {
+        const alertEl = document.getElementById('dash-alerta-pendentes');
+        alertEl.style.display = 'flex';
+        document.getElementById('dash-alerta-txt').textContent =
+          `${pendentes.length} contrato${pendentes.length > 1 ? 's' : ''} pendente${pendentes.length > 1 ? 's' : ''} de assinatura: ` +
+          pendentes.map(p => p.numero || (p.objeto || '').substring(0, 25)).join(', ');
+      }
 
-  function _renderDashContratos(contratos) {
-    const el = document.getElementById('dash-lista-contratos');
-    const ct = document.getElementById('dash-count-contratos');
-    if (ct) ct.textContent = (contratos?.length || 0) + ' contratos';
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);
-    if (!contratos?.length) {
-      el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:13px">Nenhum contrato ainda</div>`;
-      return;
-    }
-    el.innerHTML = contratos.map(c => {
-      const dt      = c.data_vitoria ? new Date(c.data_vitoria).toLocaleDateString('pt-BR') : '—';
-      const pendente = parseFloat(c.comissao_pendente) > 0;
-      return `
-        <div style="padding:12px 18px;border-bottom:1px solid var(--bd)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-            <span style="font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${esc(c.cliente_nome)}</span>
-            <span style="font-size:12px;font-weight:600;color:#4ade80">${fmt(c.comissao_total)}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:11px">
-            <span style="color:var(--t3)">${esc(c.orgao || '')} · ${dt}</span>
-            ${pendente
-              ? `<span style="color:#fbbf24;margin-left:auto">⏳ ${fmt(c.comissao_pendente)}</span>`
-              : `<span style="color:#4ade80;margin-left:auto">✔ Recebido</span>`}
-          </div>
+      // Próximos pregões
+      const preg = d.proximos_pregoes || [];
+      document.getElementById('dash-pregoes').innerHTML = preg.length === 0
+        ? `<p style="color:var(--t3);font-size:.875rem">Nenhum pregão nos próximos 7 dias.</p>`
+        : preg.map(p => {
+            const dt   = new Date(p.data_abertura + 'T12:00:00');
+            const hora = p.data_hora_abertura
+              ? new Date(p.data_hora_abertura).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+              : '--:--';
+            return `
+              <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bd)">
+                <div style="background:var(--bg-secondary,#182A39);border-radius:8px;padding:6px 10px;text-align:center;min-width:44px">
+                  <p style="font-size:16px;font-weight:600;color:#4CC5D7;margin:0;line-height:1">${dt.getDate().toString().padStart(2,'0')}</p>
+                  <p style="font-size:10px;color:var(--t3);margin:0">${meses[dt.getMonth()]}</p>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <p style="font-size:13px;color:var(--t1);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    ${esc(p.objeto || p.numero || 'Pregão')}
+                  </p>
+                  <p style="font-size:11px;color:var(--t3);margin:0">${dias[dt.getDay()]} · ${hora} · ${esc(p.cliente_nome || '')}</p>
+                </div>
+              </div>`;
+          }).join('');
+
+      // Funil de prospecção
+      const funil = d.funil || {};
+      const etapas = [
+        { key:'novo_lead',         label:'Novo lead',         color:'#94a3b8' },
+        { key:'contato_feito',     label:'Contato feito',     color:'#4CC5D7' },
+        { key:'proposta_enviada',  label:'Proposta enviada',  color:'#f59e0b' },
+        { key:'aguardando',        label:'Aguardando',        color:'#a78bfa' },
+        { key:'fechado',           label:'Fechado',           color:'#22c55e' },
+      ];
+      const totalFunil = Object.values(funil).reduce((a, b) => a + b, 0) || 1;
+      document.getElementById('dash-funil').innerHTML = etapas.map(e => {
+        const qty = funil[e.key] || 0;
+        const pct = Math.round((qty / totalFunil) * 100);
+        return `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:12px;color:var(--t3)">${e.label}</span>
+              <span style="font-size:12px;color:var(--t1);font-weight:500">${qty}</span>
+            </div>
+            <div style="background:var(--bg-secondary,#182A39);border-radius:4px;height:6px">
+              <div style="background:${e.color};height:6px;border-radius:4px;width:${pct}%;transition:width .4s"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+    } catch (err) {
+      console.error('[Dashboard]', err);
+      document.getElementById('dash-cards').innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:2rem;color:#ef4444">
+          <i class="ti ti-alert-circle" style="font-size:32px;display:block;margin-bottom:8px"></i>
+          <p style="margin:0 0 8px 0">Erro ao carregar dados: ${esc(err.message)}</p>
+          <button onclick="carregarDashboard()"
+            style="color:#4CC5D7;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:13px">
+            Tentar novamente
+          </button>
         </div>`;
-    }).join('');
+    }
   }
 
   async function marcarContratoAssinado(pid, cid, btn) {

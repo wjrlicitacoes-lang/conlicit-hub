@@ -8,6 +8,91 @@ function ok(res, data)        { res.json({ sucesso: true,  dados: data }); }
 function erro(res, msg, s=400){ res.status(s).json({ sucesso: false, erro: msg }); }
 function cap(fn){ return (req, res, next) => Promise.resolve(fn(req,res,next)).catch(next); }
 
+// GET /api/dashboard — endpoint unificado (nunca retorna 500)
+router.get('/', autenticar, cap(async (req, res) => {
+  const safe = async (fn) => {
+    try { return await fn(); } catch (e) { console.error('[Dashboard]', e.message); return null; }
+  };
+
+  // Nome do usuário logado
+  const userRow = await safe(() =>
+    db.query('SELECT nome FROM usuarios WHERE id = $1', [req.usuario.id])
+  );
+  const userNome = userRow?.rows[0]?.nome || req.usuario.email || '';
+
+  // Clientes ativos + MRR
+  const clientesRow = await safe(() =>
+    db.query('SELECT COUNT(*)::int AS total, COALESCE(SUM(valor_contrato),0) AS mrr FROM clientes WHERE ativo = TRUE')
+  );
+
+  // Contagens de pregões + volume vencido
+  const pregoesRow = await safe(() =>
+    db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'a_disputar')::int AS abertos,
+        COUNT(*) FILTER (WHERE status = 'vencido')::int    AS vencidos,
+        COALESCE(SUM(valor_vencido) FILTER (WHERE status = 'vencido'), 0) AS volume_vencido
+      FROM pregoes
+    `)
+  );
+
+  // Prospects ativos (exclui perdido/convertido)
+  const prospectsRow = await safe(() =>
+    db.query("SELECT COUNT(*)::int AS total FROM prospects WHERE status NOT IN ('perdido','convertido')")
+  );
+
+  // Próximos pregões (próximos 7 dias, status a_disputar)
+  const proximosRow = await safe(() =>
+    db.query(`
+      SELECT p.id, p.numero, p.orgao, p.objeto,
+             p.data_abertura, p.data_hora_abertura, p.status,
+             c.nome AS cliente_nome
+      FROM pregoes p
+      LEFT JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.status = 'a_disputar'
+        AND p.data_abertura >= CURRENT_DATE
+        AND p.data_abertura <= CURRENT_DATE + INTERVAL '7 days'
+      ORDER BY p.data_abertura ASC, p.data_hora_abertura ASC NULLS LAST
+      LIMIT 10
+    `)
+  );
+
+  // Funil de prospecção (contagem por status)
+  const funilRow = await safe(() =>
+    db.query('SELECT status, COUNT(*)::int AS total FROM prospects GROUP BY status ORDER BY total DESC')
+  );
+  const funil = {};
+  (funilRow?.rows ?? []).forEach(r => { funil[r.status] = r.total; });
+
+  // Contratos pendentes de assinatura
+  const pendentesRow = await safe(() =>
+    db.query(`
+      SELECT p.id, p.numero, p.objeto, p.data_abertura, c.nome AS cliente_nome
+      FROM pregoes p
+      LEFT JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.status = 'vencido'
+        AND (p.contrato_assinado IS NULL OR p.contrato_assinado = FALSE)
+      ORDER BY p.created_at DESC
+      LIMIT 5
+    `)
+  );
+
+  res.json({
+    usuario:            { nome: userNome },
+    metricas: {
+      clientes_ativos:  clientesRow?.rows[0]?.total       ?? 0,
+      mrr:              clientesRow?.rows[0]?.mrr          ?? 0,
+      pregoes_abertos:  pregoesRow?.rows[0]?.abertos       ?? 0,
+      pregoes_vencidos: pregoesRow?.rows[0]?.vencidos      ?? 0,
+      prospects:        prospectsRow?.rows[0]?.total       ?? 0,
+      volume_total:     pregoesRow?.rows[0]?.volume_vencido ?? 0,
+    },
+    proximos_pregoes:   proximosRow?.rows   ?? [],
+    funil,
+    contratos_pendentes: pendentesRow?.rows ?? [],
+  });
+}));
+
 // GET /api/dashboard/consolidado
 router.get('/consolidado', autenticar, cap(async (req, res) => {
 
