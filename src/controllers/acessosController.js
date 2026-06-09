@@ -20,6 +20,19 @@ async function listar(req, res) {
   }
 }
 
+function criptografarSenha(senha) {
+  if (!senha) return null;
+  try {
+    return criptografar(senha);
+  } catch (e) {
+    if (e.message?.includes('ENCRYPTION_KEY')) {
+      console.warn('[Acessos] ENCRYPTION_KEY não configurada — senha não será salva');
+      return null;
+    }
+    throw e;
+  }
+}
+
 async function criar(req, res) {
   const { id } = req.params;
   const { portal, login, senha, url, observacoes } = req.body ?? {};
@@ -29,7 +42,7 @@ async function criar(req, res) {
       `INSERT INTO acessos_portais (cliente_id, portal, login, senha, url, observacoes)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
       [id, portal.trim(), login?.trim() || null,
-       senha?.trim() ? criptografar(senha.trim()) : null,
+       criptografarSenha(senha?.trim() || null),
        url?.trim() || null, observacoes?.trim() || null],
     );
     return res.status(201).json(descriptografarAcesso(a));
@@ -47,7 +60,7 @@ async function atualizar(req, res) {
       `UPDATE acessos_portais SET portal=$1, login=$2, senha=$3, url=$4, observacoes=$5
        WHERE id=$6 AND cliente_id=$7 RETURNING *`,
       [portal?.trim(), login?.trim() || null,
-       senha?.trim() ? criptografar(senha.trim()) : null,
+       criptografarSenha(senha?.trim() || null),
        url?.trim() || null, observacoes?.trim() || null, aid, id],
     );
     if (!a) return res.status(404).json({ erro: 'Acesso não encontrado' });

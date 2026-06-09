@@ -201,6 +201,48 @@ router.get('/vencimentos', autenticar, async (req, res) => {
   }
 });
 
+// POST /documentos-cliente/:id/upload (admin faz upload direto, sem link de cliente)
+router.post('/:id/upload', autenticar, async (req, res) => {
+  try {
+    const { rows: [doc] } = await db.query(
+      `SELECT * FROM documentos_cliente WHERE id = $1`, [req.params.id]
+    );
+    if (!doc) return res.status(404).json({ erro: 'Documento não encontrado' });
+
+    const upload = multer({
+      storage: criarStorage(doc.cliente_id),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, f, cb) => {
+        const ok = ['application/pdf', 'image/jpeg', 'image/png'].includes(f.mimetype);
+        cb(ok ? null : new Error('Tipo não permitido (PDF, JPG ou PNG)'), ok);
+      },
+    }).single('arquivo');
+
+    upload(req, res, async (err) => {
+      if (err) return res.status(400).json({ erro: err.message });
+      if (!req.file) return res.status(400).json({ erro: 'Arquivo não enviado' });
+
+      if (doc.tipo === 'logo_empresa') {
+        const base64 = fs.readFileSync(req.file.path).toString('base64');
+        await db.query(
+          `UPDATE clientes SET logo_base64 = $1 WHERE id = $2`,
+          [`data:${req.file.mimetype};base64,${base64}`, doc.cliente_id],
+        );
+      }
+
+      const { rows: [updated] } = await db.query(
+        `UPDATE documentos_cliente
+         SET status='enviado', nome_arquivo=$1, caminho_arquivo=$2, enviado_em=NOW(), updated_at=NOW()
+         WHERE id=$3 RETURNING *`,
+        [req.file.originalname, req.file.path, req.params.id],
+      );
+      return res.json({ sucesso: true, dados: updated });
+    });
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+});
+
 // PATCH /documentos-cliente/:id/vencimento
 router.patch('/:id/vencimento', autenticar, async (req, res) => {
   const { data_vencimento } = req.body ?? {};

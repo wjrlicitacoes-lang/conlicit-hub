@@ -4181,6 +4181,7 @@
                     style="font-size:.72rem;padding:3px 6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:var(--text);width:130px"
                     onchange="atualizarVencDocHub(${d.id}, this.value)" title="Data de vencimento">
                   ${d.caminho_arquivo ? `<a class="btn btn-ghost btn-sm" href="/uploads/documentos/${clienteAtual.id}/${d.nome_arquivo}" target="_blank" rel="noopener">Ver</a>` : ''}
+                  <button class="btn btn-ghost btn-sm" onclick="uploadDocAdminHub(${d.id})" title="Fazer upload deste documento">📎 Upload</button>
                   ${d.status === 'enviado' ? `
                     <button class="btn btn-primary btn-sm" onclick="aprovarDoc(${d.id})">✓ Aprovar</button>
                     <button class="btn btn-danger btn-sm" onclick="rejeitarDoc(${d.id})">✗ Rejeitar</button>` : ''}
@@ -4255,6 +4256,31 @@
       tabsLoaded['docs-hub'] = false;
       switchTab2('docs-hub');
     } catch { toast('Erro ao atualizar vencimento', 'error'); }
+  }
+
+  function uploadDocAdminHub(did) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.jpg,.jpeg,.png';
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('arquivo', file);
+      try {
+        const r = await fetch(`${API}/documentos-cliente/${did}/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro || 'Erro ao fazer upload');
+        toast('Documento enviado!', 'success');
+        tabsLoaded['docs-hub'] = false;
+        switchTab2('docs-hub');
+      } catch (err) { toast(err.message, 'error'); }
+    };
+    input.click();
   }
 
   // ── TAB: GERADORES (Proposta Readequada + Recurso) ───────────────────
@@ -6933,17 +6959,23 @@
   function toLocalInput(isoStr) {
     if (!isoStr) return '';
     const d = new Date(isoStr);
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16);
+    // Sempre exibe no horário de Brasília (UTC-3, sem horário de verão desde 2019)
+    const spStr = d.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    return spStr.slice(0, 16).replace(' ', 'T');
   }
 
   async function salvarCalHorario(pid) {
     const val = document.getElementById(`cal-hora-${pid}`).value;
+    let isoVal = null;
+    if (val) {
+      // Interpreta o input como horário de Brasília (UTC-3) e converte para UTC ISO
+      isoVal = new Date(val + ':00-03:00').toISOString();
+    }
     try {
       const r = await fetch(`${API}/calendario/${pid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ data_hora_abertura: val || null }),
+        body: JSON.stringify({ data_hora_abertura: isoVal }),
       });
       if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
       await carregarCalendario();
