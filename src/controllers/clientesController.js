@@ -178,7 +178,7 @@ async function pregoesVencidos(req, res) {
        FROM pregoes p
        JOIN clientes c ON c.id = p.cliente_id
        WHERE p.status = 'vencido' AND (p.contrato_assinado = FALSE OR p.contrato_assinado IS NULL)
-       ORDER BY p.updated_at DESC NULLS LAST, p.created_at DESC
+       ORDER BY p.created_at DESC
        LIMIT 10`,
     );
     return res.json({ dados: rows });
