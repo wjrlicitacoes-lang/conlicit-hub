@@ -9247,7 +9247,10 @@
 
   // ── Importar planilha ──────────────────────────────────────────────────────
 
+  let _impArquivoFile = null; // guarda o arquivo para o confirmar após preview
+
   function abrirModalImportarPlanilha() {
+    _impArquivoFile = null;
     document.getElementById('imp-resultado').style.display = 'none';
     document.getElementById('imp-preview').style.display   = 'none';
     document.getElementById('imp-arquivo').value           = '';
@@ -9257,30 +9260,99 @@
     document.getElementById('modal-importar-planilha').classList.add('visible');
   }
 
-  function imp_onFileChange(input) {
+  async function imp_onFileChange(input) {
     const file = input.files[0];
     if (!file) return;
+    _impArquivoFile = file;
     document.getElementById('imp-nome-arquivo').textContent = file.name;
-    document.getElementById('imp-btn-importar').disabled = false;
-    // Preview das primeiras linhas via XLSX no cliente não disponível — só mostra nome
-    document.getElementById('imp-preview').style.display = 'block';
-    document.getElementById('imp-preview').innerHTML =
-      `<div style="font-size:.8rem;color:var(--t2);padding:8px;background:rgba(76,197,215,.05);border:1px solid rgba(76,197,215,.2);border-radius:6px">
-         📄 <strong>${esc(file.name)}</strong> — ${(file.size/1024).toFixed(0)} KB
-         <br><span style="color:var(--t3);font-size:.75rem">O arquivo será processado ao clicar em "Importar"</span>
-       </div>`;
+    document.getElementById('imp-btn-importar').disabled = true;
+    document.getElementById('imp-btn-importar').textContent = 'Analisando…';
+
+    // Chamar preview antes de mostrar o botão Importar
+    const fd = new FormData();
+    fd.append('arquivo', file);
+    try {
+      const r = await fetch(`${API}/prospects/importar-planilha?modo=preview`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      exibirPreviewImportacao(d);
+    } catch (e) {
+      document.getElementById('imp-preview').style.display = 'block';
+      document.getElementById('imp-preview').innerHTML =
+        `<div style="color:#ef4444;font-size:.82rem">Erro ao analisar arquivo: ${esc(e.message)}</div>`;
+      document.getElementById('imp-btn-importar').disabled = true;
+      document.getElementById('imp-btn-importar').textContent = 'Importar';
+    }
+  }
+
+  function exibirPreviewImportacao(d) {
+    const { colunas_encontradas = [], preview = [], total_linhas = 0, ignorados = 0 } = d;
+    const temDados = preview.some(p => p.nome_empresa || p.email);
+
+    let html = `
+      <div style="background:#1a2535;border-radius:8px;padding:1rem;margin:8px 0">
+        <p style="color:#94a3b8;font-size:.75rem;margin:0 0 4px">
+          Colunas identificadas: <strong style="color:#4CC5D7">${colunas_encontradas.join(', ') || '—'}</strong>
+        </p>
+        <p style="color:#94a3b8;font-size:.75rem;margin:0 0 8px">
+          Total de linhas: <strong style="color:#fff">${total_linhas}</strong>
+          ${ignorados > 0 ? ` · <span style="color:#f59e0b">${ignorados} serão ignoradas (sem nome/email válido)</span>` : ''}
+        </p>
+        ${preview.length ? `
+        <div style="font-size:.78rem;font-weight:600;color:#fff;margin-bottom:6px">Preview (primeiras linhas mapeadas):</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:.72rem;border-collapse:collapse">
+            <tr style="color:#64748b">
+              <th style="text-align:left;padding:3px 6px">Empresa</th>
+              <th style="text-align:left;padding:3px 6px">Email</th>
+              <th style="text-align:left;padding:3px 6px">Telefone</th>
+              <th style="text-align:left;padding:3px 6px">Nicho</th>
+            </tr>
+            ${preview.map(p => `<tr style="border-top:1px solid #1e3a4a">
+              <td style="padding:3px 6px;color:${p.nome_empresa ? '#fff' : '#ef4444'}">${esc(p.nome_empresa || '⚠ vazio')}</td>
+              <td style="padding:3px 6px;color:${p.email ? '#fff' : '#64748b'}">${esc(p.email || '—')}</td>
+              <td style="padding:3px 6px;color:#fff">${esc(p.telefone || '—')}</td>
+              <td style="padding:3px 6px;color:#fff">${esc(p.nicho || '—')}</td>
+            </tr>`).join('')}
+          </table>
+        </div>` : '<p style="color:#64748b;font-size:.78rem;margin:0">Nenhuma linha válida encontrada no arquivo.</p>'}
+      </div>`;
+
+    if (!temDados) {
+      html += `<div style="background:#3b1a1a;border:1px solid #ef4444;border-radius:8px;padding:12px;margin-bottom:8px">
+        <p style="color:#ef4444;font-size:.8rem;margin:0">
+          ⚠️ Não foi possível identificar as colunas corretas. Renomeie a coluna principal para <strong>Nome</strong>, <strong>Empresa</strong> ou <strong>Razão Social</strong> e tente novamente.
+        </p>
+      </div>`;
+    }
+
+    const prevDiv = document.getElementById('imp-preview');
+    prevDiv.style.display = 'block';
+    prevDiv.innerHTML = html;
+
+    const btn = document.getElementById('imp-btn-importar');
+    if (temDados) {
+      btn.disabled = false;
+      btn.textContent = `Importar ${total_linhas - ignorados} leads`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = 'Importar';
+    }
   }
 
   async function importarPlanilhaEnviar() {
-    const fileInput = document.getElementById('imp-arquivo');
-    if (!fileInput.files[0]) { toast('Selecione um arquivo', 'error'); return; }
+    if (!_impArquivoFile) { toast('Selecione um arquivo', 'error'); return; }
     const btn = document.getElementById('imp-btn-importar');
     btn.disabled = true;
     btn.textContent = 'Importando…';
     const fd = new FormData();
-    fd.append('arquivo', fileInput.files[0]);
+    fd.append('arquivo', _impArquivoFile);
     try {
-      const r = await fetch(`${API}/prospects/importar-planilha`, {
+      const r = await fetch(`${API}/prospects/importar-planilha?modo=confirmar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -9291,7 +9363,9 @@
       res.style.display = 'block';
       res.innerHTML = `
         <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:12px 16px;font-size:.85rem">
-          ✅ <strong>${d.importados} leads importados</strong> · ${d.atualizados} atualizados · ${d.erros?.length||0} erros
+          ✅ <strong>${d.importados} leads importados</strong> · ${d.atualizados} atualizados
+          ${d.ignorados > 0 ? ` · <span style="color:#f59e0b">${d.ignorados} ignoradas</span>` : ''}
+          · ${d.erros?.length||0} erros
           ${d.erros?.length ? `<div style="margin-top:6px;font-size:.75rem;color:#ef4444">${d.erros.slice(0,3).map(e=>`Linha ${e.linha}: ${e.erro}`).join('<br>')}</div>` : ''}
         </div>`;
       btn.textContent = '✓ Concluído';
@@ -9301,6 +9375,10 @@
       btn.disabled = false;
       btn.textContent = 'Importar';
     }
+  }
+
+  async function baixarModeloPlanilha() {
+    window.open(`${API}/prospects/modelo-planilha`, '_blank');
   }
 
   // ── Enviar campanha para prospect específico ───────────────────────────────
@@ -10046,11 +10124,12 @@ ${nomes}${dados.length > 5 ? `
               const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
               const hoje2 = new Date().toISOString().split('T')[0];
               const fuVen = p.data_proximo_contato && p.data_proximo_contato.slice(0,10) <= hoje2;
+              const kTitulo    = p.nome_empresa || p.empresa || p.nome || '(sem nome)';
+              const kSubtitulo = p.nicho || p.segmento || p.email || '';
               return `<div style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:pointer" onclick='abrirEditarProspect(${JSON.stringify(p)})'>
-                <div style="font-size:.83rem;font-weight:600;color:var(--t1);margin-bottom:1px">${esc(p.nome)}</div>
+                <div style="font-size:.83rem;font-weight:600;color:var(--t1);margin-bottom:1px">${esc(kTitulo)}</div>
                 ${fuVen ? '<span style="background:#E24B4A;color:#fff;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:99px;display:inline-block;margin-bottom:2px;">Follow-up vencido</span>' : ''}
-                ${p.empresa ? `<div style="font-size:.7rem;color:var(--t2)">${esc(p.empresa)}</div>` : ''}
-                ${p.segmento ? `<div style="font-size:.67rem;color:var(--primary);margin-top:2px">${esc(p.segmento)}</div>` : ''}
+                ${kSubtitulo ? `<div style="font-size:.7rem;color:var(--t2)">${esc(kSubtitulo)}</div>` : ''}
                 <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;align-items:center">
                   ${brevoBadge(p)}
                   ${p.formulario_preenchido ? `<span style="font-size:.67rem;color:#10B981">✓ Form</span>` : ''}
@@ -11623,16 +11702,20 @@ img { max-height: 22px !important; width: auto !important; display: block; }
       <button class="modal-close" onclick="document.getElementById('modal-importar-planilha').classList.remove('visible')">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
-      <!-- Dica de colunas -->
-      <div style="background:rgba(76,197,215,.06);border:1px solid rgba(76,197,215,.2);border-radius:8px;padding:12px;font-size:.8rem;color:var(--t2);line-height:1.6">
-        Sua planilha deve ter colunas como: <strong>Nome/Empresa, Email, Telefone, Nicho, CNPJ</strong>.<br>
-        O sistema aceita variações de nome nas colunas automaticamente (.xlsx ou .csv).
-      </div>
-      <!-- Modelo para download -->
-      <div>
-        <a href="${API || ''}/prospects/modelo-planilha" style="color:#4CC5D7;font-size:.82rem;text-decoration:none" download>
-          ↓ Baixar modelo de planilha (.xlsx)
-        </a>
+      <!-- Instruções -->
+      <div style="background:#182A39;border-radius:8px;padding:12px 14px">
+        <p style="color:#fff;font-size:.82rem;font-weight:600;margin:0 0 6px">Como preparar sua planilha:</p>
+        <ul style="color:#94a3b8;font-size:.76rem;margin:0;padding-left:1.1rem;line-height:1.8">
+          <li>A <strong style="color:#fff">primeira linha</strong> deve conter os títulos das colunas</li>
+          <li>Empresa: <code style="color:#4CC5D7">Nome</code>, <code style="color:#4CC5D7">Empresa</code> ou <code style="color:#4CC5D7">Razão Social</code></li>
+          <li>Contato: <code style="color:#4CC5D7">Email</code> ou <code style="color:#4CC5D7">E-mail</code></li>
+          <li>Telefone: <code style="color:#4CC5D7">Telefone</code>, <code style="color:#4CC5D7">Celular</code> ou <code style="color:#4CC5D7">WhatsApp</code></li>
+          <li>Formatos aceitos: <strong style="color:#fff">.xlsx</strong> e <strong style="color:#fff">.csv</strong></li>
+        </ul>
+        <button onclick="baixarModeloPlanilha()"
+          style="margin-top:8px;font-size:.74rem;color:#4CC5D7;background:none;border:1px solid #4CC5D7;border-radius:6px;padding:4px 10px;cursor:pointer">
+          ↓ Baixar modelo de planilha
+        </button>
       </div>
       <!-- Upload -->
       <div>
@@ -11643,9 +11726,9 @@ img { max-height: 22px !important; width: auto !important; display: block; }
         </div>
         <input type="file" id="imp-arquivo" accept=".xlsx,.csv,.xls" style="display:none" onchange="imp_onFileChange(this)">
       </div>
-      <!-- Preview -->
+      <!-- Preview (preenchido automaticamente ao selecionar o arquivo) -->
       <div id="imp-preview" style="display:none"></div>
-      <!-- Resultado -->
+      <!-- Resultado pós-importação -->
       <div id="imp-resultado" style="display:none"></div>
     </div>
     <div class="modal-footer">

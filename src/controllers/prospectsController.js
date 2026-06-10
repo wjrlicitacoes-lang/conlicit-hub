@@ -569,54 +569,147 @@ async function kpis(req, res) {
 
 // ── Importação por planilha ────────────────────────────────────────────────────
 
-function normKey(k) {
-  return String(k).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '_');
+function normalizarChave(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\s\-\/\\.]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .trim();
 }
 
-function mapCol(row, ...candidates) {
-  for (const key of Object.keys(row)) {
-    const norm = normKey(key);
-    if (candidates.some(c => norm.includes(c))) return String(row[key] || '').trim();
+function mapearColunas(row) {
+  const mapa = {};
+  for (const [key, val] of Object.entries(row)) {
+    const k = normalizarChave(key);
+    if (k) mapa[k] = String(val ?? '').trim();
   }
-  return '';
+
+  const get = (...candidates) => {
+    for (const c of candidates) {
+      const cn = normalizarChave(c);
+      // Busca exata
+      if (mapa[cn]) return mapa[cn];
+      // Busca parcial: a chave contém o candidato OU candidato contém a chave
+      const found = Object.keys(mapa).find(k => (k.includes(cn) || cn.includes(k)) && k.length >= 3);
+      if (found && mapa[found]) return mapa[found];
+    }
+    return '';
+  };
+
+  return {
+    nome_empresa: get(
+      'nome', 'empresa', 'nome_empresa', 'razao_social', 'razao',
+      'company', 'name', 'nome_fantasia', 'fantasia', 'cliente',
+      'estabelecimento', 'negocio', 'razao_social',
+    ),
+    email: get(
+      'email', 'e_mail', 'email_contato', 'email_empresa',
+      'correio', 'mail', 'contato_email',
+    ),
+    telefone: get(
+      'telefone', 'tel', 'celular', 'whatsapp', 'fone',
+      'phone', 'contato', 'telefone_contato',
+      'cel', 'mobile', 'zap',
+    ),
+    nicho: get(
+      'nicho', 'segmento', 'setor', 'ramo', 'area',
+      'atividade', 'cnae', 'categoria', 'tipo', 'mercado',
+      'sector', 'industry',
+    ),
+    cnpj: get(
+      'cnpj', 'cnpj_cpf', 'documento', 'doc', 'cadastro',
+      'inscricao', 'registro',
+    ),
+    responsavel_nome: get(
+      'responsavel', 'nome_contato', 'pessoa',
+      'representante', 'socio', 'dono', 'proprietario',
+      'contact', 'owner', 'nome_responsavel',
+    ),
+    responsavel_cargo: get(
+      'cargo', 'funcao', 'titulo', 'role', 'position',
+      'funcao_responsavel', 'cargo_responsavel',
+    ),
+    cidade: get('cidade', 'municipio', 'city', 'localidade'),
+    uf:     get('uf', 'estado', 'state', 'sigla_estado'),
+  };
+}
+
+// Valida se um valor parece um número sequencial (lixo de importação)
+function pareceNumeroSequencial(val) {
+  if (!val) return false;
+  return /^\d+$/.test(String(val).trim()) || /^n[º°]?$/i.test(String(val).trim());
+}
+
+// Valida se o email parece real
+function emailParece(val) {
+  return val && val.includes('@') && val.includes('.');
 }
 
 async function importarPlanilha(req, res) {
   if (!req.file) return res.status(400).json({ erro: 'Arquivo não enviado' });
+
+  const modo = req.query.modo || 'confirmar'; // 'preview' ou 'confirmar'
+
   try {
     const wb   = XLSX.read(req.file.buffer, { type: 'buffer' });
     const ws   = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-    let importados = 0, atualizados = 0;
+    if (rows.length > 0) {
+      console.log('[IMPORT] Colunas encontradas:', Object.keys(rows[0]));
+      console.log('[IMPORT] Primeira linha raw:', JSON.stringify(rows[0]));
+      console.log('[IMPORT] Primeira linha mapeada:', mapearColunas(rows[0]));
+    }
+
+    const colunasEncontradas = rows.length > 0 ? Object.keys(rows[0]) : [];
+    const previewLinhas = [];
+    let importados = 0, atualizados = 0, ignorados = 0;
     const erros = [];
 
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+      const row  = rows[i];
+      const lead = mapearColunas(row);
+
+      // Sanidade: se nome_empresa parece número sequencial e email vazio → ignorar
+      if (pareceNumeroSequencial(lead.nome_empresa) && !emailParece(lead.email)) {
+        ignorados++;
+        continue;
+      }
+
+      // Obrigatoriedade: pelo menos nome ou email real
+      const temNome  = lead.nome_empresa && lead.nome_empresa.length > 1;
+      const temEmail = emailParece(lead.email);
+      if (!temNome && !temEmail) {
+        ignorados++;
+        continue;
+      }
+
+      // Limpar CNPJ
+      if (lead.cnpj) lead.cnpj = lead.cnpj.replace(/\D/g, '') || null;
+      else           lead.cnpj = null;
+
+      // Guardar para preview
+      if (previewLinhas.length < 5) {
+        previewLinhas.push({
+          nome_empresa: lead.nome_empresa || '',
+          email:        lead.email        || '',
+          telefone:     lead.telefone     || '',
+          nicho:        lead.nicho        || '',
+          cnpj:         lead.cnpj         || '',
+        });
+      }
+
+      if (modo === 'preview') continue; // não salva no preview
+
       try {
-        const lead = {
-          nome_empresa:    mapCol(row, 'nome', 'empresa', 'razao'),
-          email:           mapCol(row, 'email'),
-          telefone:        mapCol(row, 'telefone', 'tel', 'celular', 'whatsapp'),
-          nicho:           mapCol(row, 'nicho', 'segmento', 'setor', 'ramo'),
-          cnpj:            mapCol(row, 'cnpj').replace(/\D/g, '') || null,
-          responsavel_nome: mapCol(row, 'contato', 'responsavel'),
-          responsavel_cargo: mapCol(row, 'cargo', 'funcao'),
-          origem:          'importacao',
-          status_contato:  'novo_lead',
-          status:          'novo_lead',
-        };
-
-        // nome_empresa ou email são obrigatórios
-        if (!lead.nome_empresa && !lead.email) continue;
-
-        // Verificar duplicata por email ou cnpj
         let existente = null;
-        if (lead.email || lead.cnpj) {
+        if (temEmail || lead.cnpj) {
           const conds = [];
           const vals  = [];
-          if (lead.email) { vals.push(lead.email); conds.push(`email = $${vals.length}`); }
-          if (lead.cnpj)  { vals.push(lead.cnpj);  conds.push(`cnpj = $${vals.length}`); }
+          if (temEmail) { vals.push(lead.email); conds.push(`email = $${vals.length}`); }
+          if (lead.cnpj){ vals.push(lead.cnpj);  conds.push(`cnpj = $${vals.length}`); }
           const { rows: ex } = await db.query(
             `SELECT id FROM prospects WHERE ${conds.join(' OR ')} LIMIT 1`, vals,
           );
@@ -626,27 +719,29 @@ async function importarPlanilha(req, res) {
         if (existente) {
           await db.query(
             `UPDATE prospects SET
-               nome_empresa = COALESCE(NULLIF($1,''), nome_empresa),
-               telefone     = COALESCE(NULLIF($2,''), telefone),
-               nicho        = COALESCE(NULLIF($3,''), nicho),
+               nome_empresa      = COALESCE(NULLIF($1,''), nome_empresa),
+               telefone          = COALESCE(NULLIF($2,''), telefone),
+               nicho             = COALESCE(NULLIF($3,''), nicho),
                responsavel_nome  = COALESCE(NULLIF($4,''), responsavel_nome),
                responsavel_cargo = COALESCE(NULLIF($5,''), responsavel_cargo),
-               updated_at   = NOW()
-             WHERE id = $6`,
+               cidade            = COALESCE(NULLIF($6,''), cidade),
+               updated_at        = NOW()
+             WHERE id = $7`,
             [lead.nome_empresa||null, lead.telefone||null, lead.nicho||null,
-             lead.responsavel_nome||null, lead.responsavel_cargo||null, existente.id],
+             lead.responsavel_nome||null, lead.responsavel_cargo||null,
+             lead.cidade||null, existente.id],
           );
           atualizados++;
         } else {
-          const nome = lead.nome_empresa || lead.email || 'Lead importado';
+          const nome = lead.nome_empresa || lead.email;
           await db.query(
             `INSERT INTO prospects
                (nome, empresa, nome_empresa, email, telefone, nicho, cnpj,
-                responsavel_nome, responsavel_cargo, origem, status, status_contato)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+                responsavel_nome, responsavel_cargo, cidade, origem, status, status_contato)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
             [nome, lead.nome_empresa||null, lead.nome_empresa||null,
              lead.email||null, lead.telefone||null, lead.nicho||null, lead.cnpj||null,
-             lead.responsavel_nome||null, lead.responsavel_cargo||null,
+             lead.responsavel_nome||null, lead.responsavel_cargo||null, lead.cidade||null,
              'importacao', 'novo_lead', 'novo_lead'],
           );
           importados++;
@@ -656,7 +751,18 @@ async function importarPlanilha(req, res) {
       }
     }
 
-    return res.json({ importados, atualizados, erros, total: importados + atualizados });
+    const resultado = {
+      modo,
+      importados, atualizados, ignorados,
+      erros,
+      total: importados + atualizados,
+      total_linhas: rows.length,
+      colunas_encontradas: colunasEncontradas,
+      preview: previewLinhas,
+    };
+
+    console.log('[IMPORT] Resultado:', JSON.stringify({ modo, importados, atualizados, ignorados, total_linhas: rows.length }));
+    return res.json(resultado);
   } catch (err) {
     console.error('[IMPORT PROSPECTS]', err.message);
     return res.status(500).json({ erro: err.message });
