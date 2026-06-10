@@ -115,7 +115,13 @@ function normalizarData(dataStr) {
 // Formata item do endpoint /api/search para o padrão Hub
 function formatarEditalSearch(item) {
   // ── Valor estimado ─────────────────────────────────────────────────────────
-  const valorRaw = item.valorTotalEstimado ?? item.valorEstimado ?? item.valor ?? null;
+  const valorRaw = item.valorTotalEstimado
+    ?? item.valorGlobal
+    ?? item.valorEstimado
+    ?? item.valor
+    ?? item.precoUnitario
+    ?? null;
+  const valorNumerico = valorRaw != null ? parseFloat(String(valorRaw).replace(',', '.')) || null : null;
 
   // ── Data de encerramento ───────────────────────────────────────────────────
   const dataEncerramentoRaw = item.dataEncerramentoProposta
@@ -206,7 +212,7 @@ function formatarEditalSearch(item) {
     orgao:                    orgao || null,
     objeto,
     // valorEstimado como número — renderCard já trata number vs string
-    valorEstimado:            valorRaw,
+    valorEstimado:            valorNumerico,
     dataPublicacao:           null,
     // Não formatar como DD/MM/YYYY — causaria new Date() inválido no frontend
     dataEncerramentoProposta: null,

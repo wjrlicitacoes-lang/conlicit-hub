@@ -81,6 +81,22 @@ router.get('/', autenticar, cap(async (req, res) => {
     `)
   );
 
+  // Documentos de clientes vencendo nos próximos 30 dias
+  const docsVencRow = await safe(() =>
+    db.query(`
+      SELECT d.id, d.nome, d.tipo, d.data_vencimento,
+             (d.data_vencimento - CURRENT_DATE) AS dias_restantes,
+             c.nome AS cliente_nome
+      FROM documentos d
+      JOIN clientes c ON c.id = d.cliente_id
+      WHERE d.data_vencimento IS NOT NULL
+        AND c.ativo = TRUE
+        AND d.data_vencimento <= CURRENT_DATE + INTERVAL '30 days'
+      ORDER BY d.data_vencimento ASC
+      LIMIT 15
+    `)
+  );
+
   // Contas a vencer nos próximos 7 dias — lançamentos novos + mensalidades antigas
   const isGestor = ['socio_fundador', 'admin'].includes(req.usuario.role);
   const contasRow = isGestor ? await safe(() =>
@@ -123,10 +139,11 @@ router.get('/', autenticar, cap(async (req, res) => {
       prospects:        prospectsRow?.rows[0]?.total        ?? 0,
       volume_total:     pregoesRow?.rows[0]?.volume_vencido ?? 0,
     },
-    proximos_pregoes:    proximosRow?.rows  ?? [],
+    proximos_pregoes:    proximosRow?.rows    ?? [],
     funil,
-    contratos_pendentes: pendentesRow?.rows ?? [],
-    contas_a_vencer:     contasRow?.rows    ?? [],
+    contratos_pendentes: pendentesRow?.rows   ?? [],
+    contas_a_vencer:     contasRow?.rows      ?? [],
+    documentos_vencendo: docsVencRow?.rows    ?? [],
   });
 }));
 

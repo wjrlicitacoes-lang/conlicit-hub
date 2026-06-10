@@ -2,6 +2,7 @@ const express = require('express');
 const multer  = require('multer');
 const { cadastrar, listar, atualizar, stats, pregoesVencidos, dashboardStats } = require('../controllers/clientesController');
 const pregoes          = require('../controllers/pregoesController');
+const _uploadDoc = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const mensalidades     = require('../controllers/mensalidadesController');
 const documentos       = require('../controllers/documentosController');
@@ -44,11 +45,13 @@ router.get('/:id/mensalidades',        mensalidades.listar);
 router.post('/:id/mensalidades',       mensalidades.criar);
 router.patch('/:id/mensalidades/:mid', mensalidades.atualizar);
 
-router.get('/:id/documentos',          documentos.listar);
-router.post('/:id/documentos',         documentos.criar);
-router.delete('/:id/documentos/:did',  documentos.remover);
-router.post('/:id/documentos/onboarding', documentos.inicializarOnboarding);
-router.patch('/:id/documentos/:did/status', documentos.atualizarStatus);
+router.get('/:id/documentos',                documentos.listar);
+router.post('/:id/documentos',               documentos.criar);
+router.patch('/:id/documentos/:did',         documentos.atualizarMetadados);
+router.delete('/:id/documentos/:did',        documentos.remover);
+router.post('/:id/documentos/onboarding',    documentos.inicializarOnboarding);
+router.patch('/:id/documentos/:did/status',  documentos.atualizarStatus);
+router.post('/:id/documentos/:did/upload',   _uploadDoc.single('arquivo'), documentos.upload);
 
 router.get('/:id/acessos',             acessos.listar);
 router.post('/:id/acessos',            acessos.criar);

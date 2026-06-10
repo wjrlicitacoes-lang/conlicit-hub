@@ -762,6 +762,11 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_vencimento ON cliente_pagamentos_lancamentos(data_vencimento)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_status     ON cliente_pagamentos_lancamentos(status)`);
 
+  // ── Documentos de cliente — campos de controle de vencimento e upload ────────
+  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS data_emissao DATE`);
+  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS alerta_vencimento_dias INTEGER DEFAULT 30`);
+  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS url_arquivo TEXT`);
+
   console.log('Migrações executadas com sucesso');
 }
 

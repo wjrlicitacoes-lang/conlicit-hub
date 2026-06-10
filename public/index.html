@@ -3658,9 +3658,16 @@
 
         <div id="dash-alerta-pendentes" style="display:none;background:rgba(76,197,215,.08);
           border:1px solid rgba(76,197,215,.3);border-radius:8px;padding:12px 16px;
-          margin-bottom:1.5rem;align-items:center;gap:10px">
+          margin-bottom:.75rem;align-items:center;gap:10px">
           <i class="ti ti-alert-triangle" style="color:#4CC5D7;font-size:20px;flex-shrink:0"></i>
           <p id="dash-alerta-txt" style="color:var(--t1);font-size:.875rem;font-weight:500;margin:0"></p>
+        </div>
+
+        <div id="dash-alerta-docs" style="display:none;background:rgba(245,158,11,.08);
+          border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:12px 16px;
+          margin-bottom:1.5rem;align-items:center;gap:10px">
+          <i class="ti ti-file-alert" style="color:#f59e0b;font-size:20px;flex-shrink:0"></i>
+          <p id="dash-alerta-docs-txt" style="color:var(--t1);font-size:.875rem;font-weight:500;margin:0"></p>
         </div>
 
         <div id="dash-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:1.5rem">
@@ -3760,6 +3767,24 @@
           document.getElementById('dash-alerta-txt').textContent =
             `${pendentes.length} contrato${pendentes.length > 1 ? 's' : ''} pendente${pendentes.length > 1 ? 's' : ''} de assinatura: ${nomes}`;
           alertaEl.style.display = 'flex';
+        }
+      }
+
+      // Alerta documentos vencendo
+      const docsAlertaEl = document.getElementById('dash-alerta-docs');
+      if (docsAlertaEl) {
+        docsAlertaEl.style.display = 'none';
+        const docsVenc = d.documentos_vencendo || [];
+        if (docsVenc.length > 0) {
+          const lista = docsVenc.slice(0, 3).map(dv => {
+            const diasR = dv.dias_restantes;
+            const sufixo = diasR < 0 ? 'vencido' : diasR === 0 ? 'vence hoje' : `${diasR}d p/ vencer`;
+            return `${esc(dv.cliente_nome)} — ${esc(dv.nome)} (${sufixo})`;
+          }).join(' · ');
+          const extra = docsVenc.length > 3 ? ` e mais ${docsVenc.length - 3}` : '';
+          document.getElementById('dash-alerta-docs-txt').textContent =
+            `${docsVenc.length} documento(s) vencendo: ${lista}${extra}`;
+          docsAlertaEl.style.display = 'flex';
         }
       }
 
@@ -4809,12 +4834,15 @@
                 <option value="contrato">Contrato</option>
                 <option value="contrato_social">Contrato social</option>
                 <option value="cnpj">CNPJ / Certidão</option>
+                <option value="certidao">Certidão</option>
                 <option value="alvara">Alvará</option>
                 <option value="balanco">Balanço</option>
                 <option value="procuracao">Procuração</option>
                 <option value="declaracao">Declaração</option>
               </select></div>
+            <div class="form-group" style="margin:0"><label>Emissão</label><input type="date" id="dc-emissao" /></div>
             <div class="form-group" style="margin:0"><label>Vencimento</label><input type="date" id="dc-venc" /></div>
+            <div class="form-group" style="margin:0"><label>Alerta (dias antes)</label><input type="number" id="dc-alerta" value="30" min="1" max="365" style="width:100%" /></div>
             <div class="form-group" style="margin:0"><label>URL / Link</label><input type="url" id="dc-url" placeholder="https://drive.google.com/..." /></div>
           </div>
           <div style="display:flex;gap:.5rem;margin-top:.25rem">
@@ -4826,24 +4854,33 @@
         ${dados.length === 0
           ? '<p style="color:var(--text-muted);font-size:.85rem">Nenhum documento cadastrado.</p>'
           : `<div class="doc-grid">${dados.map(d => {
-              const venc = d.data_vencimento ? new Date(d.data_vencimento) : null;
+              const venc = d.data_vencimento ? new Date(d.data_vencimento + 'T00:00:00') : null;
               const diasVenc = venc ? Math.round((venc - hoje) / 86400000) : null;
-              let badge = '';
-              if (diasVenc !== null && diasVenc < 0) badge = `<span class="doc-exp-late">Vencido</span>`;
-              else if (diasVenc !== null && diasVenc <= 30) badge = `<span class="doc-exp-warn">${diasVenc}d p/ vencer</span>`;
-              const statusCor = d.status_entrega === 'recebido' ? 'var(--success,#10B981)' : d.status_entrega === 'vencido' ? 'var(--danger,#ef4444)' : 'var(--text-muted)';
+              const sdoc = d.status_documento || (diasVenc === null ? 'pendente' : diasVenc < 0 ? 'vencido' : diasVenc <= (d.alerta_vencimento_dias||30) ? 'vencendo' : 'valido');
+              const sdocBadge = sdoc === 'vencido'  ? `<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:#ef4444;color:#fff">🔴 Vencido</span>`
+                              : sdoc === 'vencendo' ? `<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:#f59e0b;color:#fff">${diasVenc !== null ? `⚠️ ${diasVenc}d p/ vencer` : '⚠️ Vencendo'}</span>`
+                              : sdoc === 'valido'   ? `<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:#22c55e;color:#fff">✅ Válido</span>`
+                              : `<span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:#64748b;color:#fff">⏳ Pendente</span>`;
+              const statusCor = d.status_entrega === 'recebido' ? '#22c55e' : d.status_entrega === 'vencido' ? '#ef4444' : 'var(--text-muted)';
               return `<div class="doc-card" style="${d.onboarding ? 'border-top:2px solid var(--primary)' : ''}">
                 <button class="doc-remove" onclick="event.stopPropagation();removerDocumento(${d.id})" title="Remover">✕</button>
                 <span class="doc-icon">${tipoDocIcon(d.tipo)}</span>
                 <div class="doc-name">${esc(d.nome)}</div>
-                <div class="doc-date">${venc ? venc.toLocaleDateString('pt-BR') : ''}</div>
-                ${badge}
+                ${venc ? `<div class="doc-date">Vence: ${venc.toLocaleDateString('pt-BR')}</div>` : ''}
+                ${d.data_emissao ? `<div class="doc-date" style="font-size:.68rem">Emitido: ${new Date(d.data_emissao+'T00:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
+                <div style="margin-top:.25rem">${sdocBadge}</div>
                 ${d.onboarding ? `<select style="font-size:.68rem;margin-top:4px;padding:2px 4px;border-radius:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);color:${statusCor};cursor:pointer" onchange="atualizarStatusDoc(${d.id},this.value)">
                   <option value="pendente" ${d.status_entrega==='pendente'?'selected':''}>⏳ Pendente</option>
                   <option value="recebido" ${d.status_entrega==='recebido'?'selected':''}>✅ Recebido</option>
                   <option value="vencido"  ${d.status_entrega==='vencido'?'selected':''}>❌ Vencido</option>
                 </select>` : ''}
-                ${d.url ? `<a href="${d.url}" target="_blank" rel="noopener" style="font-size:.7rem;color:var(--primary);margin-top:.3rem;display:inline-block">Abrir ↗</a>` : ''}
+                <div style="display:flex;gap:.3rem;margin-top:.4rem;flex-wrap:wrap">
+                  ${d.url ? `<a href="${d.url}" target="_blank" rel="noopener" style="font-size:.7rem;color:var(--primary)">Link ↗</a>` : ''}
+                  ${d.url_arquivo ? `<a href="${d.url_arquivo}" target="_blank" rel="noopener" style="font-size:.7rem;color:var(--primary)">Arquivo ↗</a>` : ''}
+                  <label style="font-size:.7rem;color:var(--text-muted);cursor:pointer" title="Enviar arquivo">
+                    📎 <input type="file" style="display:none" onchange="uploadDocumento(${d.id}, this)" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" />
+                  </label>
+                </div>
               </div>`;
             }).join('')}</div>`}`;
     } catch {
@@ -4860,9 +4897,11 @@
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
         body: JSON.stringify({
           nome,
-          tipo: document.getElementById('dc-tipo').value,
-          url:  document.getElementById('dc-url').value.trim() || null,
-          data_vencimento: document.getElementById('dc-venc').value || null,
+          tipo:                  document.getElementById('dc-tipo').value,
+          url:                   document.getElementById('dc-url').value.trim() || null,
+          data_vencimento:       document.getElementById('dc-venc').value || null,
+          data_emissao:          document.getElementById('dc-emissao').value || null,
+          alerta_vencimento_dias: parseInt(document.getElementById('dc-alerta').value) || 30,
         }),
       });
       if (!r.ok) throw new Error((await r.json()).erro);
@@ -4870,6 +4909,21 @@
       tabsLoaded.documentos = false;
       switchTab2('documentos');
     } catch (err) { toast(err.message, 'error'); }
+  }
+
+  async function uploadDocumento(did, input) {
+    if (!clienteAtual || !input.files[0]) return;
+    const fd = new FormData();
+    fd.append('arquivo', input.files[0]);
+    try {
+      const r = await fetch(`${API}/clientes/${clienteAtual.id}/documentos/${did}/upload`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Arquivo enviado!', 'success');
+      tabsLoaded.documentos = false;
+      switchTab2('documentos');
+    } catch (err) { toast(err.message || 'Erro ao enviar arquivo', 'error'); }
   }
 
   async function removerDocumento(did) {
