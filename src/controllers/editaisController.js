@@ -98,36 +98,135 @@ async function getPncpMunicipioId(nomeCidade, uf) {
   }
 }
 
+// Converte qualquer formato de data para YYYY-MM-DD
+function normalizarData(dataStr) {
+  if (!dataStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(dataStr)) return dataStr.substring(0, 10);
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(dataStr)) {
+    const [dia, mes, ano] = dataStr.split('/');
+    return `${ano}-${mes}-${dia}`;
+  }
+  if (/^\d{8}$/.test(dataStr)) {
+    return `${dataStr.slice(0,4)}-${dataStr.slice(4,6)}-${dataStr.slice(6,8)}`;
+  }
+  return null;
+}
+
 // Formata item do endpoint /api/search para o padrão Hub
 function formatarEditalSearch(item) {
-  const cnpj = item.orgao_cnpj;
-  const ano  = item.ano;
-  const seq  = item.numero_sequencial;
-  const link = cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null;
+  // ── Valor estimado ─────────────────────────────────────────────────────────
+  const valorRaw = item.valorTotalEstimado ?? item.valorEstimado ?? item.valor ?? null;
 
-  // Remove prefixo de portal do objeto: "[Portal X] - Texto" → "Texto"
-  const descRaw = item.description || item.title || '';
-  const objeto  = descRaw.replace(/^\[[^\]]+\]\s*-\s*/, '').trim() || null;
+  // ── Data de encerramento ───────────────────────────────────────────────────
+  const dataEncerramentoRaw = item.dataEncerramentoProposta
+    ?? item.dataFimRecebimentoProposta
+    ?? item.dataEncerramento
+    ?? item.data_fim_vigencia
+    ?? null;
 
-  // data_fim_vigencia é o melhor proxy disponível para "encerramento" nos resultados de busca
-  const fimVig = item.data_fim_vigencia || null;
-  const dataEncISO = fimVig ? fimVig.substring(0, 10) : null;
+  let dataEncerramentoFormatada = null;
+  let horarioEncerramento = '';
+  let labelSessao = '—';
+  let diasRestantes = null;
+
+  if (dataEncerramentoRaw) {
+    try {
+      const iso = String(dataEncerramentoRaw).substring(0, 19); // "2026-06-11T08:00:00"
+      const [datePart, timePart] = iso.split('T');
+      const [ano, mes, dia] = datePart.split('-');
+      const [hora, minuto] = (timePart || '00:00').split(':');
+
+      dataEncerramentoFormatada = `${dia}/${mes}/${ano}`;
+      horarioEncerramento = `${hora}:${minuto}`;
+
+      const dtEnc = new Date(Number(ano), Number(mes) - 1, Number(dia));
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      diasRestantes = Math.ceil((dtEnc - hoje) / (1000 * 60 * 60 * 24));
+
+      if      (diasRestantes < 0)  labelSessao = 'Encerrado';
+      else if (diasRestantes === 0) labelSessao = 'Encerra hoje';
+      else if (diasRestantes === 1) labelSessao = 'Encerra amanhã';
+      else                          labelSessao = `${diasRestantes}d restantes`;
+    } catch (_) { /* mantém valores padrão */ }
+  }
+
+  // ── Número do edital ───────────────────────────────────────────────────────
+  const numero = item.numeroCompra
+    ?? item.numero
+    ?? item.codigoFormatado
+    ?? item.numeroControlePNCP
+    ?? item.numero_controle_pncp
+    ?? '';
+
+  // ── Órgão ──────────────────────────────────────────────────────────────────
+  const orgao = item.orgaoEntidade?.razaoSocial
+    ?? item.unidadeOrgao?.nomeUnidade
+    ?? item.orgao?.nome
+    ?? item.orgaoNome
+    ?? item.orgao_nome
+    ?? '';
+
+  // ── Município + UF ─────────────────────────────────────────────────────────
+  const municipio = item.unidadeOrgao?.municipioNome ?? item.municipioNome ?? item.municipio_nome ?? '';
+  const uf        = item.unidadeOrgao?.ufSigla ?? item.unidadeOrgao?.ufNome ?? item.ufSigla ?? item.uf ?? '';
+  const local     = [municipio, uf].filter(Boolean).join(' · ') || '';
+
+  // ── Modalidade ─────────────────────────────────────────────────────────────
+  const modalidade = item.modalidadeNome ?? item.modalidade ?? item.modalidade_licitacao_nome ?? '';
+
+  // ── Link ───────────────────────────────────────────────────────────────────
+  const cnpj = item.orgaoEntidade?.cnpj ?? item.orgao_cnpj ?? null;
+  const ano  = item.anoCompra ?? item.ano ?? null;
+  const seq  = item.sequencialCompra ?? item.numero_sequencial ?? null;
+  const linkMontado = cnpj && ano && seq ? montarLink(cnpj, ano, seq) : null;
+  const linkPNCP = item.linkSistemaOrigem
+    ?? item.link_sistema_origem
+    ?? item.link
+    ?? linkMontado
+    ?? (numero ? `https://pncp.gov.br/app/editais/${numero}` : null);
+
+  // ── Plataforma ─────────────────────────────────────────────────────────────
+  const plataforma = item.sistemaOrigem ?? item.plataforma ?? 'PNCP';
+
+  // ── Objeto ─────────────────────────────────────────────────────────────────
+  const descRaw = item.descricaoObjeto
+    ?? item.objeto
+    ?? item.objetoCompra
+    ?? item.titulo
+    ?? item.description
+    ?? item.title
+    ?? '';
+  const objeto = descRaw.replace(/^\[[^\]]+\]\s*-\s*/, '').trim() || null;
 
   return {
-    numeroEdital:             item.numero_controle_pncp || null,
-    orgao:                    item.orgao_nome || null,
+    // Compatibilidade com renderCard existente
+    numeroEdital:             numero || item.numeroControlePNCP || item.numero_controle_pncp || null,
+    numero,
+    orgao:                    orgao || null,
     objeto,
-    valorEstimado:            item.valor_global ? formatarMoeda(item.valor_global) : null,
-    dataPublicacao:           item.data_publicacao_pncp ? formatarData(item.data_publicacao_pncp.substring(0, 10)) : null,
-    dataEncerramentoProposta: dataEncISO ? formatarData(dataEncISO) : null,
-    modalidade:               item.modalidade_licitacao_nome || null,
-    estado:                   item.uf || null,
-    municipio:                item.municipio_nome || null,
-    link,
-    linkSistemaOrigem:        null,
-    dataEncerramento:         dataEncISO ? `${dataEncISO}T12:00:00-03:00` : null,
-    dataAberturaProposta:     item.data_inicio_vigencia || null,
-    portal_disputa:           'PNCP',
+    // valorEstimado como número — renderCard já trata number vs string
+    valorEstimado:            valorRaw,
+    dataPublicacao:           null,
+    // Não formatar como DD/MM/YYYY — causaria new Date() inválido no frontend
+    dataEncerramentoProposta: null,
+    // ISO raw para comparação e display via toLocaleString
+    dataEncerramento:         dataEncerramentoRaw || null,
+    modalidade:               modalidade || null,
+    estado:                   uf || null,
+    uf:                       uf || null,
+    municipio:                municipio || null,
+    local:                    local || null,
+    link:                     linkPNCP,
+    linkSistemaOrigem:        linkPNCP,
+    dataAberturaProposta:     null,
+    portal_disputa:           plataforma,
+    // Campos pré-computados para o badge (evitam NaN no frontend)
+    labelSessao,
+    diasRestantes,
+    horarioEncerramento,
+    dataEncerramentoFormatada,
+    status:                   item.situacaoCompraNome ?? 'Recebendo propostas',
   };
 }
 
@@ -382,15 +481,43 @@ async function listarEditais(req, res) {
       if (uf) searchParams.append('ufs', uf.toUpperCase());
       if (municipioId) searchParams.append('municipios', municipioId);
 
-      console.log(`[Editais] PNCP search: ${PNCP_SEARCH_URL}?${searchParams}`);
+      const searchUrl = `${PNCP_SEARCH_URL}?${searchParams}`;
+      console.log(`[Editais] PNCP search: ${searchUrl}`);
 
-      const resp = await axios.get(`${PNCP_SEARCH_URL}?${searchParams}`, {
-        headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
-        timeout: 15000,
-      });
+      let resp;
+      try {
+        resp = await axios.get(searchUrl, {
+          headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
+          timeout: 15000,
+        });
+      } catch (searchErr) {
+        console.error('[PNCP ERROR]', {
+          status: searchErr.response?.status,
+          data: JSON.stringify(searchErr.response?.data),
+          url: searchUrl,
+          message: searchErr.message,
+        });
+        // Fallback: tentar sem filtro de data
+        if (searchErr.response?.status === 400 || searchErr.response?.status === 422) {
+          console.log('[PNCP] Tentando sem filtro de data...');
+          const p2 = new URLSearchParams({ q, tipos_documento: 'edital', status: 'recebendo_proposta', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
+          if (uf) p2.append('ufs', uf.toUpperCase());
+          if (municipioId) p2.append('municipios', municipioId);
+          resp = await axios.get(`${PNCP_SEARCH_URL}?${p2}`, {
+            headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
+            timeout: 15000,
+          });
+        } else {
+          throw searchErr;
+        }
+      }
 
       const items = resp.data?.items || [];
       const total = resp.data?.total ?? items.length;
+
+      if (items.length > 0) {
+        console.log('[PNCP RAW ITEM 0]', JSON.stringify(items[0], null, 2));
+      }
 
       if (items.length === 0) {
         return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });

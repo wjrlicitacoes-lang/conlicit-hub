@@ -6374,39 +6374,71 @@
   function renderCard(e, idx) {
     const objeto = e.objeto || '—';
     const orgao  = e.orgao  || '—';
-    const valor  = e.valorEstimado
-      ? (typeof e.valorEstimado === 'number'
-          ? e.valorEstimado.toLocaleString('pt-BR', { style:'currency', currency:'BRL' })
-          : e.valorEstimado)
-      : '—';
-    const local  = [e.municipio, e.uf || e.estado].filter(Boolean).join(' · ') || '—';
-    // Plataforma onde VAI ACONTECER o pregão (linkSistemaOrigem = link da disputa real)
-    const linkDisputa = e.linkSistemaOrigem || e.link_sistema_origem || '';
-    const linkPNCP    = e.link || e.linkSistemaOrigem || '';
+    // valorEstimado pode ser número (novo) ou string formatada (legacy)
+    let valor = '—';
+    if (e.valorEstimado != null && e.valorEstimado !== 0 && e.valorEstimado !== '') {
+      valor = typeof e.valorEstimado === 'number'
+        ? e.valorEstimado.toLocaleString('pt-BR', { style:'currency', currency:'BRL' })
+        : String(e.valorEstimado);
+    }
+    const local  = e.local || [e.municipio, e.uf || e.estado].filter(Boolean).join(' · ') || '—';
+    const linkDisputa = e.linkSistemaOrigem || e.link_sistema_origem || e.linkPNCP || '';
+    const linkPNCP    = e.link || e.linkPNCP || e.linkSistemaOrigem || '';
     const portal = e.portal_disputa || detectarPortal(linkDisputa) || detectarPortal(e.link) || '—';
     const link   = linkDisputa || e.link || '';
     const infoPortal = PORTAL_INFO[portal];
 
-    // Urgência baseada na data da SESSÃO (dataAberturaProposta) — o que importa para disputar
-    const dataEnc    = e.dataEncerramentoProposta || e.data_encerramento_proposta || e.dataEncerramento || null;
+    // ── Data de encerramento (ISO — fonte de verdade para cálculos) ───────────
+    const dataEnc    = e.dataEncerramento || null;
     const dataSessao = e.dataAberturaProposta || e.data_hora_abertura || null;
-    const dataBase   = dataEnc || dataSessao; // prioridade: encerramento > abertura
+
+    // ── Display da data de encerramento ────────────────────────────────────────
+    // Se backend pré-computou (resultado /api/search): usar diretamente
+    // Senão: usar toLocaleString sobre o ISO string (funciona para formatos ISO)
+    let encerramentoDisplay = '—';
+    if (e.dataEncerramentoFormatada) {
+      encerramentoDisplay = e.horarioEncerramento
+        ? `${e.dataEncerramentoFormatada}, ${e.horarioEncerramento} (Brasília)`
+        : e.dataEncerramentoFormatada;
+    } else if (dataEnc) {
+      try {
+        encerramentoDisplay = new Date(dataEnc).toLocaleString('pt-BR', {
+          timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric',
+          hour:'2-digit', minute:'2-digit', hour12:false,
+        });
+      } catch (_) { encerramentoDisplay = '—'; }
+    }
+
+    // ── Badge de urgência ──────────────────────────────────────────────────
+    // Usa campos pré-computados pelo backend quando disponíveis (evita NaN de new Date("DD/MM/YYYY"))
     let urgBadge = '';
-    if (dataBase) {
-      const dt   = new Date(dataBase);
-      const hoje = new Date();
-      // Zera horário para comparar só datas (sem UTC offset)
-      const dtDia   = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-      const hojeDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-      const dias = Math.round((dtDia - hojeDia) / (1000 * 60 * 60 * 24));
-      if (dias < 0)       urgBadge = `<span class="badge-dias encerrado">Encerrado</span>`;
-      else if (dias === 0)urgBadge = `<span class="badge-dias urgente">Sessão hoje</span>`;
-      else if (dias <= 3) urgBadge = `<span class="badge-dias urgente">${dias}d p/ sessão</span>`;
-      else                urgBadge = `<span class="badge-dias normal">${dias}d p/ sessão</span>`;
+    if (e.labelSessao && e.labelSessao !== '—') {
+      // Resultado da /api/search — backend já calculou
+      const diasR = e.diasRestantes;
+      if (diasR < 0)       urgBadge = `<span class="badge-dias encerrado">${e.labelSessao}</span>`;
+      else if (diasR === 0)urgBadge = `<span class="badge-dias urgente">${e.labelSessao}</span>`;
+      else if (diasR <= 3) urgBadge = `<span class="badge-dias urgente">${e.labelSessao}</span>`;
+      else                 urgBadge = `<span class="badge-dias normal">${e.labelSessao}</span>`;
+    } else {
+      // Resultado da API REST ou cache — calcular localmente a partir do ISO
+      const dataBase = dataEnc || dataSessao;
+      if (dataBase) {
+        const dt   = new Date(dataBase);
+        const hoje = new Date();
+        const dtDia   = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+        const hojeDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const dias = Math.round((dtDia - hojeDia) / (1000 * 60 * 60 * 24));
+        if (!isNaN(dias)) {
+          if (dias < 0)       urgBadge = `<span class="badge-dias encerrado">Encerrado</span>`;
+          else if (dias === 0)urgBadge = `<span class="badge-dias urgente">Sessão hoje</span>`;
+          else if (dias <= 3) urgBadge = `<span class="badge-dias urgente">${dias}d p/ sessão</span>`;
+          else                urgBadge = `<span class="badge-dias normal">${dias}d p/ sessão</span>`;
+        }
+      }
     }
 
     // Botão de preview de itens via PNCP
-    const nPNCP = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || '';
+    const nPNCP = e.numeroControlePNCP || e.numero_controle_pncp || e.numeroEdital || e.numero || '';
     let btnItens = '';
     if (nPNCP) {
       const m = nPNCP.match(/^(\d{14}|\d+)-\d+-0*(\d+)\/(\d{4})$/);
@@ -6446,7 +6478,7 @@
         </div>
         <div class="edital-meta-item">
           <span class="edital-meta-label">Encerramento</span>
-          <span class="edital-meta-value">${dataEnc ? new Date(dataEnc).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}) : '—'}</span>
+          <span class="edital-meta-value">${esc(encerramentoDisplay)}</span>
         </div>
       </div>
       <div class="edital-acoes">
@@ -12234,17 +12266,28 @@ function expandirEdital(idx) {
   document.getElementById('exp-orgao').textContent  = orgao;
   document.getElementById('exp-objeto').textContent = objeto;
 
+  // Encerramento: preferir dataEncerramentoFormatada (pré-computado) ou toLocaleString sobre ISO
+  const _encISO = e.dataEncerramento || null;
+  let _encDisplay = '—';
+  if (e.dataEncerramentoFormatada) {
+    _encDisplay = e.horarioEncerramento
+      ? `${e.dataEncerramentoFormatada}, ${e.horarioEncerramento} (Brasília)`
+      : e.dataEncerramentoFormatada;
+  } else if (_encISO) {
+    try {
+      _encDisplay = new Date(_encISO).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    } catch (_) {}
+  }
+
   const metaItems = [
     ['Valor estimado', valor],
     ['Local', local],
     ['Plataforma', portal],
     ['Publicação', e.dataPublicacao || '—'],
     ['Sessão de disputa', e.dataAberturaProposta
-      ? new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      ? (() => { try { return new Date(e.dataAberturaProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} })()
       : '—'],
-    ['Enc. propostas', e.dataEncerramentoProposta
-      ? new Date(e.dataEncerramentoProposta).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
-      : '—'],
+    ['Enc. propostas', _encDisplay],
   ];
   document.getElementById('exp-meta').innerHTML = metaItems.map(([l,v]) => `
     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px">
