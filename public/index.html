@@ -1580,6 +1580,52 @@
       box-shadow: none;
       cursor: default;
     }
+
+    /* ===== MÓDULO FINANCEIRO — PLANO ===== */
+    .fin-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+    .fin-metric{background:#0f1923;border-radius:12px;padding:16px 20px;border:1px solid rgba(76,197,215,.15)}
+    .fin-metric .fin-label{font-size:11px;color:#7a9aad;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .fin-metric .fin-value{font-size:20px;font-weight:500}
+    .fin-metric .fin-hint{font-size:11px;color:#7a9aad;margin-top:4px}
+    .fin-v-red{color:#E24B4A}.fin-v-teal{color:#4CC5D7}.fin-v-amber{color:#EF9F27}.fin-v-green{color:#97C459}
+    .fin-section-title{font-size:11px;font-weight:500;color:#4CC5D7;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+    .fin-table{width:100%;border-collapse:collapse;font-size:13px}
+    .fin-table th{text-align:left;font-weight:500;font-size:11px;color:#7a9aad;text-transform:uppercase;letter-spacing:.05em;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .fin-table th:not(:first-child){text-align:right}
+    .fin-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+    .fin-table td:not(:first-child){text-align:right}
+    .fin-table tr:hover td{background:rgba(76,197,215,.04)}
+    .fin-total-row td{background:rgba(76,197,215,.08);font-weight:500;color:#4CC5D7;border-top:1px solid rgba(76,197,215,.2)}
+    .fin-chart-card{background:#0f1923;border-radius:12px;padding:20px;border:1px solid rgba(76,197,215,.15);margin-bottom:16px}
+    .fin-note{background:#0f1923;border:1px solid rgba(76,197,215,.2);border-radius:12px;padding:16px 20px;font-size:13px;color:#7a9aad;line-height:1.75;margin-bottom:16px}
+    .fin-note strong{color:#4CC5D7;font-weight:500}
+    .fin-t-name{font-weight:500;color:#fff}
+    .fin-t-desc{font-size:11px;color:#7a9aad;margin-top:2px}
+    .fin-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+    .fin-b-active{background:rgba(76,197,215,.15);color:#4CC5D7}
+    .fin-b-new{background:rgba(55,138,221,.2);color:#85B7EB}
+    .fin-b-free{background:rgba(99,153,34,.2);color:#97C459}
+    .fin-b-opcional{background:rgba(136,135,128,.2);color:#B4B2A9}
+    .fin-cost-green{color:#4CC5D7;font-weight:500}.fin-cost-mid{color:#EF9F27;font-weight:500}.fin-cost-red{color:#E24B4A;font-weight:500}.fin-cost-zero{color:#7a9aad}
+    .fin-slider-row{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+    .fin-slider-row label{font-size:12px;color:#7a9aad;min-width:180px}
+    .fin-slider-row input[type=range]{flex:1;accent-color:#4CC5D7}
+    .fin-sval{font-size:13px;font-weight:500;color:#4CC5D7;min-width:80px;text-align:right}
+    .fin-ch-btn{padding:6px 16px;border:1px solid rgba(76,197,215,.3);background:transparent;color:#7a9aad;font-size:12px;border-radius:20px;cursor:pointer;transition:all .15s}
+    .fin-ch-btn.active{background:rgba(76,197,215,.2);color:#4CC5D7;border-color:#4CC5D7}
+    .fin-funnel-card{background:#0f1923;border-radius:12px;padding:18px 20px;border:1px solid rgba(76,197,215,.12);position:relative;overflow:hidden}
+    .fin-funnel-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+    .fin-funnel-row:last-child{border-bottom:none}
+    .fin-funnel-row .fkey{color:#7a9aad}
+    .fin-funnel-row .fval{font-weight:500;color:#fff}
+    .fin-prog-bar{height:4px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:10px;overflow:hidden}
+    .fin-prog-fill{height:100%;border-radius:4px}
+    .fin-step-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 12px;border-radius:20px;cursor:pointer;border:1px solid transparent;transition:all .15s;white-space:nowrap}
+    .fin-step-status.pendente{background:rgba(136,135,128,.15);color:#B4B2A9;border-color:rgba(136,135,128,.3)}
+    .fin-step-status.em-andamento{background:rgba(239,159,39,.15);color:#EF9F27;border-color:rgba(239,159,39,.3)}
+    .fin-step-status.concluido{background:rgba(99,153,34,.15);color:#97C459;border-color:rgba(99,153,34,.3)}
+    .fin-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+    /* ===== FIM MÓDULO FINANCEIRO — PLANO ===== */
   </style>
 </head>
 <body>
@@ -2141,44 +2187,129 @@
           </div>
         </div>
 
-        <!-- Seletor de mês + botões -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-          <input type="month" id="fin-mes"
-            style="background:var(--card-bg);border:1px solid var(--bd);color:var(--t1);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer"
-            onchange="carregarFinanceiro()">
-          <button onclick="abrirModalLancamento('despesa')"
-            style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
-            − Lançar Despesa
-          </button>
-          <button onclick="abrirModalLancamento('receita')"
-            style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
-            + Lançar Receita
-          </button>
+        <!-- Tab strip -->
+        <div style="display:flex;gap:4px;margin-bottom:24px;background:#0f1923;padding:4px;border-radius:10px;width:fit-content">
+          <button class="fin-tab-btn active" onclick="finShowTab('lancamentos',this)" style="padding:8px 20px;border:none;background:#4CC5D7;color:#0f1923;font-size:13px;font-weight:500;border-radius:7px;cursor:pointer">💰 Lançamentos</button>
+          <button class="fin-tab-btn" onclick="finShowTab('ferramentas',this)" style="padding:8px 20px;border:none;background:transparent;color:#7a9aad;font-size:13px;font-weight:500;border-radius:7px;cursor:pointer">🛠 Ferramentas</button>
+          <button class="fin-tab-btn" onclick="finShowTab('trafego',this)" style="padding:8px 20px;border:none;background:transparent;color:#7a9aad;font-size:13px;font-weight:500;border-radius:7px;cursor:pointer">📣 Tráfego Pago</button>
+          <button class="fin-tab-btn" onclick="finShowTab('consolidado',this)" style="padding:8px 20px;border:none;background:transparent;color:#7a9aad;font-size:13px;font-weight:500;border-radius:7px;cursor:pointer">📊 Visão Geral</button>
         </div>
 
-        <!-- Cards de resumo -->
-        <div id="fin-resumo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-          <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
-        </div>
-
-        <!-- Dois blocos -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-
-          <!-- Despesas por categoria -->
-          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:18px">
-            <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--t1)">Despesas por Categoria</div>
-            <div id="fin-categorias"></div>
+        <!-- TAB: LANÇAMENTOS (conteúdo original) -->
+        <div id="fin-tab-lancamentos" class="fin-tab-pane">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+            <input type="month" id="fin-mes"
+              style="background:var(--card-bg);border:1px solid var(--bd);color:var(--t1);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer"
+              onchange="carregarFinanceiro()">
+            <button onclick="abrirModalLancamento('despesa')"
+              style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+              − Lançar Despesa
+            </button>
+            <button onclick="abrirModalLancamento('receita')"
+              style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.25);padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+              + Lançar Receita
+            </button>
           </div>
-
-          <!-- Lista de lançamentos -->
-          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
-            <div style="padding:14px 18px;border-bottom:1px solid var(--bd);font-size:14px;font-weight:600;color:var(--t1)">
-              Lançamentos do Mês
+          <div id="fin-resumo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+            <div style="grid-column:1/-1;padding:1.5rem;text-align:center"><div class="spinner spinner-lg"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:18px">
+              <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--t1)">Despesas por Categoria</div>
+              <div id="fin-categorias"></div>
             </div>
-            <div id="fin-lancamentos" style="max-height:380px;overflow-y:auto"></div>
+            <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;overflow:hidden">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--bd);font-size:14px;font-weight:600;color:var(--t1)">Lançamentos do Mês</div>
+              <div id="fin-lancamentos" style="max-height:380px;overflow-y:auto"></div>
+            </div>
           </div>
-
         </div>
+
+        <!-- TAB: FERRAMENTAS -->
+        <div id="fin-tab-ferramentas" class="fin-tab-pane" style="display:none">
+          <div class="fin-metric-grid" id="fin-metrics-ferramentas"></div>
+          <div style="margin-bottom:24px">
+            <div class="fin-section-title">Ferramentas ativas — já em uso</div>
+            <table class="fin-table">
+              <thead><tr><th style="width:38%">Ferramenta</th><th>Status</th><th>Plano</th><th>USD/mês</th><th>BRL/mês</th></tr></thead>
+              <tbody id="fin-tbody-ativas"></tbody>
+              <tfoot><tr class="fin-total-row"><td colspan="4">Subtotal ativas</td><td id="fin-sub-ativas">—</td></tr></tfoot>
+            </table>
+          </div>
+          <div style="margin-bottom:24px">
+            <div class="fin-section-title">Ferramentas a ativar — próximos passos</div>
+            <table class="fin-table">
+              <thead><tr><th style="width:38%">Ferramenta</th><th>Status</th><th>Plano</th><th>USD/mês</th><th>BRL/mês</th></tr></thead>
+              <tbody id="fin-tbody-novas"></tbody>
+              <tfoot><tr class="fin-total-row"><td colspan="4">Subtotal a ativar</td><td id="fin-sub-novas">—</td></tr></tfoot>
+            </table>
+          </div>
+          <div style="margin-bottom:24px">
+            <div class="fin-section-title">Projeção de custos — 6 meses</div>
+            <div class="fin-chart-card">
+              <div style="position:relative;height:200px"><canvas id="fin-chartFerramentas"></canvas></div>
+            </div>
+          </div>
+          <div class="fin-note">
+            <strong>Claude Max vs. API Anthropic:</strong> O Claude Max (~R$540/mês) cobre o Claude Code para desenvolvimento. O custo da API para o Edson é separado e cresce com volume — monitore mensalmente.<br><br>
+            <strong>TuboCloud (R$39,90):</strong> Redundante com o Railway. Pode ser eliminado quando o Hub estiver 100% estável.<br><br>
+            <strong>Break-even de infra:</strong> 3 clientes a R$500/mês cobrem 100% do custo de ferramentas.
+          </div>
+        </div>
+
+        <!-- TAB: TRÁFEGO PAGO -->
+        <div id="fin-tab-trafego" class="fin-tab-pane" style="display:none">
+          <div class="fin-metric-grid" id="fin-metrics-trafego"></div>
+          <div style="margin-bottom:20px">
+            <div class="fin-section-title">Simulador de campanha</div>
+            <div class="fin-chart-card">
+              <div class="fin-slider-row"><label>Orçamento mensal</label><input type="range" id="fin-sl-orcamento" min="300" max="3000" step="100" value="500" oninput="finRecalcTraffic()"><span id="fin-out-orcamento" class="fin-sval">R$ 500</span></div>
+              <div class="fin-slider-row"><label>CPL estimado</label><input type="range" id="fin-sl-cpl" min="20" max="150" step="5" value="45" oninput="finRecalcTraffic()"><span id="fin-out-cpl" class="fin-sval">R$ 45</span></div>
+              <div class="fin-slider-row"><label>Conversão lead → cliente</label><input type="range" id="fin-sl-conv" min="2" max="30" step="1" value="10" oninput="finRecalcTraffic()"><span id="fin-out-conv" class="fin-sval">10%</span></div>
+              <div class="fin-slider-row"><label>Ticket médio mensal</label><input type="range" id="fin-sl-ticket" min="200" max="3000" step="100" value="800" oninput="finRecalcTraffic()"><span id="fin-out-ticket" class="fin-sval">R$ 800</span></div>
+            </div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div class="fin-section-title">Canal de mídia</div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+              <button class="fin-ch-btn active" id="fin-ch-meta" onclick="finToggleChannel('meta')">Meta Ads ★ Recomendado</button>
+              <button class="fin-ch-btn" id="fin-ch-google" onclick="finToggleChannel('google')">Google Ads</button>
+              <button class="fin-ch-btn" id="fin-ch-linkedin" onclick="finToggleChannel('linkedin')">LinkedIn Ads</button>
+            </div>
+            <div id="fin-channel-rationale"></div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div class="fin-section-title">Projeção — meses 1, 2 e 3</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="fin-funnel-grid"></div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div class="fin-section-title">Evolução de leads e clientes</div>
+            <div class="fin-chart-card">
+              <div style="position:relative;height:220px"><canvas id="fin-chartTrafego"></canvas></div>
+            </div>
+          </div>
+          <div class="fin-note" id="fin-channel-note"></div>
+        </div>
+
+        <!-- TAB: VISÃO GERAL (CONSOLIDADO) -->
+        <div id="fin-tab-consolidado" class="fin-tab-pane" style="display:none">
+          <div class="fin-metric-grid" id="fin-metrics-consolidado"></div>
+          <div style="margin-bottom:24px">
+            <div class="fin-section-title">Custo total vs. receita projetada — 3 meses</div>
+            <div class="fin-chart-card">
+              <div style="position:relative;height:240px"><canvas id="fin-chartConsolidado"></canvas></div>
+            </div>
+          </div>
+          <div style="margin-bottom:24px">
+            <div class="fin-section-title">Acompanhamento de etapas estratégicas</div>
+            <table class="fin-table">
+              <thead><tr><th>Etapa</th><th>Descrição</th><th>Custo envolvido</th><th style="text-align:center">Status</th></tr></thead>
+              <tbody id="fin-tbody-etapas"></tbody>
+            </table>
+          </div>
+          <div class="fin-note" id="fin-nota-consolidada"></div>
+        </div>
+
       </section>
 
       <!-- ── PROPOSTA COMERCIAL ── -->
@@ -13206,6 +13337,234 @@ async function mktSalvarTemplate() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
+// ===== MÓDULO FINANCEIRO — PLANO =====
+(function(){
+  const FIN_USD = 5.40;
+
+  const finAtivas = [
+    {nome:'Railway',desc:'Hospedagem Node.js + deploy automático',status:'active',plano:'Hobby $5/mês',usd:5,brl:null},
+    {nome:'GitHub',desc:'Repositório e controle de versão',status:'free',plano:'Free',usd:0,brl:null},
+    {nome:'Supabase',desc:'Banco de dados PostgreSQL + Storage',status:'free',plano:'Free tier',usd:0,brl:null},
+    {nome:'Z-API',desc:'Integração WhatsApp automático',status:'active',plano:'Plano básico',usd:null,brl:69.90},
+    {nome:'Anthropic API',desc:'Claude para análise de edital (Edson)',status:'active',plano:'Pay-per-use ~$20',usd:20,brl:null},
+    {nome:'Claude Max',desc:'Claude Code — desenvolvimento',status:'active',plano:'Max $100/mês',usd:100,brl:null},
+    {nome:'Brevo',desc:'E-mail marketing e transacional',status:'free',plano:'Free 300/dia',usd:0,brl:null},
+    {nome:'TuboCloud',desc:'Hospedagem legada / backup',status:'active',plano:'Mensal',usd:null,brl:39.90},
+    {nome:'Make.com',desc:'Automações e integrações',status:'active',plano:'Core $9/mês',usd:9,brl:null},
+    {nome:'PNCP API',desc:'Dados públicos de licitações brasileiras',status:'free',plano:'Gratuito (gov)',usd:0,brl:null},
+  ];
+
+  const finNovas = [
+    {nome:'OpenClaw',desc:'Plataforma de agentes de IA autônomos',status:'new',plano:'~$29/mês estimado',usd:29,brl:null},
+    {nome:'VPS Hostinger',desc:'Servidor dedicado para agentes',status:'new',plano:'KVM 2 ~$15/mês',usd:15,brl:null},
+    {nome:'Hotmart',desc:'Pagamentos e assinaturas dos clientes',status:'opcional',plano:'% por venda',usd:0,brl:0},
+    {nome:'Domínio hub.conlicit.com',desc:'DNS + SSL via Cloudflare',status:'opcional',plano:'Anual ÷ 12',usd:1.25,brl:null},
+    {nome:'Brevo pago',desc:'Escala além de 300 e-mails/dia',status:'opcional',plano:'Starter $9/mês',usd:9,brl:null},
+    {nome:'Railway Pro upgrade',desc:'Para escala com 10+ clientes',status:'opcional',plano:'+$15 estimado',usd:15,brl:null},
+  ];
+
+  const finEtapas = [
+    {nome:'Estabilizar Hub em produção',desc:'Deploy Railway + domínio + PWA funcionando',custo:'Ferramentas já ativas',status:'em-andamento'},
+    {nome:'Lançar Edson como produto de entrada',desc:'Landing page conlicit.com/edson',custo:'Anthropic API ~R$108/mês',status:'pendente'},
+    {nome:'Ativar OpenClaw + VPS',desc:'Agentes autônomos para monitoramento',custo:'+R$237/mês',status:'pendente'},
+    {nome:'Primeira campanha Meta Ads',desc:'Anúncios de consultoria — Instagram/Facebook',custo:'R$500/mês tráfego',status:'pendente'},
+    {nome:'Primeiro cliente pagante',desc:'Onboarding manual + Hotmart configurado',custo:'% Hotmart por venda',status:'pendente'},
+    {nome:'Escalar para 5 clientes',desc:'Automação de onboarding + suporte via Hub',custo:'Brevo pago + Railway Pro',status:'pendente'},
+  ];
+
+  const finChannelData = {
+    meta:{nome:'Meta Ads',cpl:45,motivo:'Melhor custo por lead para PMEs brasileiras. Instagram e Facebook atingem donos de empresas que buscam crescer — público exato da Conlicit. CPL estimado R$30–60.'},
+    google:{nome:'Google Ads',cpl:90,motivo:'Captura intenção ativa — quem pesquisa "consultoria licitação BH" já está qualificado. CPL maior (R$70–120) mas conversão mais alta. Recomendado como segundo canal quando orçamento ultrapassar R$1.000/mês.'},
+    linkedin:{nome:'LinkedIn Ads',cpl:180,motivo:'Alcança decisores, mas CPL muito alto para o orçamento atual (R$150–300/lead). Faz sentido quando o produto evoluir para venda enterprise.'},
+  };
+
+  const finBadgeMap = {active:['fin-b-active','Ativo'],new:['fin-b-new','A ativar'],free:['fin-b-free','Gratuito'],opcional:['fin-b-opcional','Opcional']};
+  const finStatusCycle = {pendente:'em-andamento','em-andamento':'concluido',concluido:'pendente'};
+  const finStatusLabel = {pendente:'Pendente','em-andamento':'Em andamento',concluido:'Concluído'};
+  const finEtapaStatus = {};
+  finEtapas.forEach((e,i) => finEtapaStatus[i] = e.status);
+
+  let finActiveChannel = 'meta';
+  let finTrafficChart = null;
+  let finConsolidadoChart = null;
+  let finInitialized = false;
+
+  function finGetBRL(item){ return (item.brl!==null&&item.brl!==undefined)?item.brl:(item.usd||0)*FIN_USD; }
+  function finFmtBRL(v){ return v===0?'grátis':'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function finCostCls(v){ if(v===0)return'fin-cost-zero';if(v<150)return'fin-cost-green';if(v<400)return'fin-cost-mid';return'fin-cost-red'; }
+
+  window.finShowTab = function(id, btn){
+    document.querySelectorAll('.fin-tab-pane').forEach(p=>p.style.display='none');
+    document.querySelectorAll('.fin-tab-btn').forEach(b=>{
+      b.style.background='transparent';b.style.color='#7a9aad';
+    });
+    document.getElementById('fin-tab-'+id).style.display='block';
+    btn.style.background='#4CC5D7';btn.style.color='#0f1923';
+    if(id==='lancamentos') carregarFinanceiro();
+    else if(id==='consolidado') finRenderConsolidado();
+    else if(id==='ferramentas' || id==='trafego') finInit();
+  };
+
+  window.finToggleChannel = function(ch){
+    finActiveChannel = ch;
+    document.querySelectorAll('.fin-ch-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('fin-ch-'+ch).classList.add('active');
+    document.getElementById('fin-sl-cpl').value = finChannelData[ch].cpl;
+    document.getElementById('fin-out-cpl').textContent = 'R$ '+finChannelData[ch].cpl;
+    finRecalcTraffic();
+  };
+
+  window.finCycleStatus = function(i){
+    finEtapaStatus[i] = finStatusCycle[finEtapaStatus[i]];
+    finRenderEtapas();
+  };
+
+  window.finRecalcTraffic = function(){
+    const orc = +document.getElementById('fin-sl-orcamento').value;
+    const cpl = +document.getElementById('fin-sl-cpl').value;
+    const conv = +document.getElementById('fin-sl-conv').value/100;
+    const ticket = +document.getElementById('fin-sl-ticket').value;
+
+    document.getElementById('fin-out-orcamento').textContent = 'R$ '+orc.toLocaleString('pt-BR');
+    document.getElementById('fin-out-cpl').textContent = 'R$ '+cpl;
+    document.getElementById('fin-out-conv').textContent = (conv*100).toFixed(0)+'%';
+    document.getElementById('fin-out-ticket').textContent = 'R$ '+ticket.toLocaleString('pt-BR');
+
+    const lM1=Math.floor(orc/cpl), lM2=Math.floor(orc/cpl*1.15), lM3=Math.floor(orc/cpl*1.25);
+    const cM1=Math.max(1,Math.round(lM1*conv)), cM2=Math.max(1,Math.round(lM2*conv)), cM3=Math.max(1,Math.round(lM3*conv));
+    const aM1=cM1, aM2=cM1+cM2, aM3=cM1+cM2+cM3;
+    const rM1=aM1*ticket, rM2=aM2*ticket, rM3=aM3*ticket;
+    const roi3=(rM3-orc*3)/(orc*3)*100;
+
+    document.getElementById('fin-metrics-trafego').innerHTML=`
+      <div class="fin-metric"><div class="fin-label">Investimento 3 meses</div><div class="fin-value fin-v-amber">R$ ${(orc*3).toLocaleString('pt-BR')}</div><div class="fin-hint">R$ ${orc.toLocaleString('pt-BR')}/mês</div></div>
+      <div class="fin-metric"><div class="fin-label">Leads esperados</div><div class="fin-value fin-v-teal">${lM1+lM2+lM3}</div><div class="fin-hint">total em 3 meses</div></div>
+      <div class="fin-metric"><div class="fin-label">Clientes estimados</div><div class="fin-value fin-v-green">${aM3}</div><div class="fin-hint">acumulados no mês 3</div></div>
+      <div class="fin-metric"><div class="fin-label">Receita mês 3</div><div class="fin-value ${rM3>orc?'fin-v-green':'fin-v-red'}">R$ ${rM3.toLocaleString('pt-BR')}</div><div class="fin-hint">ROI ${roi3>=0?'+':''}${roi3.toFixed(0)}% s/ ads</div></div>
+    `;
+
+    const cores=['#4CC5D7','#EF9F27','#97C459'];
+    const meses=[{n:'Mês 1',l:lM1,cn:cM1,ca:aM1,r:rM1,pct:Math.min(100,Math.round(rM1/orc*100)),c:0},{n:'Mês 2',l:lM2,cn:cM2,ca:aM2,r:rM2,pct:Math.min(100,Math.round(rM2/(orc*2)*100)),c:1},{n:'Mês 3',l:lM3,cn:cM3,ca:aM3,r:rM3,pct:Math.min(100,Math.round(rM3/(orc*3)*100)),c:2}];
+    document.getElementById('fin-funnel-grid').innerHTML=meses.map(m=>`
+      <div class="fin-funnel-card" style="border-left:3px solid ${cores[m.c]}">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:${cores[m.c]};margin-bottom:12px">${m.n}</div>
+        <div class="fin-funnel-row"><span class="fkey">Investimento</span><span class="fval">R$ ${orc.toLocaleString('pt-BR')}</span></div>
+        <div class="fin-funnel-row"><span class="fkey">Leads gerados</span><span class="fval">${m.l}</span></div>
+        <div class="fin-funnel-row"><span class="fkey">Novos clientes</span><span class="fval">${m.cn}</span></div>
+        <div class="fin-funnel-row"><span class="fkey">Clientes acumulados</span><span class="fval">${m.ca}</span></div>
+        <div class="fin-funnel-row" style="border-bottom:none"><span class="fkey">Receita recorrente</span><span class="fval" style="color:${cores[m.c]}">R$ ${m.r.toLocaleString('pt-BR')}</span></div>
+        <div class="fin-prog-bar"><div class="fin-prog-fill" style="width:${m.pct}%;background:${cores[m.c]}"></div></div>
+        <div style="font-size:10px;color:#7a9aad;margin-top:4px">${m.pct}% do custo acumulado coberto</div>
+      </div>
+    `).join('');
+
+    document.getElementById('fin-channel-rationale').innerHTML=`<div class="fin-note"><strong>${finChannelData[finActiveChannel].nome}:</strong> ${finChannelData[finActiveChannel].motivo}</div>`;
+    document.getElementById('fin-channel-note').innerHTML=`<strong>Premissas:</strong> CPL estimado para ${finChannelData[finActiveChannel].nome} no nicho de consultoria/licitações B2B Brasil. Valores melhoram a partir do mês 2 conforme pixel aprende. <br><br><strong>Ticket R$ ${ticket.toLocaleString('pt-BR')}/mês:</strong> Pacote básico R$500, completo R$1.200–2.000.`;
+
+    if(finTrafficChart) finTrafficChart.destroy();
+    finTrafficChart = new Chart(document.getElementById('fin-chartTrafego'),{
+      type:'line',
+      data:{labels:['Mês 1','Mês 2','Mês 3'],datasets:[
+        {label:'Leads',data:[lM1,lM2,lM3],borderColor:'#4CC5D7',backgroundColor:'rgba(76,197,215,.1)',tension:.3,fill:true,pointRadius:5,pointBackgroundColor:'#4CC5D7'},
+        {label:'Clientes novos',data:[cM1,cM2,cM3],borderColor:'#97C459',backgroundColor:'rgba(151,196,89,.1)',tension:.3,fill:true,pointRadius:5,pointBackgroundColor:'#97C459'},
+        {label:'Clientes acumulados',data:[aM1,aM2,aM3],borderColor:'#EF9F27',borderDash:[5,4],tension:.3,pointRadius:5,pointBackgroundColor:'#EF9F27'},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9aad',font:{size:12},boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{color:'#7a9aad'}},y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#7a9aad',stepSize:1}}}}
+    });
+  };
+
+  function finRenderEtapas(){
+    document.getElementById('fin-tbody-etapas').innerHTML = finEtapas.map((e,i)=>`
+      <tr>
+        <td><div class="fin-t-name">${e.nome}</div></td>
+        <td style="font-size:12px;color:#7a9aad">${e.desc}</td>
+        <td style="font-size:12px;color:#7a9aad">${e.custo}</td>
+        <td style="text-align:center"><span class="fin-step-status ${finEtapaStatus[i]}" onclick="finCycleStatus(${i})"><span class="fin-dot"></span>${finStatusLabel[finEtapaStatus[i]]}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function finRenderConsolidado(){
+    const orc = +document.getElementById('fin-sl-orcamento').value||500;
+    const cpl = +document.getElementById('fin-sl-cpl').value||45;
+    const conv = +document.getElementById('fin-sl-conv').value/100||0.10;
+    const ticket = +document.getElementById('fin-sl-ticket').value||800;
+    const subA = finAtivas.reduce((s,i)=>s+finGetBRL(i),0);
+    const subN = finNovas.reduce((s,i)=>s+finGetBRL(i),0);
+    const totalFerr = Math.round(subA+subN);
+    const lM=[Math.floor(orc/cpl),Math.floor(orc/cpl*1.15),Math.floor(orc/cpl*1.25)];
+    const cN=lM.map(l=>Math.max(1,Math.round(l*conv)));
+    const cA=[cN[0],cN[0]+cN[1],cN[0]+cN[1]+cN[2]];
+    const rec=cA.map(c=>c*ticket);
+    const custo=[totalFerr+orc,totalFerr+orc,totalFerr+orc];
+    document.getElementById('fin-metrics-consolidado').innerHTML=`
+      <div class="fin-metric"><div class="fin-label">Custo total/mês</div><div class="fin-value fin-v-red">R$ ${(totalFerr+orc).toLocaleString('pt-BR')}</div><div class="fin-hint">ferramentas + ads</div></div>
+      <div class="fin-metric"><div class="fin-label">Receita mês 3</div><div class="fin-value ${rec[2]>totalFerr+orc?'fin-v-green':'fin-v-amber'}">R$ ${rec[2].toLocaleString('pt-BR')}</div><div class="fin-hint">${cA[2]} clientes recorrentes</div></div>
+      <div class="fin-metric"><div class="fin-label">Saldo mês 3</div><div class="fin-value ${rec[2]-(totalFerr+orc)>=0?'fin-v-green':'fin-v-red'}">R$ ${(rec[2]-(totalFerr+orc)).toLocaleString('pt-BR')}</div><div class="fin-hint">receita − custo total</div></div>
+      <div class="fin-metric"><div class="fin-label">Break-even completo</div><div class="fin-value fin-v-teal">${Math.ceil((totalFerr+orc)/ticket)} clientes</div><div class="fin-hint">a R$ ${ticket.toLocaleString('pt-BR')}/mês</div></div>
+    `;
+    document.getElementById('fin-nota-consolidada').innerHTML=`<strong>Como ler:</strong> Custo total = ferramentas projetadas + tráfego pago. A receita cresce conforme clientes acumulam. <strong>Clique no status de cada etapa</strong> para atualizar o acompanhamento conforme avança.`;
+    finRenderEtapas();
+    if(finConsolidadoChart) finConsolidadoChart.destroy();
+    finConsolidadoChart = new Chart(document.getElementById('fin-chartConsolidado'),{
+      type:'bar',
+      data:{labels:['Mês 1','Mês 2','Mês 3'],datasets:[
+        {label:'Custo total',data:custo,backgroundColor:'rgba(226,75,74,.7)',borderRadius:6,borderSkipped:false},
+        {label:'Receita projetada',data:rec,backgroundColor:'rgba(76,197,215,.7)',borderRadius:6,borderSkipped:false},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9aad',font:{size:12},boxWidth:12}},tooltip:{callbacks:{label:ctx=>' R$ '+ctx.raw.toLocaleString('pt-BR')}}},scales:{x:{grid:{display:false},ticks:{color:'#7a9aad'}},y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#7a9aad',callback:v=>'R$ '+v.toLocaleString('pt-BR')},min:0}}}
+    });
+  }
+
+  function finInit(){
+    if(finInitialized) return;
+    finInitialized = true;
+
+    let subA=0, subN=0;
+    const tbA = document.getElementById('fin-tbody-ativas');
+    const tbN = document.getElementById('fin-tbody-novas');
+    finAtivas.forEach(item=>{
+      const brl=finGetBRL(item); subA+=brl;
+      const[bc,bl]=finBadgeMap[item.status];
+      const usdTxt=item.usd===null?'—':item.usd===0?'free':'$'+item.usd.toFixed(0);
+      tbA.innerHTML+=`<tr><td><div class="fin-t-name">${item.nome}</div><div class="fin-t-desc">${item.desc}</div></td><td><span class="fin-badge ${bc}">${bl}</span></td><td style="font-size:12px;color:#7a9aad">${item.plano}</td><td style="font-size:12px;color:#7a9aad">${usdTxt}</td><td class="${finCostCls(brl)}">${finFmtBRL(brl)}</td></tr>`;
+    });
+    finNovas.forEach(item=>{
+      const brl=finGetBRL(item); subN+=brl;
+      const[bc,bl]=finBadgeMap[item.status];
+      const usdTxt=item.usd===null?'—':item.usd===0?'variável':'$'+item.usd.toFixed(0);
+      tbN.innerHTML+=`<tr><td><div class="fin-t-name">${item.nome}</div><div class="fin-t-desc">${item.desc}</div></td><td><span class="fin-badge ${bc}">${bl}</span></td><td style="font-size:12px;color:#7a9aad">${item.plano}</td><td style="font-size:12px;color:#7a9aad">${usdTxt}</td><td class="${finCostCls(brl)}">${finFmtBRL(brl)}</td></tr>`;
+    });
+    document.getElementById('fin-sub-ativas').textContent = finFmtBRL(subA);
+    document.getElementById('fin-sub-novas').textContent = finFmtBRL(subN);
+    const totalAtual=subA, totalProj=subA+subN;
+    document.getElementById('fin-metrics-ferramentas').innerHTML=`
+      <div class="fin-metric"><div class="fin-label">Custo atual/mês</div><div class="fin-value fin-v-red">R$ ${Math.round(totalAtual).toLocaleString('pt-BR')}</div><div class="fin-hint">ferramentas ativas</div></div>
+      <div class="fin-metric"><div class="fin-label">Custo projetado/mês</div><div class="fin-value fin-v-red">R$ ${Math.round(totalProj).toLocaleString('pt-BR')}</div><div class="fin-hint">com OpenClaw + VPS</div></div>
+      <div class="fin-metric"><div class="fin-label">Custo anual projetado</div><div class="fin-value fin-v-amber">R$ ${Math.round(totalProj*12).toLocaleString('pt-BR')}</div><div class="fin-hint">12 meses</div></div>
+      <div class="fin-metric"><div class="fin-label">Break-even infra</div><div class="fin-value fin-v-teal">${Math.ceil(totalProj/500)} clientes</div><div class="fin-hint">a R$ 500/mês</div></div>
+    `;
+    const prog=[totalAtual,totalAtual+finGetBRL(finNovas[0]),totalAtual+finGetBRL(finNovas[0])+finGetBRL(finNovas[1]),totalAtual+finGetBRL(finNovas[0])+finGetBRL(finNovas[1])+finGetBRL(finNovas[2]),totalAtual+finGetBRL(finNovas[0])+finGetBRL(finNovas[1])+finGetBRL(finNovas[2])+finGetBRL(finNovas[3]),totalProj].map(v=>Math.round(v));
+    new Chart(document.getElementById('fin-chartFerramentas'),{type:'bar',data:{labels:['Jun','Jul','Ago','Set','Out','Nov'],datasets:[{label:'Custo (R$)',data:prog,backgroundColor:'#4CC5D7',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' R$ '+ctx.raw.toLocaleString('pt-BR')}}},scales:{x:{grid:{display:false},ticks:{color:'#7a9aad',font:{size:12}}},y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#7a9aad',font:{size:11},callback:v=>'R$ '+v.toLocaleString('pt-BR')},min:0,max:Math.ceil(totalProj*1.4/100)*100}}}});
+
+    finRecalcTraffic();
+  }
+
+  // Inicializar quando a seção Financeiro for exibida pela primeira vez
+  const finObserver = new MutationObserver(function(mutations){
+    mutations.forEach(function(m){
+      if(m.target.id==='section-financeiro' && m.target.style.display!=='none'){
+        // só inicializa se a aba ferramentas ou trafego estiver visível
+        const ferrTab = document.getElementById('fin-tab-ferramentas');
+        if(ferrTab && ferrTab.style.display !== 'none') finInit();
+      }
+    });
+  });
+  const finSection = document.getElementById('section-financeiro');
+  if(finSection) finObserver.observe(finSection, {attributes:true, attributeFilter:['style']});
+})();
+// ===== FIM MÓDULO FINANCEIRO — PLANO =====
+
 </script>
 
 <!-- MODAL: Alterar senha -->
@@ -13618,5 +13977,6 @@ async function mktSalvarTemplate() {
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>
