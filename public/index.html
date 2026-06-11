@@ -802,20 +802,6 @@
       animation: modalIn .2s ease;
     }
     @keyframes modalIn { from { opacity:0; transform: scale(.96) translateY(8px); } to { opacity:1; transform: none; } }
-    /* Dialogs nativos — z-index explícito acima da sidebar (100) e header (200) */
-    dialog {
-      position: fixed;
-      inset: 0;
-      margin: auto;
-      z-index: 9000;
-      max-height: 90vh;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #1e3a4a transparent;
-    }
-    dialog::backdrop {
-      background: rgba(0, 0, 0, 0.72);
-    }
     .modal-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.25rem 1.5rem;
@@ -2895,7 +2881,7 @@
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarMarketing()">↻ Atualizar</button>
             <button class="btn btn-primary btn-sm" onclick="abrirModalNovaCampanha()">+ Nova Campanha</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-mkt-template').showModal()">+ Template Email</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-mkt-template').classList.add('visible')">+ Template Email</button>
           </div>
         </div>
 
@@ -2924,140 +2910,146 @@
 </div>
 
 <!-- Modal: Novo Contrato Pós-Vitória -->
-<dialog id="modal-pv-contrato" style="border:none;border-radius:12px;padding:0;width:min(540px,95vw);background:var(--surface);color:var(--text)">
-  <div style="padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="margin:0;font-size:1.1rem">Novo Contrato</h2>
-      <button onclick="document.getElementById('modal-pv-contrato').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
-    </div>
-    <div style="display:grid;gap:14px">
-      <div>
-        <label class="form-label">Cliente *</label>
-        <select id="pvc-cliente" class="form-control"><option value="">Carregando…</option></select>
+<div class="modal-overlay" id="modal-pv-contrato" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:540px">
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:1.1rem">Novo Contrato</h2>
+        <button onclick="document.getElementById('modal-pv-contrato').classList.remove('visible')" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="display:grid;gap:14px">
         <div>
-          <label class="form-label">Nº do Contrato</label>
-          <input id="pvc-numero" class="form-control" placeholder="Ex: CT-2024-001">
+          <label class="form-label">Cliente *</label>
+          <select id="pvc-cliente" class="form-control"><option value="">Carregando…</option></select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Nº do Contrato</label>
+            <input id="pvc-numero" class="form-control" placeholder="Ex: CT-2024-001">
+          </div>
+          <div>
+            <label class="form-label">Objeto</label>
+            <input id="pvc-objeto" class="form-control" placeholder="Objeto do contrato">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Valor Total (R$)</label>
+            <input id="pvc-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+          </div>
+          <div>
+            <label class="form-label">% Comissão</label>
+            <input id="pvc-comissao" class="form-control" type="number" step="0.1" min="0" max="100" placeholder="0">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Início da Vigência</label>
+            <input id="pvc-inicio" class="form-control" type="date">
+          </div>
+          <div>
+            <label class="form-label">Fim da Vigência</label>
+            <input id="pvc-fim" class="form-control" type="date">
+          </div>
         </div>
         <div>
-          <label class="form-label">Objeto</label>
-          <input id="pvc-objeto" class="form-control" placeholder="Objeto do contrato">
+          <label class="form-label">Observações</label>
+          <textarea id="pvc-obs" class="form-control" rows="2" placeholder="Observações internas…"></textarea>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="form-label">Valor Total (R$)</label>
-          <input id="pvc-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
-        </div>
-        <div>
-          <label class="form-label">% Comissão</label>
-          <input id="pvc-comissao" class="form-control" type="number" step="0.1" min="0" max="100" placeholder="0">
-        </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-contrato').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="pvSalvarContrato()">Salvar</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="form-label">Início da Vigência</label>
-          <input id="pvc-inicio" class="form-control" type="date">
-        </div>
-        <div>
-          <label class="form-label">Fim da Vigência</label>
-          <input id="pvc-fim" class="form-control" type="date">
-        </div>
-      </div>
-      <div>
-        <label class="form-label">Observações</label>
-        <textarea id="pvc-obs" class="form-control" rows="2" placeholder="Observações internas…"></textarea>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
-      <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-contrato').close()">Cancelar</button>
-      <button class="btn btn-primary" onclick="pvSalvarContrato()">Salvar</button>
     </div>
   </div>
-</dialog>
+</div>
 
 <!-- Modal: Nova NF Pós-Vitória -->
-<dialog id="modal-pv-nf" style="border:none;border-radius:12px;padding:0;width:min(480px,95vw);background:var(--surface);color:var(--text)">
-  <div style="padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="margin:0;font-size:1.1rem">Emitir Nota Fiscal</h2>
-      <button onclick="document.getElementById('modal-pv-nf').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
-    </div>
-    <div style="display:grid;gap:14px">
-      <div>
-        <label class="form-label">Contrato</label>
-        <select id="pvnf-contrato" class="form-control"><option value="">Selecione…</option></select>
+<div class="modal-overlay" id="modal-pv-nf" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:1.1rem">Emitir Nota Fiscal</h2>
+        <button onclick="document.getElementById('modal-pv-nf').classList.remove('visible')" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="display:grid;gap:14px">
         <div>
-          <label class="form-label">Nº da NF</label>
-          <input id="pvnf-numero" class="form-control" placeholder="000000">
+          <label class="form-label">Contrato</label>
+          <select id="pvnf-contrato" class="form-control"><option value="">Selecione…</option></select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Nº da NF</label>
+            <input id="pvnf-numero" class="form-control" placeholder="000000">
+          </div>
+          <div>
+            <label class="form-label">Valor (R$)</label>
+            <input id="pvnf-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Emissão</label>
+            <input id="pvnf-emissao" class="form-control" type="date">
+          </div>
+          <div>
+            <label class="form-label">Vencimento</label>
+            <input id="pvnf-vencimento" class="form-control" type="date">
+          </div>
         </div>
         <div>
-          <label class="form-label">Valor (R$)</label>
-          <input id="pvnf-valor" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+          <label class="form-label">Observações</label>
+          <textarea id="pvnf-obs" class="form-control" rows="2" placeholder="Observações…"></textarea>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="form-label">Emissão</label>
-          <input id="pvnf-emissao" class="form-control" type="date">
-        </div>
-        <div>
-          <label class="form-label">Vencimento</label>
-          <input id="pvnf-vencimento" class="form-control" type="date">
-        </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-nf').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="pvSalvarNF()">Salvar</button>
       </div>
-      <div>
-        <label class="form-label">Observações</label>
-        <textarea id="pvnf-obs" class="form-control" rows="2" placeholder="Observações…"></textarea>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
-      <button class="btn btn-ghost" onclick="document.getElementById('modal-pv-nf').close()">Cancelar</button>
-      <button class="btn btn-primary" onclick="pvSalvarNF()">Salvar</button>
     </div>
   </div>
-</dialog>
+</div>
 
 <!-- Modal: Novo Template de Email -->
-<dialog id="modal-mkt-template" style="border:none;border-radius:12px;padding:0;width:min(600px,95vw);background:var(--surface);color:var(--text)">
-  <div style="padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="margin:0;font-size:1.1rem">Novo Template de Email</h2>
-      <button onclick="document.getElementById('modal-mkt-template').close()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
-    </div>
-    <div style="display:grid;gap:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="form-label">Slug (identificador) *</label>
-          <input id="mkt-new-slug" class="form-control" placeholder="Ex: prospecto_novo">
+<div class="modal-overlay" id="modal-mkt-template" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:600px">
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:1.1rem">Novo Template de Email</h2>
+        <button onclick="document.getElementById('modal-mkt-template').classList.remove('visible')" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Slug (identificador) *</label>
+            <input id="mkt-new-slug" class="form-control" placeholder="Ex: prospecto_novo">
+          </div>
+          <div>
+            <label class="form-label">Nome *</label>
+            <input id="mkt-new-nome" class="form-control" placeholder="Ex: Prospecção — Novo Lead">
+          </div>
         </div>
         <div>
-          <label class="form-label">Nome *</label>
-          <input id="mkt-new-nome" class="form-control" placeholder="Ex: Prospecção — Novo Lead">
+          <label class="form-label">Assunto *</label>
+          <input id="mkt-new-assunto" class="form-control" placeholder="Ex: {{nome}}, temos uma oportunidade para você">
+        </div>
+        <div>
+          <label class="form-label">Corpo do Email (HTML ou texto) *</label>
+          <textarea id="mkt-new-corpo" class="form-control" rows="8" placeholder="Olá {{nome}},&#10;&#10;Texto do email…&#10;&#10;Atenciosamente,&#10;{{remetente_nome}}"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Variáveis disponíveis <span style="color:var(--text-muted);font-weight:400">(separadas por vírgula)</span></label>
+          <input id="mkt-new-vars" class="form-control" placeholder="Ex: nome, empresa, link_ferramenta, remetente_nome">
         </div>
       </div>
-      <div>
-        <label class="form-label">Assunto *</label>
-        <input id="mkt-new-assunto" class="form-control" placeholder="Ex: {{nome}}, temos uma oportunidade para você">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-mkt-template').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="mktSalvarTemplate()">Criar Template</button>
       </div>
-      <div>
-        <label class="form-label">Corpo do Email (HTML ou texto) *</label>
-        <textarea id="mkt-new-corpo" class="form-control" rows="8" placeholder="Olá {{nome}},&#10;&#10;Texto do email…&#10;&#10;Atenciosamente,&#10;{{remetente_nome}}"></textarea>
-      </div>
-      <div>
-        <label class="form-label">Variáveis disponíveis <span style="color:var(--text-muted);font-weight:400">(separadas por vírgula)</span></label>
-        <input id="mkt-new-vars" class="form-control" placeholder="Ex: nome, empresa, link_ferramenta, remetente_nome">
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
-      <button class="btn btn-ghost" onclick="document.getElementById('modal-mkt-template').close()">Cancelar</button>
-      <button class="btn btn-primary" onclick="mktSalvarTemplate()">Criar Template</button>
     </div>
   </div>
-</dialog>
+</div>
 
 <!-- Modal: Nova/Editar Campanha de Marketing -->
 <div class="modal-overlay" id="modal-nova-campanha" onclick="this.classList.remove('visible')">
@@ -13289,7 +13281,7 @@ async function pvAbrirNovoContrato() {
   ['pvc-numero','pvc-objeto','pvc-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   ['pvc-valor','pvc-comissao'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   ['pvc-inicio','pvc-fim'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-  modal.showModal();
+  modal.classList.add('visible');
 }
 
 async function pvSalvarContrato() {
@@ -13312,7 +13304,7 @@ async function pvSalvarContrato() {
     });
     if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
     toast('Contrato criado!', 'success');
-    document.getElementById('modal-pv-contrato').close();
+    document.getElementById('modal-pv-contrato').classList.remove('visible');
     pvCarregarContratos(); pvCarregarKPIs();
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -13353,7 +13345,7 @@ async function pvAbrirNovaNF() {
   ['pvnf-numero','pvnf-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   ['pvnf-valor'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   ['pvnf-emissao','pvnf-vencimento'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-  modal.showModal();
+  modal.classList.add('visible');
 }
 
 async function pvSalvarNF() {
@@ -13374,7 +13366,7 @@ async function pvSalvarNF() {
     });
     if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
     toast('NF registrada!', 'success');
-    document.getElementById('modal-pv-nf').close();
+    document.getElementById('modal-pv-nf').classList.remove('visible');
     pvCarregarNFs(); pvCarregarKPIs();
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -13770,7 +13762,7 @@ async function mktSalvarTemplate() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
     toast('Template criado!', 'success');
-    document.getElementById('modal-mkt-template').close();
+    document.getElementById('modal-mkt-template').classList.remove('visible');
     mktCarregarTemplates();
   } catch (e) { toast(e.message, 'error'); }
 }
