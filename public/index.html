@@ -10624,6 +10624,7 @@ ${nomes}${dados.length > 5 ? `
   }
 
   function renderProspectsKanban(area, dados) {
+    window._todosProspects = dados;
     const porStatus = {};
     PROSPECT_STATUS.forEach(c => { porStatus[c.id] = []; });
     dados.forEach(p => {
@@ -10631,10 +10632,15 @@ ${nomes}${dados.length > 5 ? `
       else if (porStatus['em_negociacao']) porStatus['em_negociacao'].push(p);
     });
 
-    area.innerHTML = `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">
+    area.innerHTML = `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#1e3a4a transparent;">
       ${PROSPECT_STATUS.map(col => {
         const cards = porStatus[col.id] || [];
-        return `<div style="min-width:190px;flex:0 0 190px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:10px">
+        return `<div class="kanban-coluna" data-status="${col.id}"
+          ondragover="kanbanDragOver(event)"
+          ondragenter="kanbanDragEnter(event)"
+          ondragleave="kanbanDragLeave(event)"
+          ondrop="kanbanDrop(event)"
+          style="min-width:190px;flex:0 0 190px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:10px;min-height:120px;transition:background 0.15s,border-color 0.15s;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
             <span style="width:7px;height:7px;border-radius:50%;background:${col.cor};flex-shrink:0"></span>
             <span style="font-size:.75rem;font-weight:600;color:var(--t1)">${col.label}</span>
@@ -10647,7 +10653,14 @@ ${nomes}${dados.length > 5 ? `
               const fuVen = p.data_proximo_contato && p.data_proximo_contato.slice(0,10) <= hoje2;
               const kTitulo    = p.nome_empresa || p.empresa || p.nome || '(sem nome)';
               const kSubtitulo = p.nicho || p.segmento || p.email || '';
-              return `<div style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:pointer" onclick='abrirEditarProspect(${JSON.stringify(p)})'>
+              return `<div
+                draggable="true"
+                data-id="${p.id}"
+                data-status="${p.status}"
+                ondragstart="kanbanDragStart(event)"
+                ondragend="kanbanDragEnd(event)"
+                style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:grab;transition:opacity 0.15s,transform 0.15s;"
+                onclick='abrirEditarProspect(${JSON.stringify(p)})'>
                 <div style="font-size:.83rem;font-weight:600;color:var(--t1);margin-bottom:1px">${esc(kTitulo)}</div>
                 ${fuVen ? '<span style="background:#E24B4A;color:#fff;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:99px;display:inline-block;margin-bottom:2px;">Follow-up vencido</span>' : ''}
                 ${kSubtitulo ? `<div style="font-size:.7rem;color:var(--t2)">${esc(kSubtitulo)}</div>` : ''}
@@ -10671,6 +10684,95 @@ ${nomes}${dados.length > 5 ? `
         </div>`;
       }).join('')}
     </div>`;
+  }
+
+  // ── KANBAN DRAG AND DROP ─────────────────────────────────────────────
+  let _kanbanDragId = null;
+  let _kanbanDragStatus = null;
+
+  function kanbanDragStart(event) {
+    const card = event.currentTarget;
+    _kanbanDragId = card.dataset.id;
+    _kanbanDragStatus = card.dataset.status;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', _kanbanDragId);
+    setTimeout(() => {
+      card.style.opacity = '0.4';
+      card.style.transform = 'scale(0.97)';
+    }, 0);
+  }
+
+  function kanbanDragEnd(event) {
+    event.currentTarget.style.opacity = '1';
+    event.currentTarget.style.transform = 'scale(1)';
+    document.querySelectorAll('.kanban-coluna').forEach(col => {
+      col.style.background = '';
+      col.style.border = '';
+    });
+  }
+
+  function kanbanDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }
+
+  function kanbanDragEnter(event) {
+    event.preventDefault();
+    const col = event.currentTarget;
+    col.style.background = 'rgba(76,197,215,0.08)';
+    col.style.border = '1px dashed #4CC5D7';
+  }
+
+  function kanbanDragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      event.currentTarget.style.background = '';
+      event.currentTarget.style.border = '';
+    }
+  }
+
+  async function kanbanDrop(event) {
+    event.preventDefault();
+    const col = event.currentTarget;
+    const novoStatus = col.dataset.status;
+    col.style.background = '';
+    col.style.border = '';
+
+    if (!_kanbanDragId || novoStatus === _kanbanDragStatus) {
+      _kanbanDragId = null; _kanbanDragStatus = null;
+      return;
+    }
+
+    const id = _kanbanDragId;
+    const statusAnterior = _kanbanDragStatus;
+    _kanbanDragId = null;
+    _kanbanDragStatus = null;
+
+    // Atualização otimista em memória
+    const prospects = window._todosProspects || [];
+    const prospect = prospects.find(p => String(p.id) === String(id));
+    if (prospect) {
+      prospect.status = novoStatus;
+      prospect.status_contato = novoStatus;
+      prospect.data_ultimo_contato = new Date().toISOString();
+    }
+    const area = document.getElementById('prospects-area');
+    if (area) renderProspectsKanban(area, prospects);
+
+    try {
+      const r = await fetch(`${API}/prospects/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status_contato: novoStatus, data_ultimo_contato: new Date().toISOString() }),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao mover');
+      const label = PROSPECT_STATUS.find(s => s.id === novoStatus)?.label || novoStatus;
+      toast(`Lead movido para "${label}"`, 'success');
+    } catch (e) {
+      // Reverter em caso de erro
+      if (prospect) { prospect.status = statusAnterior; prospect.status_contato = statusAnterior; }
+      if (area) renderProspectsKanban(area, prospects);
+      toast(e.message || 'Erro ao mover card', 'error');
+    }
   }
 
   function renderProspectsLista(area, dados) {
