@@ -7222,11 +7222,14 @@
     const orgao  = e.orgao  || '—';
     // valorEstimado pode ser número (novo) ou string formatada (legacy)
     let valor = '—';
-    if (e.valorEstimado != null && e.valorEstimado !== 0 && e.valorEstimado !== '') {
+    if (e.valor_str && e.valor_str !== '—') {
+      valor = e.valor_str;
+    } else if (e.valorEstimado != null && e.valorEstimado !== 0 && e.valorEstimado !== '') {
       valor = typeof e.valorEstimado === 'number'
         ? e.valorEstimado.toLocaleString('pt-BR', { style:'currency', currency:'BRL' })
         : String(e.valorEstimado);
     }
+    const valorCor = e.orcamento_sigiloso ? '#f59e0b' : (e.valorEstimado && e.valorEstimado !== '—') ? '#4CC5D7' : '#64748b';
     const local  = e.local || [e.municipio, e.uf || e.estado].filter(Boolean).join(' · ') || '—';
     const linkDisputa = e.linkSistemaOrigem || e.link_sistema_origem || e.linkPNCP || '';
     const linkPNCP    = e.link || e.linkPNCP || e.linkSistemaOrigem || '';
@@ -7316,7 +7319,7 @@
       <div class="edital-meta">
         <div class="edital-meta-item">
           <span class="edital-meta-label">Valor estimado</span>
-          <span class="edital-meta-value valor">${esc(String(valor))}</span>
+          <span class="edital-meta-value valor" style="color:${valorCor}">${esc(String(valor))}</span>
         </div>
         <div class="edital-meta-item">
           <span class="edital-meta-label">Local</span>

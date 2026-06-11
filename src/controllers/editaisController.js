@@ -124,8 +124,9 @@ function formatarEditalSearch(item) {
   // ── Orçamento sigiloso ─────────────────────────────────────────────────────
   const orcamentoSigiloso = !!(item.orcamentoSigiloso ?? item.orcamento_sigiloso ?? false);
 
-  // ── Valor estimado (camelCase e snake_case pois /api/search retorna snake) ──
-  const valorRaw = item.valorTotalEstimado
+  // ── Valor estimado (campo confirmado do PNCP: valorTotalEstimadoDaCompra) ───
+  const valorRaw = item.valorTotalEstimadoDaCompra
+    ?? item.valorTotalEstimado
     ?? item.valor_total_estimado
     ?? item.valorGlobal
     ?? item.valor_global
@@ -134,7 +135,12 @@ function formatarEditalSearch(item) {
     ?? item.valor
     ?? item.precoUnitario
     ?? null;
-  const valorNumerico = valorRaw != null ? parseFloat(String(valorRaw).replace(',', '.')) || null : null;
+  const valorNumerico = (() => {
+    if (valorRaw === null || valorRaw === undefined) return null;
+    if (orcamentoSigiloso) return null;
+    const n = parseFloat(String(valorRaw).replace(',', '.'));
+    return (!isNaN(n) && n > 0) ? n : null;
+  })();
 
   // ── Data de encerramento (camelCase e snake_case) ──────────────────────────
   const dataEncerramentoRaw = item.dataEncerramentoProposta
@@ -228,7 +234,11 @@ function formatarEditalSearch(item) {
     orgao:                    orgao || null,
     objeto,
     // valorEstimado: número, 'Sigiloso' se orçamento sigiloso sem valor, ou null
-    valorEstimado:            (orcamentoSigiloso && valorNumerico == null) ? 'Sigiloso' : valorNumerico,
+    valorEstimado:            orcamentoSigiloso ? 'Sigiloso' : valorNumerico,
+    valor_str:                valorNumerico
+      ? `R$ ${valorNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : (orcamentoSigiloso ? 'Sigiloso' : '—'),
+    orcamento_sigiloso:       orcamentoSigiloso,
     dataPublicacao:           null,
     // Não formatar como DD/MM/YYYY — causaria new Date() inválido no frontend
     dataEncerramentoProposta: null,
@@ -558,6 +568,16 @@ async function listarEditais(req, res) {
 
       if (items.length === 0) {
         return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
+      }
+
+      // Log diagnóstico do campo de valor (remover após confirmar)
+      if (items.length > 0) {
+        console.log('[PNCP VALOR CHECK]', {
+          valorTotalEstimadoDaCompra: items[0].valorTotalEstimadoDaCompra,
+          valorTotalEstimado:         items[0].valorTotalEstimado,
+          orcamentoSigiloso:          items[0].orcamentoSigiloso,
+          valorMapeado:               formatarEditalSearch(items[0]).valorEstimado,
+        });
       }
 
       // Ordena por proximidade de encerramento: mais urgente primeiro, encerrados no fim
