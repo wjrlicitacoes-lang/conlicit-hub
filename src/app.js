@@ -32,6 +32,7 @@ const financeiroRoutes         = require('./routes/financeiro');
 const marketingRoutes          = require('./routes/marketing');
 const onboardingRoutes         = require('./routes/onboarding');
 const conteudosMarketingRoutes = require('./routes/conteudosMarketing');
+const boletimManualRoutes      = require('./routes/boletimManual');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -105,6 +106,7 @@ app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/financeiro',      financeiroRoutes);
 app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 app.use('/api/marketing/conteudos', autenticar, conteudosMarketingRoutes);
+app.use('/api/boletim',            autenticar, boletimManualRoutes);
 
 // Cron: gerar lançamentos de pagamento mensalmente
 app.get('/api/cron/gerar-lancamentos', require('./controllers/pagamentosController').cronGerarLancamentos);

@@ -1657,6 +1657,35 @@
     /* ===== FIM PLANILHA DE PREÇOS — TABELA ===== */
 
     /* ═══════════════════════════════════════════
+       MÓDULO BOLETINS — WORKFLOW MANUAL
+    ═══════════════════════════════════════════ */
+    .bl-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .bl-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:4px}
+    .bl-edital-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .bl-edital-info{flex:1}
+    .bl-edital-titulo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .bl-edital-meta{font-size:11px;color:var(--text-muted);display:flex;gap:10px;flex-wrap:wrap}
+    .bl-edital-remove{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0;line-height:1;transition:color .15s}
+    .bl-edital-remove:hover{color:#ef4444}
+
+    .bl-score-badge{width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+    .bl-score-alto{background:#4CC5D7}
+    .bl-score-bom{background:#22c55e}
+    .bl-score-medio{background:#f59e0b}
+    .bl-score-baixo{background:#ef4444}
+
+    .bl-rec-participar{background:rgba(76,197,215,.15);color:#4CC5D7;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .bl-rec-avaliar{background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .bl-rec-dispensar{background:rgba(239,68,68,.15);color:#ef4444;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+
+    .bl-rev-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start}
+    .bl-rev-body{flex:1}
+    .bl-rev-titulo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+    .bl-rev-meta{font-size:11px;color:var(--text-muted);margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap}
+    .bl-rev-just-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:6px 9px;resize:vertical;font-family:inherit}
+    .bl-rev-just-input:focus{outline:none;border-color:#4CC5D7}
+
+    /* ═══════════════════════════════════════════
        MÓDULO MARKETING — CALENDÁRIO EDITORIAL
     ═══════════════════════════════════════════ */
     .mkt-ed-tabs-wrap{border-bottom:1.5px solid var(--border);margin:16px 0 0}
@@ -2038,28 +2067,143 @@
         <div class="section-header">
           <h1>Boletins</h1>
           <div class="section-header-actions">
-            <button class="btn btn-ghost btn-sm" onclick="carregarBoletins()">↻ Atualizar</button>
-            <button class="btn btn-primary btn-sm" id="btn-disparar" onclick="dispararBoletimManual()">📨 Disparar boletim</button>
+            <button class="btn btn-ghost btn-sm" onclick="blReset()">↻ Novo boletim</button>
           </div>
         </div>
-        <div class="boletim-filters">
-          <input type="text" id="boletim-q" placeholder="Filtrar por palavra-chave ou órgão…" oninput="filtrarBoletins()" />
-          <select id="boletim-uf" onchange="filtrarBoletins()">
-            <option value="">Todos os estados</option>
-            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
-            <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
-            <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
-            <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
-            <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
-            <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
-            <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
-            <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
-            <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
-          </select>
+
+        <!-- Abas -->
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:20px">
+          <button id="bl-tab-montar"  class="tab-btn active" onclick="blSwitchTab('montar')">1 · Montar</button>
+          <button id="bl-tab-revisar" class="tab-btn"        onclick="blSwitchTab('revisar')">2 · Revisar e Gerar</button>
+          <button id="bl-tab-disparar" class="tab-btn"       onclick="blSwitchTab('disparar')">3 · Disparar</button>
         </div>
-        <div id="boletins-area">
-          <div class="state-box"><div class="spinner spinner-lg"></div><p>Carregando editais…</p></div>
+
+        <!-- ABA 1: MONTAR -->
+        <div id="bl-panel-montar">
+          <div class="bl-form-grid">
+            <div class="form-group">
+              <label class="form-label">Cliente</label>
+              <input type="text" id="bl-cliente-nome" class="form-control" placeholder="Nome do cliente">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nicho / Segmento</label>
+              <input type="text" id="bl-cliente-nicho" class="form-control" placeholder="Ex: seguro de frota pública, limpeza hospitalar…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Semana de referência</label>
+              <input type="text" id="bl-semana" class="form-control" placeholder="Ex: 24/2026">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px">
+            <h3 style="margin:0;font-size:15px;font-weight:700">Editais</h3>
+            <button class="btn btn-ghost btn-sm" onclick="blAbrirFormEdital()">+ Adicionar edital</button>
+          </div>
+
+          <!-- Form inline para adicionar edital -->
+          <div id="bl-form-edital" class="bl-card" style="display:none;margin-bottom:16px">
+            <div class="bl-form-grid">
+              <div class="form-group">
+                <label class="form-label">Título *</label>
+                <input type="text" id="bfe-titulo" class="form-control" placeholder="Título do edital">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Órgão</label>
+                <input type="text" id="bfe-orgao" class="form-control" placeholder="Órgão licitante">
+              </div>
+              <div class="form-group" style="max-width:90px">
+                <label class="form-label">UF</label>
+                <input type="text" id="bfe-uf" class="form-control" placeholder="MG" maxlength="2">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor estimado</label>
+                <input type="text" id="bfe-valor" class="form-control" placeholder="R$ 50.000,00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prazo / Encerramento</label>
+                <input type="text" id="bfe-prazo" class="form-control" placeholder="Ex: 25/06/2026">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Modalidade</label>
+                <input type="text" id="bfe-modalidade" class="form-control" placeholder="Pregão Eletrônico">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Objeto</label>
+              <textarea id="bfe-objeto" class="form-control" rows="2" placeholder="Descrição do objeto da licitação…"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+              <button class="btn btn-ghost btn-sm" onclick="blCancelarFormEdital()">Cancelar</button>
+              <button class="btn btn-primary btn-sm" onclick="blAdicionarEdital()">Adicionar</button>
+            </div>
+          </div>
+
+          <!-- Lista de editais adicionados -->
+          <div id="bl-editais-lista"></div>
+
+          <div style="margin-top:20px;text-align:right">
+            <button class="btn btn-primary" id="bl-btn-triar" onclick="blTriar()">
+              🤖 Triar com Edson
+            </button>
+          </div>
         </div>
+
+        <!-- ABA 2: REVISAR E GERAR -->
+        <div id="bl-panel-revisar" style="display:none">
+          <div id="bl-revisao-area">
+            <div class="state-box"><p>Complete a aba "Montar" e clique em "Triar com Edson".</p></div>
+          </div>
+          <div style="margin-top:20px;text-align:right;display:none" id="bl-btn-gerar-wrap">
+            <button class="btn btn-primary" onclick="blGerarHtml()">📄 Gerar HTML do boletim</button>
+          </div>
+          <div id="bl-link-boletim" style="display:none;margin-top:16px" class="bl-card">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">Boletim gerado com sucesso:</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <a id="bl-link-boletim-url" href="#" target="_blank" class="btn btn-primary btn-sm">Abrir prévia ↗</a>
+              <button class="btn btn-ghost btn-sm" onclick="blSwitchTab('disparar')">Ir para Disparar →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 3: DISPARAR -->
+        <div id="bl-panel-disparar" style="display:none">
+          <div id="bl-resumo-disparo" class="bl-card" style="margin-bottom:16px">
+            <div class="state-box"><p>Complete as etapas anteriores antes de disparar.</p></div>
+          </div>
+
+          <div id="bl-disparo-form" style="display:none">
+            <div class="form-group">
+              <label class="form-label">E-mail do cliente</label>
+              <input type="email" id="bl-cliente-email" class="form-control" placeholder="email@empresa.com.br">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WhatsApp do cliente</label>
+              <input type="text" id="bl-cliente-whatsapp" class="form-control" placeholder="5531999999999">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mensagem personalizada para WhatsApp</label>
+              <textarea id="bl-msg-wpp" class="form-control" rows="4" placeholder="Mensagem que será enviada junto ao link…"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Enviar via</label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                  <input type="radio" name="bl-canal" value="whatsapp" checked> WhatsApp
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                  <input type="radio" name="bl-canal" value="email"> E-mail
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                  <input type="radio" name="bl-canal" value="ambos"> Ambos
+                </label>
+              </div>
+            </div>
+            <div style="text-align:right;margin-top:8px">
+              <button class="btn btn-primary" id="bl-btn-disparar" onclick="blDisparar()">📨 Disparar agora</button>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ── MONITOR ── -->
@@ -14264,6 +14408,270 @@ async function mktSalvarTemplate() {
   if(finSection) finObserver.observe(finSection, {attributes:true, attributeFilter:['style']});
 })();
 // ===== FIM MÓDULO FINANCEIRO — PLANO =====
+
+// ═══════════════════════════════════════════════════
+// MÓDULO BOLETINS — WORKFLOW MANUAL
+// ═══════════════════════════════════════════════════
+
+const CONLICIT_EMAIL_BL    = 'wjrlicitacoes@gmail.com';
+const CONLICIT_WHATSAPP_BL = '5531982388210';
+
+let blEditais     = [];   // editais adicionados na aba 1
+let blTriagem     = [];   // resultado da triagem Edson
+let blUrlBoletim  = '';   // URL do HTML gerado
+
+// Calcula semana ISO corrente
+function blSemanaAtual() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const semana = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${semana}/${d.getFullYear()}`;
+}
+
+function blInit() {
+  const inp = document.getElementById('bl-semana');
+  if (inp && !inp.value) inp.value = blSemanaAtual();
+  blSwitchTab('montar');
+  blRenderEditais();
+}
+
+function blReset() {
+  blEditais    = [];
+  blTriagem    = [];
+  blUrlBoletim = '';
+  ['bl-cliente-nome','bl-cliente-nicho','bl-cliente-email','bl-cliente-whatsapp','bl-msg-wpp'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('bl-semana').value = blSemanaAtual();
+  blRenderEditais();
+  document.getElementById('bl-revisao-area').innerHTML = '<div class="state-box"><p>Complete a aba "Montar" e clique em "Triar com Edson".</p></div>';
+  document.getElementById('bl-btn-gerar-wrap').style.display = 'none';
+  document.getElementById('bl-link-boletim').style.display  = 'none';
+  document.getElementById('bl-resumo-disparo').innerHTML    = '<div class="state-box"><p>Complete as etapas anteriores antes de disparar.</p></div>';
+  document.getElementById('bl-disparo-form').style.display  = 'none';
+  blSwitchTab('montar');
+}
+
+function blSwitchTab(tab) {
+  ['montar','revisar','disparar'].forEach(t => {
+    document.getElementById(`bl-tab-${t}`)?.classList.toggle('active', t === tab);
+    const p = document.getElementById(`bl-panel-${t}`); if (p) p.style.display = t === tab ? '' : 'none';
+  });
+}
+
+// ── Aba 1: gerenciar editais ──
+
+function blAbrirFormEdital() {
+  const form = document.getElementById('bl-form-edital');
+  form.style.display = 'block';
+  ['bfe-titulo','bfe-orgao','bfe-uf','bfe-valor','bfe-prazo','bfe-modalidade','bfe-objeto'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('bfe-titulo').focus();
+}
+
+function blCancelarFormEdital() {
+  document.getElementById('bl-form-edital').style.display = 'none';
+}
+
+function blAdicionarEdital() {
+  const titulo = document.getElementById('bfe-titulo').value.trim();
+  if (!titulo) { toast('Título obrigatório', 'error'); return; }
+  blEditais.push({
+    titulo,
+    orgao:     document.getElementById('bfe-orgao').value.trim(),
+    uf:        document.getElementById('bfe-uf').value.trim().toUpperCase(),
+    valor:     document.getElementById('bfe-valor').value.trim(),
+    prazo:     document.getElementById('bfe-prazo').value.trim(),
+    modalidade:document.getElementById('bfe-modalidade').value.trim(),
+    objeto:    document.getElementById('bfe-objeto').value.trim(),
+  });
+  blCancelarFormEdital();
+  blRenderEditais();
+}
+
+function blRemoverEdital(idx) {
+  blEditais.splice(idx, 1);
+  blRenderEditais();
+}
+
+function blRenderEditais() {
+  const lista = document.getElementById('bl-editais-lista');
+  if (!lista) return;
+  if (!blEditais.length) {
+    lista.innerHTML = '<div class="state-box" style="padding:24px"><p style="color:var(--text-muted);font-size:13px">Nenhum edital adicionado ainda.</p></div>';
+    return;
+  }
+  lista.innerHTML = blEditais.map((e, i) => `
+    <div class="bl-edital-card">
+      <div class="bl-edital-info">
+        <div class="bl-edital-titulo">${e.titulo}</div>
+        <div class="bl-edital-meta">
+          ${e.orgao ? `<span>🏛 ${e.orgao}</span>` : ''}
+          ${e.uf    ? `<span>📍 ${e.uf}</span>` : ''}
+          ${e.valor ? `<span>💰 ${e.valor}</span>` : ''}
+          ${e.prazo ? `<span>📅 ${e.prazo}</span>` : ''}
+          ${e.modalidade ? `<span>📋 ${e.modalidade}</span>` : ''}
+        </div>
+      </div>
+      <button class="bl-edital-remove" onclick="blRemoverEdital(${i})" title="Remover">×</button>
+    </div>`).join('');
+}
+
+async function blTriar() {
+  if (!blEditais.length)                     { toast('Adicione pelo menos um edital', 'error'); return; }
+  const nome  = document.getElementById('bl-cliente-nome').value.trim();
+  const nicho = document.getElementById('bl-cliente-nicho').value.trim();
+  if (!nome)                                 { toast('Informe o nome do cliente', 'error'); return; }
+
+  const btn = document.getElementById('bl-btn-triar');
+  btn.disabled = true; btn.textContent = '⏳ Triando com Edson…';
+
+  try {
+    const r = await fetch(`${API}/api/boletim/triar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cliente_nome: nome, cliente_nicho: nicho, editais: blEditais }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro na triagem');
+    blTriagem = d.triagem || [];
+    toast(`Triagem concluída! ${blTriagem.length} edital(is) analisado(s)`, 'success');
+    blSwitchTab('revisar');
+    blRenderRevisao();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🤖 Triar com Edson';
+  }
+}
+
+// ── Aba 2: revisão ──
+
+function blRenderRevisao() {
+  const area = document.getElementById('bl-revisao-area');
+  if (!area) return;
+  if (!blTriagem.length) { area.innerHTML = '<div class="state-box"><p>Sem dados de triagem.</p></div>'; return; }
+
+  area.innerHTML = blEditais.map((e, i) => {
+    const t = blTriagem[i] || {};
+    const s = t.score || 0;
+    const cls = s >= 8 ? 'bl-score-alto' : s >= 7 ? 'bl-score-bom' : s >= 5 ? 'bl-score-medio' : 'bl-score-baixo';
+    const recCls = t.recomendacao === 'Participar' ? 'bl-rec-participar' : t.recomendacao === 'Avaliar' ? 'bl-rec-avaliar' : 'bl-rec-dispensar';
+    return `
+      <div class="bl-rev-card">
+        <div class="bl-score-badge ${cls}">${s}</div>
+        <div class="bl-rev-body">
+          <div class="bl-rev-titulo">${e.titulo}</div>
+          <div class="bl-rev-meta">
+            ${e.orgao ? `<span>🏛 ${e.orgao}</span>` : ''}
+            ${e.uf    ? `<span>📍 ${e.uf}</span>` : ''}
+            ${e.valor ? `<span>💰 ${e.valor}</span>` : ''}
+            ${e.prazo ? `<span>📅 ${e.prazo}</span>` : ''}
+            <span class="${recCls}">${t.recomendacao || '—'}</span>
+          </div>
+          <textarea class="bl-rev-just-input" rows="2"
+            data-idx="${i}"
+            placeholder="Justificativa do Edson…"
+            onchange="blTriagem[${i}].justificativa=this.value">${t.justificativa || ''}</textarea>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('bl-btn-gerar-wrap').style.display = 'block';
+}
+
+async function blGerarHtml() {
+  const clienteNome = document.getElementById('bl-cliente-nome').value.trim();
+  const semana      = document.getElementById('bl-semana').value.trim();
+  if (!clienteNome || !semana) { toast('Preencha cliente e semana', 'error'); return; }
+
+  const editais_triados = blEditais.map((e, i) => ({
+    ...e, ...(blTriagem[i] || {}),
+  }));
+
+  try {
+    const r = await fetch(`${API}/api/boletim/gerar-html`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cliente_nome: clienteNome, semana, editais_triados }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro ao gerar');
+    blUrlBoletim = d.url;
+    const linkWrap = document.getElementById('bl-link-boletim');
+    const linkEl   = document.getElementById('bl-link-boletim-url');
+    linkEl.href    = d.url;
+    linkWrap.style.display = 'block';
+    toast('HTML gerado com sucesso!', 'success');
+
+    // Pré-preenche mensagem WhatsApp
+    const appUrl = window.location.origin;
+    const msgPad = `📋 *Boletim de Licitações — Semana ${semana}*\n\nOlá, ${clienteNome}!\n\nSeu boletim semanal está pronto 👇\n${appUrl}${d.url}`;
+    const msgEl = document.getElementById('bl-msg-wpp');
+    if (msgEl && !msgEl.value) msgEl.value = msgPad;
+
+    blRenderResumoDisparo();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ── Aba 3: disparar ──
+
+function blRenderResumoDisparo() {
+  const participar = blTriagem.filter(t => t.recomendacao === 'Participar').length;
+  document.getElementById('bl-resumo-disparo').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+      <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num">${blEditais.length}</span><span class="mkt-ed-kpi-label">Editais</span></div>
+      <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num kpi-publicado">${participar}</span><span class="mkt-ed-kpi-label">Participar</span></div>
+      <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num">${document.getElementById('bl-cliente-nome').value}</span><span class="mkt-ed-kpi-label">Cliente</span></div>
+      <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num">${document.getElementById('bl-semana').value}</span><span class="mkt-ed-kpi-label">Semana</span></div>
+    </div>`;
+  document.getElementById('bl-disparo-form').style.display = 'block';
+  blSwitchTab('disparar');
+}
+
+async function blDisparar() {
+  const btn = document.getElementById('bl-btn-disparar');
+  if (!blUrlBoletim) { toast('Gere o HTML do boletim primeiro (aba "Revisar e Gerar")', 'error'); return; }
+  const canal = document.querySelector('input[name="bl-canal"]:checked')?.value || 'whatsapp';
+  btn.disabled = true; btn.textContent = '⏳ Disparando…';
+
+  const editais_triados = blEditais.map((e, i) => ({ ...e, ...(blTriagem[i] || {}) }));
+
+  try {
+    const r = await fetch(`${API}/api/boletim/disparar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        cliente_nome:      document.getElementById('bl-cliente-nome').value.trim(),
+        cliente_email:     document.getElementById('bl-cliente-email').value.trim(),
+        cliente_whatsapp:  document.getElementById('bl-cliente-whatsapp').value.trim(),
+        semana:            document.getElementById('bl-semana').value.trim(),
+        url_boletim:       blUrlBoletim,
+        mensagem_whatsapp: document.getElementById('bl-msg-wpp').value.trim(),
+        canal,
+        editais_triados,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro ao disparar');
+    const enviados = d.canais_enviados?.join(', ') || 'nenhum';
+    toast(`✅ Boletim disparado via ${enviados}!`, 'success');
+    if (d.erros?.length) toast('Avisos: ' + d.erros.join('; '), 'error');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '📨 Disparar agora';
+  }
+}
+
+// ─── hook na função de navegação ───
+// carregarBoletins é chamada quando a seção Boletins é ativada (linha 3932)
+// Redefine o comportamento para inicializar o novo workflow
+const _oldCarregarBoletins = typeof carregarBoletins !== 'undefined' ? carregarBoletins : null;
+function carregarBoletins() { blInit(); }
 
 // ═══════════════════════════════════════════════════
 // MÓDULO MARKETING — CALENDÁRIO EDITORIAL

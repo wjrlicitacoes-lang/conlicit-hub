@@ -861,6 +861,35 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     END $$;
   `);
 
+  // boletins — histórico de boletins manuais disparados
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS boletins (
+      id           SERIAL PRIMARY KEY,
+      cliente_id   INTEGER,
+      cliente_nome VARCHAR(255),
+      semana       VARCHAR(20),
+      editais_json JSONB,
+      html_url     TEXT,
+      disparado_em TIMESTAMP,
+      canal        VARCHAR(20),
+      criado_em    TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS boletins_items (
+      id            SERIAL PRIMARY KEY,
+      boletim_id    INTEGER REFERENCES boletins(id) ON DELETE CASCADE,
+      titulo        TEXT,
+      orgao         VARCHAR(255),
+      uf            CHAR(2),
+      valor         VARCHAR(50),
+      prazo         VARCHAR(30),
+      score         INTEGER,
+      justificativa TEXT,
+      recomendacao  VARCHAR(20)
+    )
+  `);
+
   // marketing_conteudos — calendário editorial
   await db.query(`
     CREATE TABLE IF NOT EXISTS marketing_conteudos (
