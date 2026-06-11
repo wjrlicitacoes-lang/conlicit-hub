@@ -3536,7 +3536,12 @@
       <div id="tab-docs-hub"     class="tab-pane"></div>
       <div id="tab-geradores"    class="tab-pane"></div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button data-admin-only onclick="excluirClienteAtual(event)"
+        style="font-size:12px;color:#ef4444;background:none;border:1px solid #ef4444;
+          border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <i class="ti ti-trash" style="font-size:14px;"></i> Excluir cliente
+      </button>
       <button class="btn btn-ghost" onclick="fecharDetalheCliente()">Fechar</button>
     </div>
   </div>
@@ -3556,6 +3561,7 @@
   let editaisResultados = [];
 
   let clientesCache = [];
+  let _statusFiltroClientes = true; // true = ativos, false = inativos
   let boletinsCache = [];
 
   // ── Tema Light/Dark ────────────────────────────────────────────
@@ -4038,6 +4044,7 @@
       if (r.status === 401) { logout(); return; }
       const d = await r.json();
       clientesCache = d.dados || [];
+      window._todosClientes = clientesCache;
       if (clientesCache.length === 0) {
         area.innerHTML = `<div class="state-box">
           <span class="icon">👥</span>
@@ -4046,14 +4053,61 @@
         </div>`;
         return;
       }
+      const nAtivos   = clientesCache.filter(c => c.ativo).length;
+      const nInativos = clientesCache.filter(c => !c.ativo).length;
       area.innerHTML = `
-        <div style="margin-bottom:.75rem;font-size:.85rem;color:var(--text-muted)">
-          <strong style="color:var(--primary)">${clientesCache.length}</strong> cliente${clientesCache.length !== 1 ? 's' : ''} cadastrado${clientesCache.length !== 1 ? 's' : ''}
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:1.5rem;border-bottom:1px solid #1e3a4a;">
+          <button id="tab-clientes-ativos" onclick="filtrarClientesPorStatus(true)"
+            style="padding:10px 20px;font-size:13px;font-weight:500;background:none;border:none;
+              border-bottom:2px solid ${_statusFiltroClientes ? '#4CC5D7' : 'transparent'};
+              color:${_statusFiltroClientes ? '#4CC5D7' : '#64748b'};cursor:pointer;">
+            Ativos <span id="count-ativos"
+              style="font-size:11px;background:#1e3a4a;border-radius:20px;padding:2px 7px;margin-left:4px;">${nAtivos}</span>
+          </button>
+          <button id="tab-clientes-inativos" onclick="filtrarClientesPorStatus(false)"
+            style="padding:10px 20px;font-size:13px;font-weight:500;background:none;border:none;
+              border-bottom:2px solid ${!_statusFiltroClientes ? '#4CC5D7' : 'transparent'};
+              color:${!_statusFiltroClientes ? '#4CC5D7' : '#64748b'};cursor:pointer;">
+            Inativos <span id="count-inativos"
+              style="font-size:11px;background:${nInativos > 0 ? '#3b1a1a' : '#1e3a4a'};
+                color:${nInativos > 0 ? '#ef4444' : 'inherit'};
+                border-radius:20px;padding:2px 7px;margin-left:4px;">${nInativos}</span>
+          </button>
         </div>
-        <div class="client-grid">${clientesCache.map(c => renderClienteCard(c)).join('')}</div>`;
+        <div class="client-grid" id="client-grid"></div>`;
+      renderCardsClientes(clientesCache, _statusFiltroClientes);
     } catch {
       area.innerHTML = '<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3></div>';
     }
+  }
+
+  function filtrarClientesPorStatus(ativo) {
+    _statusFiltroClientes = ativo;
+    const tabAtivos   = document.getElementById('tab-clientes-ativos');
+    const tabInativos = document.getElementById('tab-clientes-inativos');
+    if (!tabAtivos || !tabInativos) return;
+    if (ativo) {
+      tabAtivos.style.borderBottomColor   = '#4CC5D7'; tabAtivos.style.color   = '#4CC5D7';
+      tabInativos.style.borderBottomColor = 'transparent'; tabInativos.style.color = '#64748b';
+    } else {
+      tabInativos.style.borderBottomColor = '#4CC5D7'; tabInativos.style.color   = '#4CC5D7';
+      tabAtivos.style.borderBottomColor   = 'transparent'; tabAtivos.style.color = '#64748b';
+    }
+    renderCardsClientes(window._todosClientes || [], ativo);
+  }
+
+  function renderCardsClientes(clientes, ativo) {
+    const container = document.getElementById('client-grid');
+    if (!container) return;
+    const filtrados = clientes.filter(c => !!c.ativo === ativo);
+    if (filtrados.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#64748b;">
+        <div style="font-size:48px;margin-bottom:12px;opacity:0.3;">👥</div>
+        <p style="margin:0;font-size:14px;">${ativo ? 'Nenhum cliente ativo.' : 'Nenhum cliente inativo.'}</p>
+      </div>`;
+      return;
+    }
+    container.innerHTML = filtrados.map(c => renderClienteCard(c)).join('');
   }
 
   function renderClienteCard(c) {
@@ -4063,7 +4117,9 @@
     const extra = (c.palavras_chave || []).length > 3
       ? `<span class="keyword-tag">+${c.palavras_chave.length - 3}</span>` : '';
     const comissao = parseFloat(c.valor_contrato || 0) * parseFloat(c.percentual_comissao || 0) / 100;
-    return `<div class="client-card" onclick="abrirDetalheCliente(${c.id})">
+    const estiloInativo = c.ativo ? '' : 'opacity:0.65;filter:grayscale(25%);';
+    const nomeEscapado = (c.nome || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return `<div class="client-card" style="${estiloInativo}" onclick="abrirDetalheCliente(${c.id})">
       <div class="client-card-header">
         <div style="display:flex;align-items:center;gap:.6rem">
           <div class="client-avatar">${inicial}</div>
@@ -4092,6 +4148,14 @@
           <span class="mini-label">A disputar</span>
           <span class="mini-value">${c.pregoes_a_disputar ?? 0}</span>
         </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px solid #1e3a4a;">
+        <button onclick="confirmarExcluirCliente(${c.id},'${nomeEscapado}',event)"
+          style="font-size:11px;color:#ef4444;background:none;border:none;cursor:pointer;
+            display:flex;align-items:center;gap:4px;opacity:0.6;transition:opacity 0.15s;padding:0;"
+          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+          <i class="ti ti-trash" style="font-size:13px;"></i> Excluir
+        </button>
       </div>
     </div>`;
   }
@@ -4149,6 +4213,47 @@
     clienteAtual = null;
     tabsLoaded = {};
     abrirFormCliente(c);
+  }
+
+  function excluirClienteAtual(event) {
+    if (!clienteAtual) return;
+    confirmarExcluirCliente(clienteAtual.id, clienteAtual.nome, event);
+  }
+
+  async function confirmarExcluirCliente(clienteId, nomeCliente, event) {
+    if (event) event.stopPropagation();
+    const confirmado = window.confirm(
+      `Excluir "${nomeCliente}"?\n\nEsta ação é irreversível e removerá todos os dados do cliente.`
+    );
+    if (!confirmado) return;
+    try {
+      const r = await fetch(`${API}/clientes/${clienteId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      if (!r.ok) { toast(data.erro || 'Erro ao excluir', 'error'); return; }
+
+      toast(`${nomeCliente} excluído com sucesso`, 'success');
+
+      // Fechar modal de detalhe se estiver aberto
+      document.getElementById('modal-detalhe').classList.remove('visible');
+      clienteAtual = null;
+      tabsLoaded = {};
+
+      // Atualizar memória e re-renderizar
+      clientesCache = clientesCache.filter(c => c.id !== clienteId);
+      window._todosClientes = clientesCache;
+      const nAtivos   = clientesCache.filter(c => c.ativo).length;
+      const nInativos = clientesCache.filter(c => !c.ativo).length;
+      const countAtivos   = document.getElementById('count-ativos');
+      const countInativos = document.getElementById('count-inativos');
+      if (countAtivos)   countAtivos.textContent   = nAtivos;
+      if (countInativos) countInativos.textContent = nInativos;
+      renderCardsClientes(clientesCache, _statusFiltroClientes);
+    } catch (err) {
+      toast('Erro de conexão ao excluir cliente', 'error');
+    }
   }
 
   const TAB_NAMES = ['dados','pregoes','mensalidades','pagamentos','documentos','interesses'];
@@ -5757,11 +5862,18 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || 'Erro ao salvar');
       fecharModalCliente();
-      toast(id ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'success');
+      // Detectar se cliente foi inativado
       if (id) {
+        const anterior = clientesCache.find(c => c.id === parseInt(id, 10));
+        if (anterior && anterior.ativo && !ativo) {
+          toast(`${nome} movido para Inativos`, 'success');
+        } else {
+          toast('Cliente atualizado!', 'success');
+        }
         await carregarClientes();
         abrirDetalheCliente(parseInt(id, 10));
       } else {
+        toast('Cliente cadastrado!', 'success');
         carregarClientes();
       }
     } catch (err) {

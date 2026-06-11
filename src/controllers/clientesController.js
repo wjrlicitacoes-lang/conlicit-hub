@@ -231,4 +231,20 @@ async function dashboardStats(req, res) {
   }
 }
 
-module.exports = { cadastrar, listar, atualizar, stats, pregoesVencidos, dashboardStats };
+async function excluir(req, res) {
+  const { id } = req.params;
+  if (!['socio_fundador', 'admin'].includes(req.usuario?.role)) {
+    return res.status(403).json({ erro: 'Sem permissão para excluir clientes' });
+  }
+  try {
+    const { rows } = await db.query('SELECT id, nome FROM clientes WHERE id = $1', [id]);
+    if (rows.length === 0) return res.status(404).json({ erro: 'Cliente não encontrado' });
+    await db.query('DELETE FROM clientes WHERE id = $1', [id]);
+    return res.json({ sucesso: true, mensagem: `Cliente ${rows[0].nome} excluído` });
+  } catch (erro) {
+    console.error('[DELETE CLIENTE]', erro);
+    return res.status(500).json({ erro: erro.message });
+  }
+}
+
+module.exports = { cadastrar, listar, atualizar, excluir, stats, pregoesVencidos, dashboardStats };

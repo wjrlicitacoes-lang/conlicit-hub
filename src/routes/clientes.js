@@ -1,6 +1,6 @@
 const express = require('express');
 const multer  = require('multer');
-const { cadastrar, listar, atualizar, stats, pregoesVencidos, dashboardStats } = require('../controllers/clientesController');
+const { cadastrar, listar, atualizar, excluir, stats, pregoesVencidos, dashboardStats } = require('../controllers/clientesController');
 const pregoes          = require('../controllers/pregoesController');
 const _uploadDoc = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
@@ -31,9 +31,10 @@ router.get('/vencidos',        pregoesVencidos);
 router.get('/dashboard-stats', dashboardStats);
 router.get('/pregoes',  pregoes.listarTodos);
 
-router.post('/',     cadastrar);
-router.get('/',      listar);
-router.patch('/:id', atualizar);
+router.post('/',      cadastrar);
+router.get('/',       listar);
+router.patch('/:id',  atualizar);
+router.delete('/:id', excluir);
 
 // Sub-recursos de cliente (protegerCliente garante que role=cliente só acessa o próprio id)
 router.get('/:id/pregoes',             protegerCliente, pregoes.listar);
