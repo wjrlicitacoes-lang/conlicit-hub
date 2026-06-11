@@ -10672,7 +10672,8 @@ ${nomes}${dados.length > 5 ? `
     const porStatus = {};
     PROSPECT_STATUS.forEach(c => { porStatus[c.id] = []; });
     dados.forEach(p => {
-      if (porStatus[p.status]) porStatus[p.status].push(p);
+      const sc = p.status_contato || p.status;
+      if (porStatus[sc]) porStatus[sc].push(p);
       else if (porStatus['em_negociacao']) porStatus['em_negociacao'].push(p);
     });
 
@@ -10700,7 +10701,7 @@ ${nomes}${dados.length > 5 ? `
               return `<div
                 draggable="true"
                 data-id="${p.id}"
-                data-status="${p.status}"
+                data-status="${p.status_contato || p.status}"
                 ondragstart="kanbanDragStart(event)"
                 ondragend="kanbanDragEnd(event)"
                 style="background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:8px 9px;cursor:grab;transition:opacity 0.15s,transform 0.15s;"
@@ -10714,7 +10715,7 @@ ${nomes}${dados.length > 5 ? `
                 </div>
                 <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
                   <select style="font-size:.67rem;padding:2px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:var(--t1);cursor:pointer" onchange="moverProspect(${p.id},this.value)" onclick="event.stopPropagation()">
-                    ${PROSPECT_STATUS.map(c => `<option value="${c.id}" ${c.id===p.status?'selected':''}>${c.label}</option>`).join('')}
+                    ${PROSPECT_STATUS.map(c => `<option value="${c.id}" ${c.id===(p.status_contato||p.status)?'selected':''}>${c.label}</option>`).join('')}
                   </select>
                   <button style="font-size:.63rem;padding:2px 5px;background:rgba(76,197,215,.15);border:1px solid var(--primary);border-radius:4px;color:var(--primary);cursor:pointer" onclick="event.stopPropagation();verTimelineProspect(${p.id},'${esc(p.nome)}')" title="Ver histórico">🕐</button>
                   <button style="font-size:.63rem;padding:2px 5px;background:rgba(249,115,22,.15);border:1px solid #f97316;border-radius:4px;color:#f97316;cursor:pointer" onclick="event.stopPropagation();abrirEmailProspect(${p.id},'${esc(p.nome)}','${esc(p.email||'')}')" title="Enviar e-mail">✉</button>
@@ -10886,11 +10887,16 @@ ${nomes}${dados.length > 5 ? `
 
   async function moverProspect(id, novoStatus) {
     try {
-      await fetch(`${API}/prospects/${id}`, {
+      const r = await fetch(`${API}/prospects/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: novoStatus }),
+        body: JSON.stringify({ status_contato: novoStatus }),
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d.detalhe || d.erro || 'Erro ao atualizar status', 'error');
+        return;
+      }
       carregarProspects();
     } catch (e) { toast(e.message, 'error'); }
   }

@@ -814,6 +814,26 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
+  // Expandir constraint de status dos prospects para incluir todos os valores usados no kanban
+  await db.query(`
+    DO $$
+    BEGIN
+      ALTER TABLE prospects DROP CONSTRAINT IF EXISTS prospects_status_check;
+    EXCEPTION WHEN others THEN NULL;
+    END $$;
+  `);
+  await db.query(`
+    DO $$ BEGIN
+      ALTER TABLE prospects ADD CONSTRAINT prospects_status_check
+        CHECK (status IN (
+          'novo_lead','em_negociacao','proposta_enviada','aguardando',
+          'resumo_enviado','em_followup','convertido','perdido',
+          'contato_feito','respondido','fechado','sem_interesse'
+        ));
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

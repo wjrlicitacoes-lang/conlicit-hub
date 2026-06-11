@@ -804,8 +804,11 @@ async function atualizarStatus(req, res) {
       `Status alterado para "${status_contato}" por ${req.usuario?.email || 'sistema'}`);
     return res.json(p);
   } catch (e) {
-    console.error('[Prospects] atualizarStatus:', e.message);
-    return res.status(500).json({ erro: 'Erro interno' });
+    console.error('[Prospects] atualizarStatus ERRO:', {
+      message: e.message, code: e.code, detail: e.detail,
+      prospectId: id, status_contato,
+    });
+    return res.status(500).json({ erro: e.message, codigo: e.code, detalhe: e.detail });
   }
 }
 
