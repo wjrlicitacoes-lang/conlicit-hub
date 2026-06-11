@@ -780,6 +780,40 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS obs_2fa         TEXT`);
   await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acessos_portais_portal_id ON acessos_portais(cliente_id, portal_id) WHERE portal_id IS NOT NULL`);
 
+  // ── Configurações do sistema (chave/valor) ────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS system_configs (
+      key        VARCHAR(100) PRIMARY KEY,
+      value      TEXT,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  // ── Template isca: Análise Gratuita de Edital ─────────────────────────────────
+  await db.query(`
+    INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
+    VALUES (
+      'isca_analise_gratuita',
+      'Isca — Análise Gratuita de Edital',
+      '{{empresa}}, temos uma oportunidade para você',
+      $TMPL$Olá, {{nome}}!
+
+Somos da Conlicit, consultoria especializada em licitações públicas.
+
+Identificamos que a {{empresa}} tem perfil para participar de contratos públicos no segmento de {{segmento}}.
+
+Como presente, queremos te oferecer uma análise gratuita de edital — sem compromisso.
+
+É só responder esse e-mail com interesse que enviamos uma análise completa de uma licitação compatível com o seu negócio.
+
+Atenciosamente,
+{{remetente_nome}}
+Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
+      ARRAY['nome','empresa','segmento','remetente_nome']
+    )
+    ON CONFLICT (slug) DO NOTHING
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 

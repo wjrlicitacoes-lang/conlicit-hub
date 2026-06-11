@@ -3,6 +3,12 @@ const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controllers/marketingController');
 
+// Configuração e status Brevo (rotas fixas antes de /:id)
+router.get('/brevo/status',  ctrl.brevoStatus);
+router.get('/config',        ctrl.getConfig);
+router.post('/config',       ctrl.saveConfig);
+
+// Campanhas
 router.get('/',              ctrl.listarCampanhas);
 router.post('/',             ctrl.criarCampanha);
 router.put('/:id',           ctrl.editarCampanha);

@@ -1,6 +1,53 @@
 'use strict';
-const db   = require('../database/db');
+const db    = require('../database/db');
 const axios = require('axios');
+
+async function brevoStatus(req, res) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) return res.json({ conectado: false, motivo: 'BREVO_API_KEY não configurada no servidor' });
+  try {
+    const { data } = await axios.get('https://api.brevo.com/v3/account', {
+      headers: { 'api-key': apiKey },
+      timeout: 6000,
+    });
+    // Buscar remetente salvo no banco
+    const { rows } = await db.query(`SELECT key, value FROM system_configs WHERE key IN ('brevo_remetente_email','brevo_remetente_nome')`);
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    return res.json({
+      conectado: true,
+      email: data.email,
+      plano: data.plan?.[0]?.type || 'free',
+      remetente_email: cfg.brevo_remetente_email || process.env.BREVO_REMETENTE_EMAIL || '',
+      remetente_nome:  cfg.brevo_remetente_nome  || process.env.BREVO_REMETENTE_NOME  || 'Conlicit',
+    });
+  } catch (e) {
+    return res.json({ conectado: false, motivo: e.response?.data?.message || e.message });
+  }
+}
+
+async function getConfig(req, res) {
+  try {
+    const { rows } = await db.query(`SELECT key, value FROM system_configs WHERE key IN ('brevo_remetente_email','brevo_remetente_nome')`);
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    return res.json({
+      remetente_email: cfg.brevo_remetente_email || process.env.BREVO_REMETENTE_EMAIL || '',
+      remetente_nome:  cfg.brevo_remetente_nome  || process.env.BREVO_REMETENTE_NOME  || 'Conlicit',
+    });
+  } catch (e) { return res.status(500).json({ erro: e.message }); }
+}
+
+async function saveConfig(req, res) {
+  const { remetente_email, remetente_nome } = req.body ?? {};
+  try {
+    if (remetente_email !== undefined) {
+      await db.query(`INSERT INTO system_configs (key, value, updated_at) VALUES ('brevo_remetente_email',$1,NOW()) ON CONFLICT (key) DO UPDATE SET value=$1, updated_at=NOW()`, [remetente_email]);
+    }
+    if (remetente_nome !== undefined) {
+      await db.query(`INSERT INTO system_configs (key, value, updated_at) VALUES ('brevo_remetente_nome',$1,NOW()) ON CONFLICT (key) DO UPDATE SET value=$1, updated_at=NOW()`, [remetente_nome]);
+    }
+    return res.json({ ok: true });
+  } catch (e) { return res.status(500).json({ erro: e.message }); }
+}
 
 async function listarCampanhas(req, res) {
   try {
@@ -112,11 +159,26 @@ async function dispararCampanha(req, res) {
         if (camp.tipo === 'email' && p.email) {
           const apiKey = process.env.BREVO_API_KEY;
           if (apiKey) {
+            // Remetente: DB > env > fallback
+            const { rows: cfgRows } = await db.query(`SELECT key,value FROM system_configs WHERE key IN ('brevo_remetente_email','brevo_remetente_nome')`).catch(() => ({ rows: [] }));
+            const cfg = Object.fromEntries((cfgRows || []).map(r => [r.key, r.value]));
+            const senderEmail = cfg.brevo_remetente_email || process.env.BREVO_REMETENTE_EMAIL || process.env.BREVO_FROM_EMAIL || 'noreply@conlicit.com';
+            const senderName  = cfg.brevo_remetente_nome  || process.env.BREVO_REMETENTE_NOME  || 'Conlicit';
             await axios.post('https://api.brevo.com/v3/smtp/email', {
-              sender:      { name: 'Conlicit', email: process.env.BREVO_FROM_EMAIL || 'noreply@conlicit.com' },
+              sender:      { name: senderName, email: senderEmail },
               to:          [{ email: p.email, name: nomeEmpresa }],
-              subject:     (camp.assunto || camp.nome).replace(/\{\{empresa\}\}/gi, nomeEmpresa).replace(/\{\{nome\}\}/gi, p.nome || nomeEmpresa),
-              htmlContent: camp.corpo.replace(/\{\{empresa\}\}/gi, nomeEmpresa).replace(/\{\{nome\}\}/gi, p.nome || nomeEmpresa),
+              subject:     (camp.assunto || camp.nome)
+                .replace(/\{\{empresa\}\}/gi, nomeEmpresa).replace(/\{\{nome\}\}/gi, p.nome || nomeEmpresa)
+                .replace(/\{\{remetente_nome\}\}/gi, senderName),
+              htmlContent: (() => {
+                const corpo = camp.corpo
+                  .replace(/\{\{empresa\}\}/gi, nomeEmpresa)
+                  .replace(/\{\{nome\}\}/gi, p.nome || nomeEmpresa)
+                  .replace(/\{\{nicho\}\}/gi, p.nicho || '')
+                  .replace(/\{\{segmento\}\}/gi, p.nicho || '')
+                  .replace(/\{\{remetente_nome\}\}/gi, senderName);
+                return corpo.includes('<') ? corpo : `<p>${corpo.replace(/\n/g, '<br>')}</p>`;
+              })(),
             }, {
               headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
               timeout: 10000,
@@ -190,4 +252,4 @@ async function leadsParaCampanha(req, res) {
   }
 }
 
-module.exports = { listarCampanhas, criarCampanha, editarCampanha, excluirCampanha, dispararCampanha, leadsParaCampanha };
+module.exports = { listarCampanhas, criarCampanha, editarCampanha, excluirCampanha, dispararCampanha, leadsParaCampanha, brevoStatus, getConfig, saveConfig };
