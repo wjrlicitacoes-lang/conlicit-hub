@@ -861,6 +861,29 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     END $$;
   `);
 
+  // marketing_conteudos — calendário editorial
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS marketing_conteudos (
+      id              SERIAL PRIMARY KEY,
+      canal           VARCHAR(30) NOT NULL,
+      data_publicacao DATE NOT NULL,
+      tipo_conteudo   VARCHAR(50),
+      titulo          VARCHAR(200),
+      texto_midia     TEXT,
+      legenda         TEXT,
+      hashtags        TEXT,
+      status          VARCHAR(20) NOT NULL DEFAULT 'rascunho',
+      url_midia       TEXT,
+      nome_arquivo    VARCHAR(255),
+      criado_por      INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      criado_em       TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_canal  ON marketing_conteudos(canal)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_data   ON marketing_conteudos(data_publicacao)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_status ON marketing_conteudos(status)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

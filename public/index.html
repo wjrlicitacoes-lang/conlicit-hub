@@ -1655,6 +1655,76 @@
     .planilha-input:focus{border-color:#4CC5D7}
     .planilha-input::placeholder{color:#475569}
     /* ===== FIM PLANILHA DE PREÇOS — TABELA ===== */
+
+    /* ═══════════════════════════════════════════
+       MÓDULO MARKETING — CALENDÁRIO EDITORIAL
+    ═══════════════════════════════════════════ */
+    .mkt-ed-tabs-wrap{border-bottom:1.5px solid var(--border);margin:16px 0 0}
+    .mkt-ed-tabs{display:flex;gap:4px;flex-wrap:wrap}
+    .mkt-ed-tab{display:flex;align-items:center;gap:6px;padding:9px 15px;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;margin-bottom:-1.5px}
+    .mkt-ed-tab:hover{color:#fff}
+    .mkt-ed-tab.active{color:#4CC5D7;border-bottom-color:#4CC5D7}
+
+    .mkt-ed-filtros{display:flex;gap:12px;flex-wrap:wrap;padding:12px 0 8px;align-items:flex-end}
+    .mkt-ed-filtros label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px}
+    .mkt-ed-filtros select{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer}
+
+    .mkt-ed-kpis{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+    .mkt-ed-kpi{background:var(--surface);border-radius:10px;padding:10px 18px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px;border:1px solid var(--border)}
+    .mkt-ed-kpi-num{font-size:20px;font-weight:800;color:#4CC5D7}
+    .mkt-ed-kpi-num.kpi-rascunho{color:var(--text-muted)}
+    .mkt-ed-kpi-num.kpi-producao{color:#F59E0B}
+    .mkt-ed-kpi-num.kpi-aprovado{color:#4CC5D7}
+    .mkt-ed-kpi-num.kpi-publicado{color:#10B981}
+    .mkt-ed-kpi-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600}
+
+    .mkt-ed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:8px}
+    .mkt-ed-card{background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);transition:border-color .18s}
+    .mkt-ed-card:hover{border-color:#4CC5D7}
+    .mkt-ed-card-midia{width:100%;height:150px;background:#0f1f2d;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    .mkt-ed-card-midia img{width:100%;height:100%;object-fit:cover}
+    .mkt-ed-card-midia .ed-no-midia{font-size:32px;opacity:.2}
+    .mkt-ed-card-midia .ed-video-badge{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 7px;border-radius:20px}
+    .mkt-ed-card-body{padding:12px 14px}
+    .mkt-ed-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px}
+    .mkt-ed-card-data{font-size:11px;color:var(--text-muted);font-weight:600}
+    .mkt-ed-card-tipo{font-size:11px;background:rgba(76,197,215,.1);color:#4CC5D7;padding:2px 8px;border-radius:20px;font-weight:600}
+    .mkt-ed-card-titulo{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.35}
+    .mkt-ed-card-legenda{font-size:12px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:9px}
+    .mkt-ed-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:9px;border-top:1px solid var(--border)}
+    .mkt-ed-status{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;text-transform:uppercase}
+    .mkt-ed-status-rascunho{background:rgba(138,170,187,.1);color:var(--text-muted)}
+    .mkt-ed-status-em_producao{background:rgba(245,158,11,.1);color:#F59E0B}
+    .mkt-ed-status-aprovado{background:rgba(76,197,215,.1);color:#4CC5D7}
+    .mkt-ed-status-publicado{background:rgba(16,185,129,.1);color:#10B981}
+    .mkt-ed-card-acoes{display:flex;gap:6px}
+    .mkt-ed-card-acoes button{background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 9px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
+    .mkt-ed-card-acoes button:hover{border-color:#4CC5D7;color:#4CC5D7}
+    .mkt-ed-empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--text-muted)}
+    .mkt-ed-empty p{margin-bottom:14px;font-size:14px}
+
+    /* Calendário geral editorial */
+    .mkt-cal-semana{margin-bottom:22px}
+    .mkt-cal-semana-titulo{font-size:11px;font-weight:700;color:#4CC5D7;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;padding:5px 0;border-bottom:1px solid var(--border)}
+    .mkt-cal-lista{display:flex;flex-direction:column;gap:5px}
+    .mkt-cal-item{display:flex;align-items:center;gap:10px;background:var(--surface);padding:9px 13px;border-radius:8px;border-left:3px solid var(--border);cursor:pointer;transition:border-color .15s}
+    .mkt-cal-item:hover{border-left-color:#4CC5D7}
+    .mkt-cal-item-data{font-size:11px;color:var(--text-muted);min-width:48px;font-weight:600}
+    .mkt-cal-item-canal{font-size:15px;min-width:20px}
+    .mkt-cal-item-info{flex:1}
+    .mkt-cal-item-titulo{font-size:13px;font-weight:600;color:var(--text)}
+    .mkt-cal-item-tipo{font-size:11px;color:var(--text-muted)}
+
+    /* Modal editorial */
+    .modal-ed-mkt{width:680px;max-width:95vw;max-height:90vh;overflow-y:auto}
+    .mkt-upload-area{border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:border-color .18s;background:#0f1f2d}
+    .mkt-upload-area:hover{border-color:#4CC5D7}
+    .mkt-upload-placeholder{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);font-size:12px}
+    .mkt-upload-placeholder .up-icon{font-size:26px}
+    .mkt-upload-preview img{max-height:160px;max-width:100%;border-radius:8px;object-fit:contain}
+    .mkt-upload-preview .ed-file-name{font-size:12px;color:#4CC5D7;margin-top:6px}
+    .mkt-midia-link a{color:#4CC5D7;font-size:13px;text-decoration:none}
+    .mkt-midia-link a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -2892,6 +2962,7 @@
           <button id="mkt-tab-templates"    class="tab-btn"        onclick="mktSwitchTab('templates')">Templates Email</button>
           <button id="mkt-tab-logs"         class="tab-btn"        onclick="mktSwitchTab('logs')">Histórico</button>
           <button id="mkt-tab-configuracao" class="tab-btn"        onclick="mktSwitchTab('configuracao')">⚙ Configuração</button>
+          <button id="mkt-tab-editorial"    class="tab-btn"        onclick="mktSwitchTab('editorial')">📅 Editorial</button>
         </div>
 
         <div id="mkt-panel-campanhas">
@@ -2908,6 +2979,66 @@
 
         <div id="mkt-panel-configuracao" style="display:none">
           <div id="mkt-config-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+        </div>
+
+        <!-- Painel Editorial -->
+        <div id="mkt-panel-editorial" style="display:none">
+          <!-- Sub-abas por canal -->
+          <div class="mkt-ed-tabs-wrap">
+            <div class="mkt-ed-tabs">
+              <button class="mkt-ed-tab active" id="mkt-ed-tab-instagram"    onclick="mktEdSetCanal('instagram')">📸 Instagram / Facebook</button>
+              <button class="mkt-ed-tab"        id="mkt-ed-tab-linkedin"     onclick="mktEdSetCanal('linkedin')">💼 LinkedIn</button>
+              <button class="mkt-ed-tab"        id="mkt-ed-tab-youtube"      onclick="mktEdSetCanal('youtube')">▶️ YouTube</button>
+              <button class="mkt-ed-tab"        id="mkt-ed-tab-email"        onclick="mktEdSetCanal('email')">📧 E-mail Mkt</button>
+              <button class="mkt-ed-tab"        id="mkt-ed-tab-trafego_pago" onclick="mktEdSetCanal('trafego_pago')">🎯 Tráfego Pago</button>
+              <button class="mkt-ed-tab"        id="mkt-ed-tab-calendario"   onclick="mktEdSetCanal('calendario')">📅 Calendário Geral</button>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="mkt-ed-filtros" id="mkt-ed-filtros">
+            <div>
+              <label>Mês</label>
+              <select id="mkt-ed-mes" onchange="mktEdCarregar()">
+                <option value="">Todos</option>
+                <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
+                <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
+                <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+              </select>
+            </div>
+            <div>
+              <label>Ano</label>
+              <select id="mkt-ed-ano" onchange="mktEdCarregar()">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="mkt-ed-status" onchange="mktEdCarregar()">
+                <option value="">Todos</option>
+                <option value="rascunho">Rascunho</option>
+                <option value="em_producao">Em Produção</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="publicado">Publicado</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="mktEdAbrirModal(null)">+ Novo Conteúdo</button>
+          </div>
+
+          <!-- KPIs -->
+          <div class="mkt-ed-kpis">
+            <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num" id="mkt-ed-kpi-total">0</span><span class="mkt-ed-kpi-label">Total</span></div>
+            <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num kpi-rascunho" id="mkt-ed-kpi-rascunho">0</span><span class="mkt-ed-kpi-label">Rascunho</span></div>
+            <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num kpi-producao" id="mkt-ed-kpi-producao">0</span><span class="mkt-ed-kpi-label">Em Produção</span></div>
+            <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num kpi-aprovado" id="mkt-ed-kpi-aprovado">0</span><span class="mkt-ed-kpi-label">Aprovado</span></div>
+            <div class="mkt-ed-kpi"><span class="mkt-ed-kpi-num kpi-publicado" id="mkt-ed-kpi-publicado">0</span><span class="mkt-ed-kpi-label">Publicado</span></div>
+          </div>
+
+          <!-- Grid de cards -->
+          <div class="mkt-ed-grid" id="mkt-ed-grid"></div>
         </div>
       </section>
 
@@ -13499,7 +13630,7 @@ async function carregarMarketing() {
 
 function mktSwitchTab(tab) {
   mktTabAtiva = tab;
-  ['campanhas','templates','logs','configuracao'].forEach(t => {
+  ['campanhas','templates','logs','configuracao','editorial'].forEach(t => {
     document.getElementById(`mkt-tab-${t}`)?.classList.toggle('active', t === tab);
     const panel = document.getElementById(`mkt-panel-${t}`);
     if (panel) panel.style.display = t === tab ? '' : 'none';
@@ -13508,6 +13639,7 @@ function mktSwitchTab(tab) {
   else if (tab === 'templates')    mktCarregarTemplates();
   else if (tab === 'logs')         mktCarregarLogs();
   else if (tab === 'configuracao') mktCarregarConfig();
+  else if (tab === 'editorial')    mktEdInit();
 }
 
 async function mktCarregarConfig() {
@@ -14133,6 +14265,256 @@ async function mktSalvarTemplate() {
 })();
 // ===== FIM MÓDULO FINANCEIRO — PLANO =====
 
+// ═══════════════════════════════════════════════════
+// MÓDULO MARKETING — CALENDÁRIO EDITORIAL
+// ═══════════════════════════════════════════════════
+
+let mktEdCanalAtivo = 'instagram';
+let mktEdConteudos  = [];
+
+const MKT_ED_EMOJI = {
+  instagram: '📸', linkedin: '💼', youtube: '▶️',
+  email: '📧', trafego_pago: '🎯',
+};
+const MKT_ED_LABEL = {
+  instagram: 'Instagram / Facebook', linkedin: 'LinkedIn',
+  youtube: 'YouTube', email: 'E-mail Marketing', trafego_pago: 'Tráfego Pago',
+};
+
+function mktEdInit() {
+  mktEdCanalAtivo = 'instagram';
+  document.querySelectorAll('.mkt-ed-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('mkt-ed-tab-instagram')?.classList.add('active');
+  mktEdCarregar();
+}
+
+function mktEdSetCanal(canal) {
+  mktEdCanalAtivo = canal;
+  document.querySelectorAll('.mkt-ed-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`mkt-ed-tab-${canal}`)?.classList.add('active');
+  const filtros = document.getElementById('mkt-ed-filtros');
+  if (filtros) filtros.style.display = canal === 'calendario' ? 'none' : 'flex';
+  mktEdCarregar();
+}
+
+async function mktEdCarregar() {
+  const mes    = document.getElementById('mkt-ed-mes')?.value    || '';
+  const ano    = document.getElementById('mkt-ed-ano')?.value    || '2026';
+  const status = document.getElementById('mkt-ed-status')?.value || '';
+  try {
+    let url = `${API}/api/marketing/conteudos?`;
+    if (mktEdCanalAtivo !== 'calendario') url += `canal=${mktEdCanalAtivo}&`;
+    if (mes)    url += `mes=${mes}&`;
+    if (ano)    url += `ano=${ano}&`;
+    if (status) url += `status=${status}&`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    mktEdConteudos = await r.json();
+    mktEdRenderGrid();
+    mktEdAtualizarKPIs();
+  } catch (err) {
+    console.error('[MktEd] carregar:', err);
+  }
+}
+
+function mktEdAtualizarKPIs() {
+  const a = mktEdConteudos;
+  document.getElementById('mkt-ed-kpi-total').textContent     = a.length;
+  document.getElementById('mkt-ed-kpi-rascunho').textContent  = a.filter(c => c.status === 'rascunho').length;
+  document.getElementById('mkt-ed-kpi-producao').textContent  = a.filter(c => c.status === 'em_producao').length;
+  document.getElementById('mkt-ed-kpi-aprovado').textContent  = a.filter(c => c.status === 'aprovado').length;
+  document.getElementById('mkt-ed-kpi-publicado').textContent = a.filter(c => c.status === 'publicado').length;
+}
+
+function mktEdRenderGrid() {
+  const grid = document.getElementById('mkt-ed-grid');
+  if (!grid) return;
+
+  if (mktEdConteudos.length === 0) {
+    grid.innerHTML = `<div class="mkt-ed-empty">
+      <p>Nenhum conteúdo cadastrado para este canal.</p>
+      <button class="btn btn-primary btn-sm" onclick="mktEdAbrirModal(null)">+ Adicionar primeiro conteúdo</button>
+    </div>`;
+    return;
+  }
+
+  if (mktEdCanalAtivo === 'calendario') {
+    grid.style.display = 'block';
+    mktEdRenderCalendario(grid);
+    return;
+  }
+
+  grid.style.display = 'grid';
+  grid.innerHTML = mktEdConteudos.map(c => mktEdCardHTML(c)).join('');
+}
+
+function mktEdCardHTML(c) {
+  const ext   = (c.nome_arquivo || '').split('.').pop().toLowerCase();
+  const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+  const isVid = ['mp4','mov','avi'].includes(ext);
+  const emoji = MKT_ED_EMOJI[c.canal] || '📄';
+  const data  = c.data_publicacao ? new Date(c.data_publicacao + 'T00:00:00').toLocaleDateString('pt-BR') : '';
+
+  let midia = `<div class="ed-no-midia">${emoji}</div>`;
+  if (c.url_midia && isImg)      midia = `<img src="${c.url_midia}" alt="mídia" loading="lazy">`;
+  else if (c.url_midia && isVid) midia = `<video src="${c.url_midia}" style="width:100%;height:100%;object-fit:cover" muted></video><span class="ed-video-badge">▶ Vídeo</span>`;
+  else if (c.url_midia)          midia = `<div class="ed-no-midia">📄</div>`;
+
+  return `
+    <div class="mkt-ed-card">
+      <div class="mkt-ed-card-midia">${midia}</div>
+      <div class="mkt-ed-card-body">
+        <div class="mkt-ed-card-top">
+          <span class="mkt-ed-card-data">${data}</span>
+          <span class="mkt-ed-card-tipo">${c.tipo_conteudo || '—'}</span>
+        </div>
+        <div class="mkt-ed-card-titulo">${c.titulo || '(sem título)'}</div>
+        ${c.legenda ? `<div class="mkt-ed-card-legenda">${c.legenda}</div>` : ''}
+        <div class="mkt-ed-card-footer">
+          <span class="mkt-ed-status mkt-ed-status-${c.status}">${mktEdStatusLabel(c.status)}</span>
+          <div class="mkt-ed-card-acoes">
+            <button onclick="mktEdAbrirModal(${c.id})">Editar</button>
+            <button onclick="mktEdExcluir(${c.id})">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function mktEdRenderCalendario(container) {
+  const semanas = {};
+  mktEdConteudos.forEach(c => {
+    if (!c.data_publicacao) return;
+    const d = new Date(c.data_publicacao + 'T00:00:00');
+    const ini = new Date(d); ini.setDate(d.getDate() - d.getDay());
+    const key = ini.toISOString().substring(0, 10);
+    (semanas[key] = semanas[key] || []).push(c);
+  });
+  const sorted = Object.keys(semanas).sort();
+  if (!sorted.length) { container.innerHTML = '<div class="mkt-ed-empty"><p>Nenhum conteúdo encontrado.</p></div>'; return; }
+
+  container.innerHTML = sorted.map(k => {
+    const ini = new Date(k + 'T00:00:00');
+    const fim = new Date(k + 'T00:00:00'); fim.setDate(ini.getDate() + 6);
+    return `<div class="mkt-cal-semana">
+      <div class="mkt-cal-semana-titulo">Semana de ${ini.toLocaleDateString('pt-BR')} – ${fim.toLocaleDateString('pt-BR')}</div>
+      <div class="mkt-cal-lista">
+        ${semanas[k].map(c => `
+          <div class="mkt-cal-item" onclick="mktEdAbrirModal(${c.id})">
+            <span class="mkt-cal-item-data">${new Date(c.data_publicacao+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+            <span class="mkt-cal-item-canal">${MKT_ED_EMOJI[c.canal] || '📄'}</span>
+            <div class="mkt-cal-item-info">
+              <div class="mkt-cal-item-titulo">${c.titulo || '(sem título)'}</div>
+              <div class="mkt-cal-item-tipo">${MKT_ED_LABEL[c.canal] || c.canal} · ${c.tipo_conteudo || ''}</div>
+            </div>
+            <span class="mkt-ed-status mkt-ed-status-${c.status}">${mktEdStatusLabel(c.status)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mktEdStatusLabel(s) {
+  return { rascunho: 'Rascunho', em_producao: 'Em Produção', aprovado: 'Aprovado', publicado: 'Publicado' }[s] || s;
+}
+
+function mktEdAbrirModal(id = null) {
+  const modal = document.getElementById('modal-ed-mkt');
+  if (!modal) return;
+
+  ['mkt-ed-edit-id','mkt-ed-titulo-campo','mkt-ed-texto','mkt-ed-legenda','mkt-ed-hashtags'].forEach(fid => {
+    const el = document.getElementById(fid); if (el) el.value = '';
+  });
+  document.getElementById('mkt-ed-file').value = '';
+  document.getElementById('mkt-ed-up-preview').style.display = 'none';
+  document.getElementById('mkt-ed-up-placeholder').style.display = 'flex';
+  document.getElementById('mkt-ed-midia-atual-wrap').style.display = 'none';
+
+  if (id) {
+    const c = mktEdConteudos.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('modal-ed-titulo').textContent      = 'Editar Conteúdo';
+    document.getElementById('mkt-ed-edit-id').value            = c.id;
+    document.getElementById('mkt-ed-canal').value              = c.canal;
+    document.getElementById('mkt-ed-tipo').value               = c.tipo_conteudo || 'Post';
+    document.getElementById('mkt-ed-data').value               = (c.data_publicacao || '').substring(0, 10);
+    document.getElementById('mkt-ed-status-modal').value       = c.status || 'rascunho';
+    document.getElementById('mkt-ed-titulo-campo').value       = c.titulo || '';
+    document.getElementById('mkt-ed-texto').value              = c.texto_midia || '';
+    document.getElementById('mkt-ed-legenda').value            = c.legenda || '';
+    document.getElementById('mkt-ed-hashtags').value           = c.hashtags || '';
+    if (c.url_midia) {
+      document.getElementById('mkt-ed-midia-atual').innerHTML  = `<a href="${c.url_midia}" target="_blank">📎 ${c.nome_arquivo || 'Ver arquivo'}</a>`;
+      document.getElementById('mkt-ed-midia-atual-wrap').style.display = 'block';
+    }
+  } else {
+    document.getElementById('modal-ed-titulo').textContent     = 'Novo Conteúdo';
+    document.getElementById('mkt-ed-data').value               = new Date().toISOString().substring(0, 10);
+    if (mktEdCanalAtivo !== 'calendario')
+      document.getElementById('mkt-ed-canal').value            = mktEdCanalAtivo;
+  }
+
+  modal.classList.add('visible');
+}
+
+function mktEdFecharModal() {
+  document.getElementById('modal-ed-mkt')?.classList.remove('visible');
+}
+
+function mktEdPreviewArquivo(input) {
+  if (!input.files?.[0]) return;
+  const file = input.files[0];
+  const prev = document.getElementById('mkt-ed-up-preview');
+  document.getElementById('mkt-ed-up-placeholder').style.display = 'none';
+  prev.style.display = 'block';
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+    const reader = new FileReader();
+    reader.onload = e => { prev.innerHTML = `<img src="${e.target.result}"><div class="ed-file-name">${file.name}</div>`; };
+    reader.readAsDataURL(file);
+  } else {
+    prev.innerHTML = `<div style="font-size:28px;margin-bottom:6px">📎</div><div class="ed-file-name">${file.name}</div>`;
+  }
+}
+
+async function mktEdSalvar() {
+  const id  = document.getElementById('mkt-ed-edit-id').value;
+  const fd  = new FormData();
+  fd.append('canal',          document.getElementById('mkt-ed-canal').value);
+  fd.append('tipo_conteudo',  document.getElementById('mkt-ed-tipo').value);
+  fd.append('data_publicacao',document.getElementById('mkt-ed-data').value);
+  fd.append('status',         document.getElementById('mkt-ed-status-modal').value);
+  fd.append('titulo',         document.getElementById('mkt-ed-titulo-campo').value);
+  fd.append('texto_midia',    document.getElementById('mkt-ed-texto').value);
+  fd.append('legenda',        document.getElementById('mkt-ed-legenda').value);
+  fd.append('hashtags',       document.getElementById('mkt-ed-hashtags').value);
+  const file = document.getElementById('mkt-ed-file').files[0];
+  if (file) fd.append('midia', file);
+
+  try {
+    const url    = id ? `${API}/api/marketing/conteudos/${id}` : `${API}/api/marketing/conteudos`;
+    const method = id ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: fd });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast(d.erro || 'Erro ao salvar', 'error'); return; }
+    mktEdFecharModal();
+    await mktEdCarregar();
+    toast(id ? 'Conteúdo atualizado!' : 'Conteúdo criado!', 'success');
+  } catch (err) {
+    toast('Erro ao salvar conteúdo', 'error');
+    console.error(err);
+  }
+}
+
+async function mktEdExcluir(id) {
+  if (!confirm('Excluir este conteúdo?')) return;
+  try {
+    await fetch(`${API}/api/marketing/conteudos/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+    });
+    await mktEdCarregar();
+    toast('Conteúdo excluído', 'success');
+  } catch { toast('Erro ao excluir', 'error'); }
+}
+
 </script>
 
 <!-- MODAL: Alterar senha -->
@@ -14718,5 +15100,103 @@ async function mktSalvarTemplate() {
     el.textContent = el.textContent === '••••••••' ? senha : '••••••••';
   }
 </script>
+
+<!-- Modal: Criar/Editar conteúdo editorial -->
+<div class="modal-overlay" id="modal-ed-mkt" onclick="if(event.target===this)mktEdFecharModal()">
+  <div class="modal modal-ed-mkt" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-ed-titulo">Novo Conteúdo</h3>
+      <button class="modal-close" onclick="mktEdFecharModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="mkt-ed-edit-id">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Canal *</label>
+          <select id="mkt-ed-canal" class="form-control">
+            <option value="instagram">Instagram / Facebook</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="youtube">YouTube</option>
+            <option value="email">E-mail Marketing</option>
+            <option value="trafego_pago">Tráfego Pago</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Conteúdo</label>
+          <select id="mkt-ed-tipo" class="form-control">
+            <option value="Post">Post</option>
+            <option value="Reels/Shorts">Reels / Shorts</option>
+            <option value="Stories">Stories</option>
+            <option value="Carrossel">Carrossel</option>
+            <option value="Artigo">Artigo</option>
+            <option value="Email">E-mail</option>
+            <option value="Anúncio">Anúncio</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Data de Publicação *</label>
+          <input type="date" id="mkt-ed-data" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="mkt-ed-status-modal" class="form-control">
+            <option value="rascunho">Rascunho</option>
+            <option value="em_producao">Em Produção</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="publicado">Publicado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Título / Assunto</label>
+        <input type="text" id="mkt-ed-titulo-campo" class="form-control" placeholder="Ex: Post sobre habilitação — semana 2">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Texto da Mídia <span style="color:var(--text-muted);font-weight:400">(roteiro, briefing, copy)</span></label>
+        <textarea id="mkt-ed-texto" class="form-control" rows="5" placeholder="Descreva o conteúdo visual, roteiro do vídeo ou briefing…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Legenda / Caption</label>
+        <textarea id="mkt-ed-legenda" class="form-control" rows="3" placeholder="Texto que vai na publicação…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Hashtags</label>
+        <input type="text" id="mkt-ed-hashtags" class="form-control" placeholder="#conlicit #licitacoes #mercadopublico">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Upload de Mídia <span style="color:var(--text-muted);font-weight:400">(imagem, vídeo ou PDF — máx 50 MB)</span></label>
+        <div class="mkt-upload-area" onclick="document.getElementById('mkt-ed-file').click()">
+          <div class="mkt-upload-placeholder" id="mkt-ed-up-placeholder">
+            <span class="up-icon">📎</span>
+            <span>Clique para selecionar arquivo</span>
+            <span style="font-size:11px">JPG, PNG, GIF, MP4, MOV, PDF</span>
+          </div>
+          <div id="mkt-ed-up-preview" style="display:none"></div>
+        </div>
+        <input type="file" id="mkt-ed-file" style="display:none"
+          accept=".jpg,.jpeg,.png,.gif,.mp4,.mov,.avi,.pdf"
+          onchange="mktEdPreviewArquivo(this)">
+      </div>
+
+      <div id="mkt-ed-midia-atual-wrap" style="display:none" class="form-group">
+        <label class="form-label">Mídia atual</label>
+        <div class="mkt-midia-link" id="mkt-ed-midia-atual"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="mktEdFecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="mktEdSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
