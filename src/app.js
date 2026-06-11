@@ -30,6 +30,7 @@ const documentosClienteRoutes  = require('./routes/documentosCliente');
 const dashboardRoutes          = require('./routes/dashboard');
 const financeiroRoutes         = require('./routes/financeiro');
 const marketingRoutes          = require('./routes/marketing');
+const onboardingRoutes         = require('./routes/onboarding');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -70,6 +71,14 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/auth',          authRoutes);
+
+// Página pública de onboarding (serve o HTML sem auth)
+app.get('/onboarding/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/onboarding.html'));
+});
+// API de onboarding (rotas públicas + protegidas internamente no router)
+app.use('/onboarding', onboardingRoutes);
+
 app.post('/formulario/cliente',    receberFormulario);   // pública — onboarding
 app.post('/api/prospects',         receberLanding);      // pública — landing page análise gratuita
 app.post('/prospects/webhook-brevo', webhookBrevo);      // pública — eventos Brevo

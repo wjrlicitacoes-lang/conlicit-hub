@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bem-vindo à Conlicit — Cadastro do Fornecedor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:   #4CC5D7;
+      --primary-d: #35a8b9;
+      --primary-l: #7dd8e6;
+      --navy:      #182A39;
+      --navy-d:    #0f1e29;
+      --navy-l:    #1f3547;
+      --text:      #FFFFFF;
+      --muted:     #DEE6E9;
+      --border:    rgba(76,197,215,0.18);
+      --danger:    #e05c5c;
+      --success:   #4CC5D7;
+      --warning:   #f0a840;
+      --font:      'Barlow', -apple-system, sans-serif;
+      --font-cond: 'Barlow Condensed', sans-serif;
+      --radius:    12px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--navy-d);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--navy);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      background: var(--navy);
+      border-bottom: 1px solid var(--border);
+      padding: .75rem 2rem;
+    }
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex: 1;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.4);
+      background: transparent;
+      flex-shrink: 0;
+      transition: all .3s;
+    }
+    .step-dot.active {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .step-dot.done {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--navy);
+    }
+    .step-label {
+      font-size: .78rem;
+      color: rgba(255,255,255,.4);
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color .3s;
+    }
+    .step-label.active { color: var(--primary); }
+    .step-label.done   { color: var(--muted); }
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin: 0 .5rem;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      max-width: 720px;
+      margin: 2.5rem auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    .step-pane { display: none; }
+    .step-pane.active { display: block; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-family: var(--font-cond);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .card-title::before {
+      content: '';
+      display: block;
+      width: 3px; height: 16px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* ── STEP HEADER ── */
+    .step-header {
+      margin-bottom: 2rem;
+    }
+    .step-header h1 {
+      font-family: var(--font-cond);
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: .4rem;
+    }
+    .step-header p {
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    /* ── FORM ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 600px) {
+      .form-row, .form-row.triple { grid-template-columns: 1fr; }
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: .35rem; }
+    .form-group label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .form-group label .req { color: var(--primary); }
+    input, select, textarea {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(76,197,215,.2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: .95rem;
+      padding: .65rem .9rem;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,.3); }
+    select option { background: var(--navy); }
+
+    /* ── KEYWORDS ── */
+    .kw-input-row { display: flex; gap: .5rem; margin-bottom: .5rem; }
+    .kw-input-row input { flex: 1; }
+    .kw-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+    .kw-tag {
+      background: rgba(76,197,215,.12);
+      border: 1px solid rgba(76,197,215,.3);
+      border-radius: 20px;
+      padding: .2rem .75rem;
+      font-size: .82rem;
+      color: var(--primary);
+      display: flex; align-items: center; gap: .4rem;
+      cursor: pointer;
+    }
+    .kw-tag:hover { background: rgba(76,197,215,.2); }
+    .kw-remove { font-size: .9rem; opacity: .7; }
+
+    /* ── DOCUMENT UPLOAD ── */
+    .doc-list { display: flex; flex-direction: column; gap: .6rem; }
+
+    .doc-item {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .9rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+    }
+    .doc-item-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: .1rem; }
+    .doc-item-info { flex: 1; }
+    .doc-item-name {
+      font-weight: 600;
+      font-size: .92rem;
+      margin-bottom: .15rem;
+    }
+    .doc-item-sub { font-size: .8rem; color: var(--muted); }
+    .doc-item-status { font-size: .8rem; margin-top: .3rem; }
+    .doc-item-status.ok    { color: var(--success); }
+    .doc-item-status.error { color: var(--danger); }
+    .doc-item-status.loading { color: var(--warning); }
+
+    .doc-upload-btn {
+      flex-shrink: 0;
+      background: rgba(76,197,215,.1);
+      border: 1px solid rgba(76,197,215,.3);
+      border-radius: var(--radius-sm);
+      color: var(--primary);
+      font-family: var(--font);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: .4rem .8rem;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .doc-upload-btn:hover { background: rgba(76,197,215,.2); }
+    .doc-upload-btn.done {
+      background: rgba(76,197,215,.15);
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .doc-optional-note {
+      font-size: .78rem;
+      color: rgba(255,255,255,.35);
+      margin-top: .75rem;
+      font-style: italic;
+    }
+
+    /* ── PORTAIS ── */
+    .portais-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: .6rem;
+      margin-bottom: 1.25rem;
+    }
+    .portal-chip {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .7rem 1rem;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: .9rem;
+    }
+    .portal-chip:hover { border-color: rgba(76,197,215,.4); }
+    .portal-chip.selected {
+      border-color: var(--primary);
+      background: rgba(76,197,215,.1);
+      color: var(--primary);
+    }
+    .portal-chip .check {
+      width: 18px; height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem;
+      transition: all .2s;
+    }
+    .portal-chip.selected .check {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--navy);
+    }
+
+    .credencial-block {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      margin-bottom: .75rem;
+    }
+    .credencial-block h4 {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .cred-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    @media (max-width: 500px) { .cred-row { grid-template-columns: 1fr; } }
+
+    .pwd-wrap { position: relative; }
+    .pwd-wrap input { padding-right: 2.5rem; }
+    .pwd-toggle {
+      position: absolute;
+      right: .75rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: .9rem; padding: 0;
+    }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: .8rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: .88rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .alert.show { display: block; }
+    .alert-error { background: rgba(224,92,92,.12); border: 1px solid rgba(224,92,92,.4); color: #f08080; }
+    .alert-success { background: rgba(76,197,215,.1); border: 1px solid rgba(76,197,215,.35); color: var(--primary-l); }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2rem;
+      gap: 1rem;
+    }
+    .btn {
+      font-family: var(--font);
+      font-size: .92rem;
+      font-weight: 700;
+      padding: .75rem 2rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--navy);
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-l); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-lg { padding: .9rem 2.5rem; font-size: 1rem; }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SUCCESS SCREEN ── */
+    .success-screen {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: rgba(76,197,215,.15);
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 1.5rem;
+    }
+    .success-screen h1 {
+      font-family: var(--font-cond);
+      font-size: 2rem;
+      margin-bottom: .75rem;
+    }
+    .success-screen p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 420px;
+      margin: 0 auto 2rem;
+    }
+
+    /* ── ERROR SCREEN ── */
+    .error-screen {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .error-icon {
+      font-size: 3rem;
+      margin-bottom: 1.25rem;
+    }
+    .error-screen h1 {
+      font-family: var(--font-cond);
+      font-size: 1.8rem;
+      margin-bottom: .75rem;
+      color: var(--danger);
+    }
+    .error-screen p { color: var(--muted); font-size: .95rem; }
+
+    /* ── LOADING SCREEN ── */
+    .loading-screen {
+      text-align: center;
+      padding: 5rem 2rem;
+    }
+    .loading-screen .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(76,197,215,.2);
+      border-top-color: var(--primary);
+      margin: 0 auto 1.5rem;
+    }
+    .loading-screen p { color: var(--muted); font-size: .95rem; }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    .hint {
+      font-size: .8rem;
+      color: rgba(255,255,255,.35);
+      margin-top: .3rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <a class="topbar-logo" href="#">
+    <img src="/assets/images/logo-branco.png" alt="Conlicit" style="height:24px;object-fit:contain;display:block" />
+  </a>
+</header>
+
+<!-- PROGRESS -->
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-steps">
+    <div class="step-item">
+      <div class="step-dot active" id="dot-1">1</div>
+      <span class="step-label active" id="lbl-1">Empresa</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-dot" id="dot-2">2</div>
+      <span class="step-label" id="lbl-2">Segmentos</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-dot" id="dot-3">3</div>
+      <span class="step-label" id="lbl-3">Documentos</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-dot" id="dot-4">4</div>
+      <span class="step-label" id="lbl-4">Portais</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- LOADING -->
+  <div id="screen-loading" class="loading-screen">
+    <div class="spinner"></div>
+    <p>Verificando seu link…</p>
+  </div>
+
+  <!-- ERROR -->
+  <div id="screen-error" style="display:none" class="error-screen">
+    <div class="error-icon">🔒</div>
+    <h1 id="error-title">Link inválido</h1>
+    <p id="error-msg">Este link não existe ou já foi utilizado. Entre em contato com a equipe Conlicit.</p>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="screen-success" style="display:none" class="success-screen">
+    <div class="success-icon">✓</div>
+    <h1>Cadastro concluído!</h1>
+    <p>Recebemos suas informações com sucesso. A equipe Conlicit entrará em contato em breve para confirmar tudo.</p>
+    <p style="color:var(--muted);font-size:.85rem;margin-top:1rem">Você já pode fechar esta página.</p>
+  </div>
+
+  <!-- ───────── STEP 1 — EMPRESA ───────── -->
+  <div class="step-pane active" id="step-1">
+    <div class="step-header">
+      <h1>Dados da empresa</h1>
+      <p>Essas informações identificam sua empresa no sistema da Conlicit.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Identificação</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Razão social <span class="req">*</span></label>
+          <input id="f-nome" type="text" placeholder="Ex: Distribuidora Silva Ltda." />
+        </div>
+        <div class="form-group">
+          <label>CNPJ</label>
+          <input id="f-cnpj" type="text" placeholder="00.000.000/0001-00" maxlength="18" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>E-mail comercial <span class="req">*</span></label>
+          <input id="f-email" type="email" placeholder="contato@empresa.com" />
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input id="f-whatsapp" type="text" placeholder="(31) 99999-9999" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estado (UF)</label>
+          <select id="f-uf">
+            <option value="">Selecione</option>
+            <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+            <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+            <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+            <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+            <option>SP</option><option>SE</option><option>TO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input id="f-cidade" type="text" placeholder="Ex: Belo Horizonte" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Contato responsável</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input id="f-contato-nome" type="text" placeholder="Ex: João Silva" />
+        </div>
+        <div class="form-group">
+          <label>Cargo</label>
+          <input id="f-contato-cargo" type="text" placeholder="Ex: Sócio, Diretor" />
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>WhatsApp do contato</label>
+          <input id="f-contato-whatsapp" type="text" placeholder="(31) 99999-9999" />
+        </div>
+      </div>
+    </div>
+
+    <div id="alert-1" class="alert alert-error"></div>
+
+    <div class="btn-row">
+      <div></div>
+      <button class="btn btn-primary btn-lg" onclick="irPasso(2)">
+        Próximo — Segmentos →
+      </button>
+    </div>
+  </div>
+
+  <!-- ───────── STEP 2 — SEGMENTOS ───────── -->
+  <div class="step-pane" id="step-2">
+    <div class="step-header">
+      <h1>Segmentos de atuação</h1>
+      <p>Informe os produtos ou serviços que sua empresa fornece. Isso alimenta os alertas de licitação.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Palavras-chave</div>
+
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:.9rem">
+        Digite cada produto ou serviço e pressione <strong>Enter</strong> ou clique em Adicionar.
+        Seja específico: "cadeiras escritório", "uniformes escolares", "serviços de TI".
+      </p>
+
+      <div class="kw-input-row">
+        <input id="kw-input" type="text" placeholder="Ex: material de limpeza" onkeydown="kwKeydown(event)" />
+        <button class="btn btn-ghost" onclick="addKw()" style="white-space:nowrap;padding:.65rem 1.2rem">+ Adicionar</button>
+      </div>
+
+      <div class="kw-tags" id="kw-tags"></div>
+
+      <p class="hint" style="margin-top:.75rem">Clique em uma tag para removê-la.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sugestões por segmento</div>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:.9rem">Clique para adicionar rapidamente:</p>
+
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem" id="sugestoes-wrap">
+        <!-- Populado via JS -->
+      </div>
+    </div>
+
+    <div id="alert-2" class="alert alert-error"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="irPasso(1)">← Voltar</button>
+      <button class="btn btn-primary btn-lg" onclick="irPasso(3)">
+        Próximo — Documentos →
+      </button>
+    </div>
+  </div>
+
+  <!-- ───────── STEP 3 — DOCUMENTOS ───────── -->
+  <div class="step-pane" id="step-3">
+    <div class="step-header">
+      <h1>Documentos da empresa</h1>
+      <p>Faça o upload dos documentos abaixo. Eles são usados para montar seus dossiês de habilitação nos pregões.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Documentos obrigatórios</div>
+      <div class="doc-list" id="doc-list-obrig">
+        <!-- Renderizado via JS -->
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Documentos complementares</div>
+      <div class="doc-list" id="doc-list-extra">
+        <!-- Renderizado via JS -->
+      </div>
+      <p class="doc-optional-note">Documentos opcionais — envie o que já tiver disponível.</p>
+    </div>
+
+    <div id="alert-3" class="alert alert-error"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="irPasso(2)">← Voltar</button>
+      <button class="btn btn-primary btn-lg" onclick="irPasso(4)">
+        Próximo — Portais →
+      </button>
+    </div>
+  </div>
+
+  <!-- ───────── STEP 4 — PORTAIS ───────── -->
+  <div class="step-pane" id="step-4">
+    <div class="step-header">
+      <h1>Portais de licitação</h1>
+      <p>Selecione os portais que sua empresa já usa e informe os dados de acesso.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Portais cadastrados</div>
+
+      <div class="portais-grid" id="portais-grid">
+        <!-- Renderizado via JS -->
+      </div>
+    </div>
+
+    <div id="credenciais-blocks" style="margin-bottom:1.25rem">
+      <!-- Blocos de credencial por portal selecionado -->
+    </div>
+
+    <div class="card" style="border-color:rgba(240,168,64,.2)">
+      <div class="card-title" style="color:var(--warning)">🔒 Segurança das credenciais</div>
+      <p style="font-size:.85rem;color:var(--muted)">
+        Suas credenciais são criptografadas com AES-256 antes de serem armazenadas.
+        Apenas a equipe Conlicit responsável pela sua conta tem acesso a elas,
+        exclusivamente para operação do robô de pregões em seu nome.
+      </p>
+    </div>
+
+    <div id="alert-4" class="alert alert-error"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="irPasso(3)">← Voltar</button>
+      <button class="btn btn-primary btn-lg" id="btn-enviar" onclick="enviarOnboarding()">
+        Concluir cadastro ✓
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── Config ──
+  const API = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://web-production-18d79.up.railway.app';
+
+  const token = location.pathname.split('/onboarding/')[1]?.split('/')[0];
+  let clienteInfo = null;
+  let keywords = [];
+  let uploadedDocs = {}; // { docId: { nome, tipo, url } }
+  let uploadingDocs = {}; // { docId: true/false }
+
+  // ── Documentos obrigatórios e complementares ──
+  const DOCS_OBRIG = [
+    { id: 'contrato_social',   nome: 'Contrato Social / Estatuto', tipo: 'contrato_social', icon: '📄', hint: 'Última alteração consolidada' },
+    { id: 'cartao_cnpj',       nome: 'Cartão CNPJ',                tipo: 'cnpj',            icon: '🏢', hint: 'Emitido pela Receita Federal' },
+    { id: 'cnd_federal',       nome: 'CND Federal (Receita + PGFN)',tipo: 'cnpj',            icon: '📋', hint: 'Certidão Negativa de Débitos' },
+    { id: 'cnd_fgts',          nome: 'CRF / FGTS',                 tipo: 'cnpj',            icon: '📋', hint: 'Certidão de Regularidade do FGTS' },
+    { id: 'cndt',              nome: 'CNDT — Trabalhista',         tipo: 'cnpj',            icon: '📋', hint: 'Certidão Negativa de Débitos Trabalhistas' },
+  ];
+
+  const DOCS_EXTRA = [
+    { id: 'cnd_estadual',  nome: 'CND Estadual',          tipo: 'cnpj',      icon: '📋', hint: 'Certidão do estado de origem' },
+    { id: 'cnd_municipal', nome: 'CND Municipal / ISS',   tipo: 'cnpj',      icon: '📋', hint: 'Certidão do município' },
+    { id: 'alvara',        nome: 'Alvará de Funcionamento',tipo: 'alvara',    icon: '🏛️', hint: 'Licença municipal vigente' },
+    { id: 'balanco',       nome: 'Balanço Patrimonial',   tipo: 'balanco',   icon: '📊', hint: 'Último exercício fiscal' },
+    { id: 'declaracao_me', nome: 'Declaração ME/EPP',     tipo: 'declaracao',icon: '📝', hint: 'Se aplicável' },
+    { id: 'procuracao',    nome: 'Procuração / Credencial',tipo: 'procuracao',icon: '✍️', hint: 'Se o responsável for representante legal' },
+  ];
+
+  // ── Portais disponíveis ──
+  const PORTAIS = [
+    { id: 'comprasgov', nome: 'ComprasGov', icon: '🏛️' },
+    { id: 'bnc',        nome: 'BNC',        icon: '💼' },
+    { id: 'licitanet',  nome: 'Licitanet',  icon: '🌐' },
+    { id: 'bec',        nome: 'BEC SP',     icon: '🏢' },
+    { id: 'bbmnet',     nome: 'BBMnet',     icon: '🔷' },
+    { id: 'licitaweb',  nome: 'LicitaWeb',  icon: '📡' },
+    { id: 'outros',     nome: 'Outro portal',icon: '➕' },
+  ];
+
+  const portaisSelecionados = new Set();
+
+  // ── Sugestões de palavras-chave ──
+  const SUGESTOES = [
+    'material de limpeza','material de escritório','uniformes',
+    'informática','serviços de TI','alimentação','gêneros alimentícios',
+    'obras','reformas','serviços de manutenção','equipamentos médicos',
+    'medicamentos','combustível','material elétrico','segurança',
+  ];
+
+  // ─────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', async () => {
+    if (!token) return showError('Link inválido', 'O link que você acessou está incompleto. Solicite um novo link à equipe Conlicit.');
+
+    try {
+      const r = await fetch(`${API}/onboarding/${token}/info`);
+      const d = await r.json();
+      if (!r.ok) return showError(d.erro || 'Link inválido', 'Entre em contato com a equipe Conlicit.');
+
+      clienteInfo = d;
+
+      // Pré-preenche e-mail se vier do Hub
+      if (d.cliente_email) document.getElementById('f-email').value = d.cliente_email;
+      if (d.cliente_nome)  document.getElementById('f-nome').value  = d.cliente_nome;
+
+      // Mostra conteúdo
+      document.getElementById('screen-loading').style.display = 'none';
+      document.getElementById('step-1').style.display = 'block';
+      document.getElementById('step-1').classList.add('active');
+
+      renderSugestoes();
+      renderDocs();
+      renderPortais();
+    } catch (e) {
+      showError('Erro de conexão', 'Não foi possível verificar o link. Tente novamente.');
+    }
+  });
+
+  function showError(titulo, msg) {
+    document.getElementById('screen-loading').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('screen-error').style.display = 'block';
+    document.getElementById('error-title').textContent = titulo;
+    document.getElementById('error-msg').textContent = msg;
+    // Esconde todos os steps
+    [1,2,3,4].forEach(i => {
+      const el = document.getElementById(`step-${i}`);
+      if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+    });
+  }
+
+  // ─────────────────────────────────────
+  // PROGRESS
+  // ─────────────────────────────────────
+  let currentStep = 1;
+
+  function updateProgress(step) {
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById(`dot-${i}`);
+      const lbl = document.getElementById(`lbl-${i}`);
+      dot.className = 'step-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+      dot.textContent = i < step ? '✓' : i;
+      lbl.className = 'step-label' + (i < step ? ' done' : i === step ? ' active' : '');
+    }
+  }
+
+  function irPasso(n) {
+    // Valida passo atual
+    if (n > currentStep) {
+      const err = validarPasso(currentStep);
+      if (err) {
+        const a = document.getElementById(`alert-${currentStep}`);
+        a.textContent = err;
+        a.classList.add('show');
+        return;
+      }
+    }
+
+    document.getElementById(`alert-${currentStep}`)?.classList.remove('show');
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-n`);
+
+    // Esconde todos, mostra o target
+    [1,2,3,4].forEach(i => {
+      document.getElementById(`step-${i}`).classList.remove('active');
+      document.getElementById(`step-${i}`).style.display = 'none';
+    });
+    document.getElementById(`step-${n}`).style.display = 'block';
+    document.getElementById(`step-${n}`).classList.add('active');
+
+    currentStep = n;
+    updateProgress(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function validarPasso(n) {
+    if (n === 1) {
+      if (!document.getElementById('f-nome').value.trim()) return 'Razão social é obrigatória.';
+      if (!document.getElementById('f-email').value.trim()) return 'E-mail é obrigatório.';
+      const email = document.getElementById('f-email').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'E-mail inválido.';
+    }
+    return null;
+  }
+
+  // ─────────────────────────────────────
+  // STEP 2 — KEYWORDS
+  // ─────────────────────────────────────
+  function renderSugestoes() {
+    document.getElementById('sugestoes-wrap').innerHTML = SUGESTOES
+      .map(s => `<button class="kw-tag" onclick="addKwValue('${s}')" style="cursor:pointer">+ ${s}</button>`)
+      .join('');
+  }
+
+  function renderKwTags() {
+    document.getElementById('kw-tags').innerHTML = keywords
+      .map((k,i) => `<span class="kw-tag" onclick="removeKw(${i})">${k} <span class="kw-remove">×</span></span>`)
+      .join('');
+  }
+
+  function kwKeydown(e) { if (e.key === 'Enter') { e.preventDefault(); addKw(); } }
+
+  function addKw() {
+    const v = document.getElementById('kw-input').value.trim();
+    if (!v) return;
+    addKwValue(v);
+    document.getElementById('kw-input').value = '';
+  }
+
+  function addKwValue(v) {
+    if (!keywords.includes(v)) { keywords.push(v); renderKwTags(); }
+  }
+
+  function removeKw(i) { keywords.splice(i, 1); renderKwTags(); }
+
+  // ─────────────────────────────────────
+  // STEP 3 — DOCUMENTOS
+  // ─────────────────────────────────────
+  function renderDocs() {
+    document.getElementById('doc-list-obrig').innerHTML = DOCS_OBRIG.map(d => docItemHtml(d)).join('');
+    document.getElementById('doc-list-extra').innerHTML = DOCS_EXTRA.map(d => docItemHtml(d)).join('');
+  }
+
+  function docItemHtml(doc) {
+    return `
+      <div class="doc-item" id="doc-item-${doc.id}">
+        <span class="doc-item-icon">${doc.icon}</span>
+        <div class="doc-item-info">
+          <div class="doc-item-name">${doc.nome}</div>
+          <div class="doc-item-sub">${doc.hint}</div>
+          <div class="doc-item-status" id="doc-status-${doc.id}"></div>
+        </div>
+        <input type="file" id="doc-file-${doc.id}" style="display:none"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+          onchange="handleDocUpload('${doc.id}','${doc.tipo}','${doc.nome}', this)" />
+        <button class="doc-upload-btn" id="doc-btn-${doc.id}"
+          onclick="document.getElementById('doc-file-${doc.id}').click()">
+          📎 Anexar
+        </button>
+      </div>`;
+  }
+
+  async function handleDocUpload(docId, tipo, nome, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById(`doc-status-${docId}`);
+    const btnEl    = document.getElementById(`doc-btn-${docId}`);
+
+    statusEl.className = 'doc-item-status loading';
+    statusEl.textContent = '⏳ Enviando…';
+    btnEl.disabled = true;
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('tipo', tipo);
+      fd.append('fieldname', docId);
+
+      const r = await fetch(`${API}/onboarding/${token}/upload`, { method: 'POST', body: fd });
+      const d = await r.json();
+
+      if (!r.ok) throw new Error(d.erro || 'Erro no upload');
+
+      uploadedDocs[docId] = { nome: nome, tipo: tipo, url: d.url };
+
+      statusEl.className = 'doc-item-status ok';
+      statusEl.textContent = '✓ ' + file.name;
+      btnEl.textContent = '✓ Substituir';
+      btnEl.className = 'doc-upload-btn done';
+      btnEl.disabled = false;
+    } catch (err) {
+      statusEl.className = 'doc-item-status error';
+      statusEl.textContent = '✗ Erro: ' + err.message;
+      btnEl.disabled = false;
+    }
+  }
+
+  // ─────────────────────────────────────
+  // STEP 4 — PORTAIS
+  // ─────────────────────────────────────
+  function renderPortais() {
+    document.getElementById('portais-grid').innerHTML = PORTAIS.map(p => `
+      <div class="portal-chip" id="chip-${p.id}" onclick="togglePortal('${p.id}')">
+        <div class="check" id="check-${p.id}"></div>
+        <span>${p.icon} ${p.nome}</span>
+      </div>
+    `).join('');
+  }
+
+  function togglePortal(id) {
+    const chip  = document.getElementById(`chip-${id}`);
+    const check = document.getElementById(`check-${id}`);
+
+    if (portaisSelecionados.has(id)) {
+      portaisSelecionados.delete(id);
+      chip.classList.remove('selected');
+      check.textContent = '';
+    } else {
+      portaisSelecionados.add(id);
+      chip.classList.add('selected');
+      check.textContent = '✓';
+    }
+    renderCredenciaisBlocks();
+  }
+
+  function renderCredenciaisBlocks() {
+    const wrap = document.getElementById('credenciais-blocks');
+    wrap.innerHTML = '';
+
+    portaisSelecionados.forEach(portalId => {
+      const portal = PORTAIS.find(p => p.id === portalId);
+      if (!portal) return;
+
+      const nomePortal = portalId === 'outros'
+        ? `<input id="cred-nome-${portalId}" placeholder="Nome do portal" style="margin-bottom:.5rem" />`
+        : '';
+
+      const block = document.createElement('div');
+      block.className = 'credencial-block';
+      block.innerHTML = `
+        <h4>${portal.icon} Acesso — ${portal.nome}</h4>
+        ${nomePortal}
+        <div class="cred-row">
+          <div class="form-group">
+            <label>Login / CPF / CNPJ</label>
+            <input id="cred-login-${portalId}" type="text" placeholder="Usuário de acesso" />
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <div class="pwd-wrap">
+              <input id="cred-senha-${portalId}" type="password" placeholder="••••••••" />
+              <button class="pwd-toggle" type="button"
+                onclick="togglePwd('cred-senha-${portalId}', this)">👁</button>
+            </div>
+          </div>
+        </div>`;
+      wrap.appendChild(block);
+    });
+  }
+
+  function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  // ─────────────────────────────────────
+  // SUBMIT
+  // ─────────────────────────────────────
+  async function enviarOnboarding() {
+    const btn = document.getElementById('btn-enviar');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Enviando…';
+
+    const alertEl = document.getElementById('alert-4');
+    alertEl.classList.remove('show');
+
+    try {
+      // Monta credenciais
+      const credenciais = [];
+      portaisSelecionados.forEach(portalId => {
+        const portal = PORTAIS.find(p => p.id === portalId);
+        let nomePortal = portal?.nome || portalId;
+        if (portalId === 'outros') {
+          const nomeInput = document.getElementById(`cred-nome-${portalId}`);
+          if (nomeInput?.value.trim()) nomePortal = nomeInput.value.trim();
+        }
+        const login = document.getElementById(`cred-login-${portalId}`)?.value.trim();
+        const senha = document.getElementById(`cred-senha-${portalId}`)?.value;
+        if (login && senha) {
+          credenciais.push({ portal: nomePortal, login, senha });
+        }
+      });
+
+      const body = {
+        nome:              document.getElementById('f-nome').value.trim(),
+        cnpj:              document.getElementById('f-cnpj').value.trim(),
+        email:             document.getElementById('f-email').value.trim(),
+        whatsapp:          document.getElementById('f-whatsapp').value.trim(),
+        uf:                document.getElementById('f-uf').value,
+        cidade:            document.getElementById('f-cidade').value.trim(),
+        contato_nome:      document.getElementById('f-contato-nome').value.trim(),
+        contato_cargo:     document.getElementById('f-contato-cargo').value.trim(),
+        contato_whatsapp:  document.getElementById('f-contato-whatsapp').value.trim(),
+        palavras_chave:    keywords,
+        documentos:        Object.values(uploadedDocs),
+        credenciais,
+      };
+
+      const r = await fetch(`${API}/onboarding/${token}/submeter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+
+      if (!r.ok) throw new Error(d.erro || 'Erro ao enviar');
+
+      // Sucesso
+      [1,2,3,4].forEach(i => {
+        const el = document.getElementById(`step-${i}`);
+        if (el) el.style.display = 'none';
+      });
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('screen-success').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      alertEl.textContent = 'Erro ao enviar: ' + err.message;
+      alertEl.classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = 'Concluir cadastro ✓';
+    }
+  }
+</script>
+</body>
+</html>

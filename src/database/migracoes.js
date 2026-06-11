@@ -814,6 +814,33 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
+  // ── Onboarding de cliente ────────────────────────────────────────────────────
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cidade               VARCHAR(100)`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS onboarding_concluido BOOLEAN NOT NULL DEFAULT FALSE`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_tokens (
+      id          SERIAL PRIMARY KEY,
+      token       VARCHAR(64) UNIQUE NOT NULL,
+      cliente_id  INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      usado       BOOLEAN NOT NULL DEFAULT FALSE,
+      expira_em   TIMESTAMPTZ NOT NULL,
+      criado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS credenciais_portais (
+      id          SERIAL PRIMARY KEY,
+      cliente_id  INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      portal      VARCHAR(100) NOT NULL,
+      login_enc   TEXT NOT NULL,
+      senha_enc   TEXT NOT NULL,
+      criado_em   TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(cliente_id, portal)
+    )
+  `);
+
   // Expandir constraint de status dos prospects para incluir todos os valores usados no kanban
   await db.query(`
     DO $$

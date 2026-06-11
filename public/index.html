@@ -1954,6 +1954,7 @@
           <h1>Clientes</h1>
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarClientes()">↻ Atualizar</button>
+            <button class="btn btn-ghost btn-sm" onclick="gerarOnboardingNovo()" data-admin-only>🔗 Novo onboarding</button>
             <button class="btn btn-primary btn-sm" onclick="abrirFormCliente()">+ Novo cliente</button>
           </div>
         </div>
@@ -3536,6 +3537,7 @@
             font-size:12px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;">
           <i class="ti ti-link" style="font-size:13px;"></i> Link onboarding
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="gerarLinkOnboarding()" data-admin-only>🔗 Onboarding</button>
         <button class="btn btn-ghost btn-sm" onclick="editarClienteAtual()" data-admin-only>Editar</button>
         <button class="modal-close" onclick="fecharDetalheCliente()">✕</button>
       </div>
@@ -3551,6 +3553,7 @@
         <button class="tab-btn"        data-tab="interesses"   onclick="switchTab2('interesses')">Interesses</button>
         <button class="tab-btn"        data-tab="acessos"      onclick="switchTab2('acessos')">🔑 Acessos</button>
         <button class="tab-btn"        data-tab="geradores"    onclick="switchTab2('geradores')">📄 Geradores</button>
+        <button class="tab-btn" data-tab="credenciais" onclick="switchTab2('credenciais')" data-admin-only>🔐 Portais</button>
       </div>
       <div id="tab-dados"        class="tab-pane active"></div>
       <div id="tab-pregoes"      class="tab-pane"></div>
@@ -3560,6 +3563,7 @@
       <div id="tab-interesses"   class="tab-pane"></div>
       <div id="tab-acessos"    class="tab-pane"></div>
       <div id="tab-geradores" class="tab-pane"></div>
+      <div id="tab-credenciais" class="tab-pane"></div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button data-admin-only onclick="excluirClienteAtual(event)"
@@ -4281,7 +4285,7 @@
     }
   }
 
-  const TAB_NAMES = ['dados','pregoes','mensalidades','pagamentos','documentos','interesses','acessos','geradores'];
+  const TAB_NAMES = ['dados','pregoes','mensalidades','pagamentos','documentos','interesses','acessos','geradores','credenciais'];
 
   function switchTab2(name) {
     TAB_NAMES.forEach(t => {
@@ -4301,6 +4305,7 @@
       else if (name === 'acessos')      carregarAcessosTab();
       else if (name === 'geradores')    carregarGeradoresTab();
       else if (name === 'interesses')   preencherTabInteresses(clienteAtual);
+      else if (name === 'credenciais')  carregarCredenciaisTab();
     }
   }
 
@@ -14541,5 +14546,177 @@ async function mktSalvarTemplate() {
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- ── MODAL DE ONBOARDING ── -->
+<div class="modal-overlay" id="modal-onboarding" onclick="this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px">
+    <div class="modal-header">
+      <h3>🔗 Link de onboarding</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-onboarding').classList.remove('visible')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:1.25rem">
+        Envie este link para o cliente preencher os dados, fazer upload dos documentos e informar as credenciais dos portais.
+        O link expira em <strong style="color:var(--text)">7 dias</strong>.
+      </p>
+
+      <div id="ob-loading" style="text-align:center;padding:1rem">
+        <div class="spinner" style="margin:0 auto 1rem"></div>
+        <p style="color:var(--text-muted);font-size:.88rem">Gerando link…</p>
+      </div>
+
+      <div id="ob-result" style="display:none">
+        <div style="background:rgba(76,197,215,.07);border:1px solid rgba(76,197,215,.2);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem">
+          <p style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.4rem">Link gerado</p>
+          <p id="ob-link-text" style="font-size:.85rem;word-break:break-all;color:var(--primary);font-weight:500"></p>
+        </div>
+        <div id="alert-ob" class="alert"></div>
+        <div style="display:flex;gap:.75rem">
+          <button class="btn btn-primary" style="flex:1" onclick="copiarLinkOb()">📋 Copiar link</button>
+          <button class="btn btn-ghost" style="flex:1" onclick="abrirWhatsAppOb()">💬 Enviar via WhatsApp</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-top:.75rem;text-align:center">
+          Válido por 7 dias · Uso único
+        </p>
+      </div>
+
+      <div id="ob-error" style="display:none;text-align:center;padding:1rem">
+        <p style="color:var(--danger);font-size:.9rem" id="ob-error-msg">Erro ao gerar link.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── ONBOARDING: gerar link para cliente existente ──
+  async function gerarLinkOnboarding() {
+    if (!clienteAtual) return;
+    const modal = document.getElementById('modal-onboarding');
+    modal.classList.add('visible');
+    document.getElementById('ob-loading').style.display = 'block';
+    document.getElementById('ob-result').style.display = 'none';
+    document.getElementById('ob-error').style.display = 'none';
+    try {
+      const r = await fetch(`${API}/onboarding/gerar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cliente_id: clienteAtual.id }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao gerar');
+      document.getElementById('ob-loading').style.display = 'none';
+      document.getElementById('ob-result').style.display = 'block';
+      document.getElementById('ob-link-text').textContent = d.link;
+      document.getElementById('ob-link-text').dataset.link = d.link;
+      document.getElementById('ob-link-text').dataset.whatsapp =
+        clienteAtual.whatsapp || clienteAtual.contato_whatsapp || '';
+    } catch (err) {
+      document.getElementById('ob-loading').style.display = 'none';
+      document.getElementById('ob-error').style.display = 'block';
+      document.getElementById('ob-error-msg').textContent = err.message;
+    }
+  }
+
+  // ── ONBOARDING: novo cliente (sem cadastro prévio) ──
+  async function gerarOnboardingNovo() {
+    const modal = document.getElementById('modal-onboarding');
+    modal.classList.add('visible');
+    document.getElementById('ob-loading').style.display = 'block';
+    document.getElementById('ob-result').style.display = 'none';
+    document.getElementById('ob-error').style.display = 'none';
+    try {
+      const r = await fetch(`${API}/onboarding/gerar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Erro ao gerar');
+      document.getElementById('ob-loading').style.display = 'none';
+      document.getElementById('ob-result').style.display = 'block';
+      document.getElementById('ob-link-text').textContent = d.link;
+      document.getElementById('ob-link-text').dataset.link = d.link;
+      document.getElementById('ob-link-text').dataset.whatsapp = '';
+    } catch (err) {
+      document.getElementById('ob-loading').style.display = 'none';
+      document.getElementById('ob-error').style.display = 'block';
+      document.getElementById('ob-error-msg').textContent = err.message;
+    }
+  }
+
+  function copiarLinkOb() {
+    const link = document.getElementById('ob-link-text').dataset.link;
+    navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success'));
+  }
+
+  function abrirWhatsAppOb() {
+    const link = document.getElementById('ob-link-text').dataset.link;
+    const wpp  = document.getElementById('ob-link-text').dataset.whatsapp;
+    const msg  = encodeURIComponent(
+      `Olá! Acesse o link abaixo para concluir seu cadastro na Conlicit Hub:\n\n${link}\n\nO link expira em 7 dias.`
+    );
+    const url = wpp
+      ? `https://api.whatsapp.com/send?phone=${wpp}&text=${msg}`
+      : `https://wa.me/?text=${msg}`;
+    window.open(url, '_blank');
+  }
+
+  // ── ABA CREDENCIAIS (Portais) no detalhe do cliente ──
+  async function carregarCredenciaisTab() {
+    if (!clienteAtual) return;
+    const tab = document.getElementById('tab-credenciais');
+    tab.innerHTML = '<div class="spinner" style="margin:1rem auto"></div>';
+    try {
+      const r = await fetch(`${API}/onboarding/credenciais/${clienteAtual.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { dados = [] } = await r.json();
+      if (dados.length === 0) {
+        tab.innerHTML = `
+          <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem">
+            Nenhuma credencial cadastrada para este cliente.
+          </p>
+          <button class="btn btn-primary btn-sm" onclick="gerarLinkOnboarding()">
+            🔗 Gerar link de onboarding
+          </button>`;
+        return;
+      }
+      tab.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <span style="font-size:.85rem;color:var(--text-muted)">${dados.length} portal(is) cadastrado(s)</span>
+          <button class="btn btn-ghost btn-sm" onclick="gerarLinkOnboarding()">🔗 Novo link</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          ${dados.map(c => `
+            <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:var(--radius-sm);padding:.9rem 1rem">
+              <div style="font-weight:700;font-size:.92rem;margin-bottom:.5rem;color:var(--primary)">
+                🏛️ ${esc(c.portal)}
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div>
+                  <span style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Login</span>
+                  <div style="font-size:.88rem;margin-top:.2rem;font-family:monospace;color:var(--text)">${esc(c.login)}</div>
+                </div>
+                <div>
+                  <span style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Senha</span>
+                  <div style="font-size:.88rem;margin-top:.2rem;display:flex;align-items:center;gap:.5rem">
+                    <span id="pwd-${c.id}" style="font-family:monospace;color:var(--text)">••••••••</span>
+                    <button class="btn-icon" style="font-size:.8rem" onclick="toggleCredPwd(${c.id},'${esc(c.senha)}')">👁</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    } catch {
+      tab.innerHTML = '<p style="color:var(--text-muted)">Erro ao carregar credenciais.</p>';
+    }
+  }
+
+  function toggleCredPwd(id, senha) {
+    const el = document.getElementById(`pwd-${id}`);
+    el.textContent = el.textContent === '••••••••' ? senha : '••••••••';
+  }
+</script>
 </body>
 </html>
