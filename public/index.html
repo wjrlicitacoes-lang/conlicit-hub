@@ -6290,36 +6290,83 @@
 
   function renderOrganograma(dados) {
     const container = document.getElementById('organograma-container');
-    const equipe = dados.filter(u => u.role !== 'cliente');
+
+    // Hierarquia fixa por role (gestor_id não é confiável como critério único)
+    const NIVEL_ROLE = {
+      socio_fundador:    1,
+      admin:             2,
+      diretor_comercial: 2,
+      assistente:        3,
+      operador:          3,
+      sdr:               3,
+      social_media:      3,
+    };
+
+    const equipe = dados.filter(u => u.role !== 'cliente' && NIVEL_ROLE[u.role]);
     if (!equipe.length) {
       container.innerHTML = '<div class="state-box">Nenhum colaborador.</div>';
       return;
     }
-    const byGestor = {};
-    equipe.forEach(u => {
-      const gid = u.gestor_id || 0;
-      if (!byGestor[gid]) byGestor[gid] = [];
-      byGestor[gid].push(u);
-    });
-    function renderNo(u, nivel = 0) {
-      const subs = byGestor[u.id] || [];
+
+    const nivel1 = equipe.filter(u => NIVEL_ROLE[u.role] === 1);
+    const nivel2 = equipe.filter(u => NIVEL_ROLE[u.role] === 2);
+    const nivel3 = equipe.filter(u => NIVEL_ROLE[u.role] === 3);
+
+    function cardOrg(u) {
+      const cor = ROLE_COR[u.role] || '#94a3b8';
+      const inicial = (u.nome || u.email || '?').charAt(0).toUpperCase();
       return `
-        <div style="margin-left:${nivel*24}px;margin-bottom:6px">
-          <div style="display:flex;align-items:center;gap:10px;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:.65rem 1rem;max-width:480px">
-            <div style="width:34px;height:34px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-weight:700;color:${ROLE_COR[u.role]||'#94a3b8'};font-size:.85rem">${(u.nome||u.email||'?').charAt(0).toUpperCase()}</span>
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(u.nome||'—')}</div>
-              <div style="font-size:.7rem;color:var(--t2)">${ROLE_LABEL[u.role]||u.role}${u.cargo?` · ${esc(u.cargo)}`:''}</div>
-            </div>
-            ${!u.ativo?'<span style="font-size:.6rem;padding:2px 5px;border-radius:8px;background:rgba(248,113,113,.15);color:#f87171">Inativo</span>':''}
+        <div style="background:var(--card-bg);border:2px solid ${cor};border-radius:10px;
+          padding:.75rem 1rem;min-width:150px;max-width:200px;text-align:center;flex-shrink:0;">
+          <div style="width:36px;height:36px;border-radius:50%;background:${cor}22;
+            border:2px solid ${cor};display:flex;align-items:center;justify-content:center;
+            margin:0 auto 6px;font-weight:700;color:${cor};font-size:.9rem">${inicial}</div>
+          <div style="font-weight:600;font-size:.82rem;color:var(--t1);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${esc(u.nome || u.email || '—')}
           </div>
-          ${subs.map(s => renderNo(s, nivel + 1)).join('')}
+          <div style="font-size:.7rem;color:${cor};margin-top:2px">
+            ${esc(ROLE_LABEL[u.role] || u.role)}${u.cargo ? ` · ${esc(u.cargo)}` : ''}
+          </div>
+          ${!u.ativo ? '<div style="font-size:.6rem;color:#f87171;margin-top:3px">Inativo</div>' : ''}
         </div>`;
     }
-    const raizes = byGestor[0] || equipe.filter(u => !u.gestor_id);
-    container.innerHTML = `<div>${raizes.map(u => renderNo(u, 0)).join('')}</div>`;
+
+    function linha() {
+      return `<div style="display:flex;justify-content:center;">
+        <div style="width:2px;height:22px;background:var(--bd);"></div>
+      </div>`;
+    }
+
+    function fileira(usuarios, comConectores = false) {
+      if (!usuarios.length) return '';
+      const cards = usuarios.map(u => cardOrg(u)).join('');
+      if (!comConectores) {
+        return `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">${cards}</div>`;
+      }
+      return `
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+          <div style="flex:1;height:2px;background:var(--bd);max-width:80px;"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">${cards}</div>
+          <div style="flex:1;height:2px;background:var(--bd);max-width:80px;"></div>
+        </div>`;
+    }
+
+    let html = '';
+
+    if (nivel1.length) {
+      html += fileira(nivel1);
+    }
+    if (nivel2.length) {
+      html += linha();
+      html += fileira(nivel2, true);
+    }
+    if (nivel3.length) {
+      html += linha();
+      html += fileira(nivel3, true);
+    }
+
+    container.innerHTML = `<div style="padding:1rem 0;">${html}</div>`;
   }
 
   async function toggleClienteField() {
