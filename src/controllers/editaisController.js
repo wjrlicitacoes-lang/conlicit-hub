@@ -71,6 +71,13 @@ function semAcento(texto) {
   return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+function sanitizarBusca(q) {
+  return q
+    .replace(/["""''()\[\]{}&+|:;!?@#$%^*=<>\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Resolve o municipio_id interno do PNCP a partir do nome da cidade + UF.
 // O PNCP usa IDs próprios (ex: 2310 para BH), diferentes do código IBGE.
 async function getPncpMunicipioId(nomeCidade, uf) {
@@ -114,19 +121,28 @@ function normalizarData(dataStr) {
 
 // Formata item do endpoint /api/search para o padrão Hub
 function formatarEditalSearch(item) {
-  // ── Valor estimado ─────────────────────────────────────────────────────────
+  // ── Orçamento sigiloso ─────────────────────────────────────────────────────
+  const orcamentoSigiloso = !!(item.orcamentoSigiloso ?? item.orcamento_sigiloso ?? false);
+
+  // ── Valor estimado (camelCase e snake_case pois /api/search retorna snake) ──
   const valorRaw = item.valorTotalEstimado
+    ?? item.valor_total_estimado
     ?? item.valorGlobal
+    ?? item.valor_global
     ?? item.valorEstimado
+    ?? item.valor_estimado
     ?? item.valor
     ?? item.precoUnitario
     ?? null;
   const valorNumerico = valorRaw != null ? parseFloat(String(valorRaw).replace(',', '.')) || null : null;
 
-  // ── Data de encerramento ───────────────────────────────────────────────────
+  // ── Data de encerramento (camelCase e snake_case) ──────────────────────────
   const dataEncerramentoRaw = item.dataEncerramentoProposta
+    ?? item.data_encerramento_proposta
     ?? item.dataFimRecebimentoProposta
+    ?? item.data_fim_recebimento_proposta
     ?? item.dataEncerramento
+    ?? item.data_encerramento
     ?? item.data_fim_vigencia
     ?? null;
 
@@ -211,8 +227,8 @@ function formatarEditalSearch(item) {
     numero,
     orgao:                    orgao || null,
     objeto,
-    // valorEstimado como número — renderCard já trata number vs string
-    valorEstimado:            valorNumerico,
+    // valorEstimado: número, 'Sigiloso' se orçamento sigiloso sem valor, ou null
+    valorEstimado:            (orcamentoSigiloso && valorNumerico == null) ? 'Sigiloso' : valorNumerico,
     dataPublicacao:           null,
     // Não formatar como DD/MM/YYYY — causaria new Date() inválido no frontend
     dataEncerramentoProposta: null,
@@ -469,6 +485,9 @@ async function listarEditais(req, res) {
   try {
     // ── Busca por palavra-chave: usa /api/search do PNCP (suporta full-text search) ──
     if (q) {
+      // Remove caracteres especiais que quebram o full-text search do PNCP
+      const qSanitizado = sanitizarBusca(q);
+
       let municipioId = null;
       if (cidade) {
         municipioId = await getPncpMunicipioId(cidade.trim(), uf || null);
@@ -477,25 +496,28 @@ async function listarEditais(req, res) {
         }
       }
 
-      const searchParams = new URLSearchParams({
-        q,
-        tipos_documento: 'edital',
-        status: 'recebendo_proposta',
-        pagina: String(paginaSolicitada),
-        tam: String(tamanhoSolicitado),
-      });
-      if (uf) searchParams.append('ufs', uf.toUpperCase());
-      if (municipioId) searchParams.append('municipios', municipioId);
+      const HEADERS_PNCP = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' };
 
-      const searchUrl = `${PNCP_SEARCH_URL}?${searchParams}`;
+      const makeParams = (qStr, extra = {}) => {
+        const p = new URLSearchParams({
+          q: qStr,
+          tipos_documento: 'edital',
+          status: 'recebendo_proposta',
+          pagina: String(paginaSolicitada),
+          tam: String(tamanhoSolicitado),
+          ...extra,
+        });
+        if (uf) p.append('ufs', uf.toUpperCase());
+        if (municipioId) p.append('municipios', municipioId);
+        return p;
+      };
+
+      const searchUrl = `${PNCP_SEARCH_URL}?${makeParams(qSanitizado)}`;
       console.log(`[Editais] PNCP search: ${searchUrl}`);
 
       let resp;
       try {
-        resp = await axios.get(searchUrl, {
-          headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
-          timeout: 15000,
-        });
+        resp = await axios.get(searchUrl, { headers: HEADERS_PNCP, timeout: 15000 });
       } catch (searchErr) {
         console.error('[PNCP ERROR]', {
           status: searchErr.response?.status,
@@ -503,38 +525,59 @@ async function listarEditais(req, res) {
           url: searchUrl,
           message: searchErr.message,
         });
-        // Fallback: tentar sem filtro de data
-        if (searchErr.response?.status === 400 || searchErr.response?.status === 422) {
-          console.log('[PNCP] Tentando sem filtro de data...');
-          const p2 = new URLSearchParams({ q, tipos_documento: 'edital', status: 'recebendo_proposta', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
-          if (uf) p2.append('ufs', uf.toUpperCase());
-          if (municipioId) p2.append('municipios', municipioId);
-          resp = await axios.get(`${PNCP_SEARCH_URL}?${p2}`, {
-            headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
-            timeout: 15000,
-          });
+        // Retry sem filtros de localização em erros 4xx
+        if (searchErr.response?.status >= 400 && searchErr.response?.status < 500) {
+          console.log('[PNCP] Tentando sem filtros opcionais...');
+          const p2 = new URLSearchParams({ q: qSanitizado, tipos_documento: 'edital', status: 'recebendo_proposta', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
+          resp = await axios.get(`${PNCP_SEARCH_URL}?${p2}`, { headers: HEADERS_PNCP, timeout: 15000 });
         } else {
-          throw searchErr;
+          return res.json({ mensagem: 'Serviço PNCP temporariamente indisponível. Tente novamente em instantes.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
         }
       }
 
-      const items = resp.data?.items || [];
-      const total = resp.data?.total ?? items.length;
+      let items = resp.data?.items || [];
+      let total = resp.data?.total ?? items.length;
 
       if (items.length > 0) {
         console.log('[PNCP RAW ITEM 0]', JSON.stringify(items[0], null, 2));
+      }
+
+      // Retry com primeira palavra se a busca completa não retornar resultados
+      if (items.length === 0) {
+        const palavras = qSanitizado.split(' ').filter(p => p.length >= 3);
+        if (palavras.length > 1) {
+          const qCurto = palavras[0];
+          console.log(`[Editais] Zero resultados — retry com primeira palavra: "${qCurto}"`);
+          try {
+            const rRetry = await axios.get(`${PNCP_SEARCH_URL}?${makeParams(qCurto)}`, { headers: HEADERS_PNCP, timeout: 15000 });
+            items = rRetry.data?.items || [];
+            total = rRetry.data?.total ?? items.length;
+          } catch (_) { /* mantém zero */ }
+        }
       }
 
       if (items.length === 0) {
         return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
       }
 
+      // Ordena por proximidade de encerramento: mais urgente primeiro, encerrados no fim
+      const dadosOrdenados = items.map(formatarEditalSearch).sort((a, b) => {
+        const dA = a.diasRestantes;
+        const dB = b.diasRestantes;
+        if (dA == null && dB == null) return 0;
+        if (dA == null) return 1;
+        if (dB == null) return -1;
+        const nA = dA < 0 ? Number.MAX_SAFE_INTEGER : dA;
+        const nB = dB < 0 ? Number.MAX_SAFE_INTEGER : dB;
+        return nA - nB;
+      });
+
       return res.json({
         total,
         pagina: paginaSolicitada,
         tamanhoPagina: tamanhoSolicitado,
         fonte: 'pncp-search',
-        dados: items.map(formatarEditalSearch),
+        dados: dadosOrdenados,
       });
     }
 
