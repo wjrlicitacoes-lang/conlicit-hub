@@ -99,7 +99,8 @@ async function atualizar(req, res) {
           valor_contrato, percentual_comissao, dia_vencimento,
           responsavel, origem, sdr_nome, sdr_comissao,
           contato_nome, contato_cargo, contato_whatsapp, responsavel_conlicit, whatsapp_grupo,
-          cnpj, razao_social, responsavel_legal, cargo_responsavel, cpf_responsavel, endereco } = req.body ?? {};
+          cnpj, razao_social, responsavel_legal, cargo_responsavel, cpf_responsavel, endereco,
+          forma_pagamento, dia_semana, datas_pagamento } = req.body ?? {};
 
   if (palavras_chave !== undefined && !Array.isArray(palavras_chave))
     return res.status(400).json({ erro: 'palavras_chave deve ser um array de strings' });
@@ -126,6 +127,9 @@ async function atualizar(req, res) {
   if (contato_whatsapp      !== undefined) { campos.push(`contato_whatsapp = $${idx++}`);       valores.push(contato_whatsapp?.replace(/\D/g, '') || null); }
   if (responsavel_conlicit  !== undefined) { campos.push(`responsavel_conlicit = $${idx++}`);   valores.push(responsavel_conlicit?.trim() || null); }
   if (whatsapp_grupo        !== undefined) { campos.push(`whatsapp_grupo = $${idx++}`);         valores.push(whatsapp_grupo || null); }
+  if (forma_pagamento       !== undefined) { campos.push(`forma_pagamento = $${idx++}`);         valores.push(forma_pagamento || 'mensal'); }
+  if (dia_semana            !== undefined) { campos.push(`dia_semana = $${idx++}`);              valores.push(dia_semana != null ? parseInt(dia_semana) : null); }
+  if (datas_pagamento       !== undefined) { campos.push(`datas_pagamento = $${idx++}`);         valores.push(JSON.stringify(datas_pagamento ?? [])); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 

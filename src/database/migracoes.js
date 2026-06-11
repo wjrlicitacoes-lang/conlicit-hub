@@ -767,6 +767,19 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS alerta_vencimento_dias INTEGER DEFAULT 30`);
   await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS url_arquivo TEXT`);
 
+  // ── Clientes: campos de configuração de pagamento simplificado ───────────────
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'mensal'`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_semana      INTEGER`);
+  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS datas_pagamento JSONB DEFAULT '[]'`);
+
+  // ── Acessos: campos adicionais para portais de licitação ─────────────────────
+  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS portal_id       TEXT`);
+  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cpf_responsavel TEXT`);
+  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cnpj            TEXT`);
+  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS tem_2fa         BOOLEAN DEFAULT FALSE`);
+  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS obs_2fa         TEXT`);
+  await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acessos_portais_portal_id ON acessos_portais(cliente_id, portal_id) WHERE portal_id IS NOT NULL`);
+
   console.log('Migrações executadas com sucesso');
 }
 

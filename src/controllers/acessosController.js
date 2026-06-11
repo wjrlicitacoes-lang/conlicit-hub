@@ -35,16 +35,44 @@ function criptografarSenha(senha) {
 
 async function criar(req, res) {
   const { id } = req.params;
-  const { portal, login, senha, url, observacoes } = req.body ?? {};
-  if (!portal?.trim()) return res.status(400).json({ erro: 'portal é obrigatório' });
+  const { portal, portal_id, login, senha, url, observacoes,
+          cpf_responsavel, cnpj, tem_2fa, obs_2fa } = req.body ?? {};
+  if (!portal?.trim() && !portal_id?.trim()) return res.status(400).json({ erro: 'portal é obrigatório' });
   try {
-    const { rows: [a] } = await db.query(
-      `INSERT INTO acessos_portais (cliente_id, portal, login, senha, url, observacoes)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [id, portal.trim(), login?.trim() || null,
-       criptografarSenha(senha?.trim() || null),
-       url?.trim() || null, observacoes?.trim() || null],
-    );
+    let a;
+    if (portal_id) {
+      // Upsert por portal_id (portais fixos)
+      ({ rows: [a] } = await db.query(
+        `INSERT INTO acessos_portais
+           (cliente_id, portal_id, portal, login, cpf_responsavel, cnpj, senha, tem_2fa, obs_2fa, url, observacoes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         ON CONFLICT (cliente_id, portal_id) DO UPDATE SET
+           portal          = EXCLUDED.portal,
+           login           = EXCLUDED.login,
+           cpf_responsavel = EXCLUDED.cpf_responsavel,
+           cnpj            = EXCLUDED.cnpj,
+           senha           = EXCLUDED.senha,
+           tem_2fa         = EXCLUDED.tem_2fa,
+           obs_2fa         = EXCLUDED.obs_2fa,
+           url             = EXCLUDED.url,
+           observacoes     = EXCLUDED.observacoes
+         RETURNING *`,
+        [id, portal_id, portal?.trim() || portal_id,
+         login?.trim() || null,
+         cpf_responsavel?.trim() || null, cnpj?.trim() || null,
+         criptografarSenha(senha?.trim() || null),
+         tem_2fa || false, obs_2fa?.trim() || null,
+         url?.trim() || null, observacoes?.trim() || null],
+      ));
+    } else {
+      ({ rows: [a] } = await db.query(
+        `INSERT INTO acessos_portais (cliente_id, portal, login, senha, url, observacoes)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+        [id, portal.trim(), login?.trim() || null,
+         criptografarSenha(senha?.trim() || null),
+         url?.trim() || null, observacoes?.trim() || null],
+      ));
+    }
     return res.status(201).json(descriptografarAcesso(a));
   } catch (e) {
     console.error('[Acessos] criar:', e.message);
