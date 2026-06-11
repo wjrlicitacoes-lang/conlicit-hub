@@ -108,7 +108,7 @@
     }
 
     .main-content { overflow-x: hidden; min-width: 0; }
-    .section { overflow-x: hidden; min-width: 0; }
+    .section { min-width: 0; }
     .cards-grid, .table-wrap, .results-area { max-width: 100%; overflow-x: hidden; }
 
     /* ── OPORTUNIDADES — chip de status ── */
@@ -417,12 +417,22 @@
     .section.active { display: block; }
 
     .section-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 1.75rem;
       gap: 1rem;
       flex-wrap: wrap;
+      /* Estende o header até as bordas da seção (cancela o padding lateral do .section) */
+      margin-left: calc(-1 * clamp(1.25rem, 3vw, 2.5rem));
+      margin-right: calc(-1 * clamp(1.25rem, 3vw, 2.5rem));
+      padding: 1rem clamp(1.25rem, 3vw, 2.5rem);
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--bd);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     .section-header h1 {
       font-family: var(--font-condensed);
