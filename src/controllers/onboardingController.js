@@ -1,16 +1,36 @@
 const db = require('../database/db');
 const crypto = require('crypto');
-const { createClient } = require('@supabase/supabase-js');
+const axios = require('axios');
 
-// ── Supabase Storage client (usa as mesmas vars do hub) ──
-function getSupabase() {
+// ── Supabase Storage via HTTP direto (sem WebSocket, sem @supabase/supabase-js) ──
+function getStorageConfig() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_KEY não configurados');
-  return createClient(url, key);
+  return { url, key };
 }
 
-// ── Criptografia simples AES-256 para credenciais ──
+async function supabaseUpload(fileBuffer, fileName, mimeType) {
+  const { url, key } = getStorageConfig();
+  const bucket = 'documentos-clientes';
+  const uploadUrl = `${url}/storage/v1/object/${bucket}/${fileName}`;
+
+  await axios.post(uploadUrl, fileBuffer, {
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': mimeType,
+      'x-upsert': 'false',
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    timeout: 30000,
+  });
+
+  // URL pública padrão do Supabase Storage
+  return `${url}/storage/v1/object/public/${bucket}/${fileName}`;
+}
+
+// ── Criptografia AES-256 para credenciais ──
 const CIPHER_KEY = crypto
   .createHash('sha256')
   .update(process.env.JWT_SECRET || 'fallback-key-troque-isso')
@@ -32,17 +52,15 @@ function decrypt(data) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GERAR TOKEN de onboarding (chamado pelo Hub — requer auth)
+// GERAR TOKEN
 // POST /onboarding/gerar
-// body: { cliente_id? } — se omitido, cria onboarding de cliente novo
 // ─────────────────────────────────────────────────────────────
 async function gerarToken(req, res) {
   const { cliente_id } = req.body ?? {};
   const token = crypto.randomBytes(32).toString('hex');
-  const expira_em = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+  const expira_em = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   try {
-    // Garante que a tabela existe
     await db.query(`
       CREATE TABLE IF NOT EXISTS onboarding_tokens (
         id          SERIAL PRIMARY KEY,
@@ -55,17 +73,12 @@ async function gerarToken(req, res) {
     `);
 
     await db.query(
-      `INSERT INTO onboarding_tokens (token, cliente_id, expira_em)
-       VALUES ($1, $2, $3)`,
+      `INSERT INTO onboarding_tokens (token, cliente_id, expira_em) VALUES ($1, $2, $3)`,
       [token, cliente_id || null, expira_em],
     );
 
     const baseUrl = process.env.APP_URL || 'https://web-production-18d79.up.railway.app';
-    return res.json({
-      token,
-      link: `${baseUrl}/onboarding/${token}`,
-      expira_em,
-    });
+    return res.json({ token, link: `${baseUrl}/onboarding/${token}`, expira_em });
   } catch (err) {
     console.error('[Onboarding] gerarToken:', err.message);
     return res.status(500).json({ erro: 'Erro ao gerar token' });
@@ -73,7 +86,7 @@ async function gerarToken(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// VERIFICAR TOKEN (chamado pela página pública)
+// VERIFICAR TOKEN (página pública)
 // GET /onboarding/:token/info
 // ─────────────────────────────────────────────────────────────
 async function verificarToken(req, res) {
@@ -107,37 +120,22 @@ async function verificarToken(req, res) {
 // ─────────────────────────────────────────────────────────────
 // UPLOAD de documento para Supabase Storage
 // POST /onboarding/:token/upload
-// multipart: file (arquivo), tipo (string)
 // ─────────────────────────────────────────────────────────────
 async function uploadDocumento(req, res) {
   const { token } = req.params;
 
   try {
-    // Valida token antes de aceitar arquivo
     const { rows } = await db.query(
       `SELECT * FROM onboarding_tokens WHERE token = $1 AND usado = FALSE AND expira_em > NOW()`,
       [token],
     );
     if (rows.length === 0) return res.status(403).json({ erro: 'Token inválido ou expirado' });
-
     if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo recebido' });
 
-    const supabase = getSupabase();
     const ext = req.file.originalname.split('.').pop();
     const fileName = `onboarding/${token}/${Date.now()}-${req.file.fieldname}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from('documentos-clientes')
-      .upload(fileName, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false,
-      });
-
-    if (error) throw new Error(error.message);
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('documentos-clientes')
-      .getPublicUrl(fileName);
+    const publicUrl = await supabaseUpload(req.file.buffer, fileName, req.file.mimetype);
 
     return res.json({ url: publicUrl, nome: req.file.originalname });
   } catch (err) {
@@ -154,7 +152,6 @@ async function submeter(req, res) {
   const { token } = req.params;
 
   try {
-    // Valida token
     const { rows: tkRows } = await db.query(
       `SELECT * FROM onboarding_tokens WHERE token = $1 AND usado = FALSE AND expira_em > NOW()`,
       [token],
@@ -163,15 +160,10 @@ async function submeter(req, res) {
     const tk = tkRows[0];
 
     const {
-      // Dados da empresa
       nome, cnpj, email, whatsapp, uf, cidade,
-      // Contato
       contato_nome, contato_cargo, contato_whatsapp,
-      // Interesses
-      palavras_chave,        // array de strings
-      // Documentos já uploadados [ { nome, tipo, url, data_vencimento? } ]
+      palavras_chave,
       documentos,
-      // Portais e credenciais [ { portal, login, senha } ]
       credenciais,
     } = req.body;
 
@@ -180,7 +172,7 @@ async function submeter(req, res) {
     let clienteId = tk.cliente_id;
 
     if (clienteId) {
-      // ── Fluxo A: atualiza cliente existente ──
+      // Fluxo A: atualiza cliente existente
       await db.query(
         `UPDATE clientes SET
            nome = COALESCE($1, nome),
@@ -208,7 +200,7 @@ async function submeter(req, res) {
         ],
       );
     } else {
-      // ── Fluxo B: cria cliente novo ──
+      // Fluxo B: cria cliente novo
       const { rows: newC } = await db.query(
         `INSERT INTO clientes
            (nome, email, whatsapp, uf, cidade, cnpj, palavras_chave,
@@ -231,7 +223,7 @@ async function submeter(req, res) {
       clienteId = newC[0].id;
     }
 
-    // ── Salva documentos ──
+    // Salva documentos
     if (Array.isArray(documentos)) {
       for (const doc of documentos) {
         if (!doc.nome || !doc.url) continue;
@@ -243,9 +235,8 @@ async function submeter(req, res) {
       }
     }
 
-    // ── Salva credenciais criptografadas ──
+    // Salva credenciais criptografadas
     if (Array.isArray(credenciais)) {
-      // Garante tabela de credenciais
       await db.query(`
         CREATE TABLE IF NOT EXISTS credenciais_portais (
           id          SERIAL PRIMARY KEY,
@@ -270,13 +261,10 @@ async function submeter(req, res) {
       }
     }
 
-    // ── Marca token como usado ──
-    await db.query(
-      `UPDATE onboarding_tokens SET usado = TRUE WHERE token = $1`,
-      [token],
-    );
+    // Marca token como usado
+    await db.query(`UPDATE onboarding_tokens SET usado = TRUE WHERE token = $1`, [token]);
 
-    // ── Notificação WhatsApp para admin (opcional, não bloqueia resposta) ──
+    // Notificação WhatsApp (fire-and-forget)
     notificarAdmin(clienteId, nome).catch(e =>
       console.error('[Onboarding] notificarAdmin:', e.message),
     );
@@ -289,7 +277,7 @@ async function submeter(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// LISTAR tokens gerados (Hub admin)
+// LISTAR tokens (admin)
 // GET /onboarding/tokens
 // ─────────────────────────────────────────────────────────────
 async function listarTokens(req, res) {
@@ -299,18 +287,17 @@ async function listarTokens(req, res) {
               c.nome AS cliente_nome, c.email AS cliente_email
        FROM onboarding_tokens ot
        LEFT JOIN clientes c ON c.id = ot.cliente_id
-       ORDER BY ot.criado_em DESC
-       LIMIT 100`,
+       ORDER BY ot.criado_em DESC LIMIT 100`,
     );
 
     const baseUrl = process.env.APP_URL || 'https://web-production-18d79.up.railway.app';
-    const dados = rows.map(r => ({
-      ...r,
-      link: `${baseUrl}/onboarding/${r.token}`,
-      expirado: new Date() > new Date(r.expira_em),
-    }));
-
-    return res.json({ dados });
+    return res.json({
+      dados: rows.map(r => ({
+        ...r,
+        link: `${baseUrl}/onboarding/${r.token}`,
+        expirado: new Date() > new Date(r.expira_em),
+      })),
+    });
   } catch (err) {
     console.error('[Onboarding] listarTokens:', err.message);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -318,7 +305,7 @@ async function listarTokens(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// BUSCAR credenciais de um cliente (Hub admin/operador)
+// BUSCAR credenciais de um cliente (admin)
 // GET /onboarding/credenciais/:cliente_id
 // ─────────────────────────────────────────────────────────────
 async function buscarCredenciais(req, res) {
@@ -330,34 +317,31 @@ async function buscarCredenciais(req, res) {
       [cliente_id],
     );
 
-    const dados = rows.map(r => ({
-      id: r.id,
-      portal: r.portal,
-      login: decrypt(r.login_enc),
-      senha: decrypt(r.senha_enc),
-      criado_em: r.criado_em,
-    }));
-
-    return res.json({ dados });
+    return res.json({
+      dados: rows.map(r => ({
+        id: r.id,
+        portal: r.portal,
+        login: decrypt(r.login_enc),
+        senha: decrypt(r.senha_enc),
+        criado_em: r.criado_em,
+      })),
+    });
   } catch (err) {
     console.error('[Onboarding] buscarCredenciais:', err.message);
     return res.status(500).json({ erro: 'Erro interno' });
   }
 }
 
-// ── Notificação interna (fire-and-forget) ──
+// ── Notificação WhatsApp admin ──
 async function notificarAdmin(clienteId, nomeCliente) {
   const adminWpp = process.env.ADMIN_WHATSAPP;
   const zapiInst = process.env.ZAPI_INSTANCE;
   const zapiTok  = process.env.ZAPI_TOKEN;
   if (!adminWpp || !zapiInst || !zapiTok) return;
 
-  const axios = require('axios');
   const msg = `✅ *Onboarding concluído — ConlicitHub*\n\n` +
-    `👤 *Cliente:* ${nomeCliente}\n` +
-    `🆔 *ID:* ${clienteId}\n` +
-    `📋 Documentos e credenciais registrados.\n` +
-    `Acesse o Hub para revisar o cadastro.`;
+    `👤 *Cliente:* ${nomeCliente}\n🆔 *ID:* ${clienteId}\n` +
+    `📋 Documentos e credenciais registrados.\nAcesse o Hub para revisar o cadastro.`;
 
   await axios.post(
     `https://api.z-api.io/instances/${zapiInst}/token/${zapiTok}/send-text`,
