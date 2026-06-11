@@ -1626,6 +1626,25 @@
     .fin-step-status.concluido{background:rgba(99,153,34,.15);color:#97C459;border-color:rgba(99,153,34,.3)}
     .fin-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
     /* ===== FIM MÓDULO FINANCEIRO — PLANO ===== */
+
+    /* ===== PLANILHA DE PREÇOS — TABELA ===== */
+    .planilha-tabela{width:100%;border-collapse:collapse;font-size:13px;margin-top:0}
+    .planilha-tabela thead tr{background:#182A39}
+    .planilha-tabela thead th{padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:1px solid #1e3a4a}
+    .planilha-tabela tbody tr{border-bottom:1px solid #1e3a4a;transition:background .1s}
+    .planilha-tabela tbody tr:hover{background:#1a2535}
+    .planilha-tabela tbody td{padding:8px 10px;color:#fff;vertical-align:middle}
+    .planilha-tabela td:nth-child(1),.planilha-tabela th:nth-child(1){width:36px;text-align:center}
+    .planilha-tabela td:nth-child(2),.planilha-tabela th:nth-child(2){width:40px;text-align:center;color:#4CC5D7;font-weight:600}
+    .planilha-tabela td:nth-child(3){max-width:280px;line-height:1.4;color:#e2e8f0;font-size:12px}
+    .planilha-tabela td:nth-child(4),.planilha-tabela td:nth-child(5),.planilha-tabela td:nth-child(6),.planilha-tabela td:nth-child(7),
+    .planilha-tabela th:nth-child(4),.planilha-tabela th:nth-child(5),.planilha-tabela th:nth-child(6),.planilha-tabela th:nth-child(7){width:70px;text-align:center;white-space:nowrap}
+    .planilha-tabela td:nth-child(8),.planilha-tabela th:nth-child(8){width:140px}
+    .planilha-tabela td:nth-child(9),.planilha-tabela th:nth-child(9){width:110px}
+    .planilha-input{background:#182A39;border:1px solid #1e3a4a;border-radius:4px;color:#fff;font-size:12px;padding:4px 8px;width:100%;outline:none;transition:border-color .15s;box-sizing:border-box}
+    .planilha-input:focus{border-color:#4CC5D7}
+    .planilha-input::placeholder{color:#475569}
+    /* ===== FIM PLANILHA DE PREÇOS — TABELA ===== */
   </style>
 </head>
 <body>
@@ -8372,20 +8391,19 @@
             <button class="btn btn-primary btn-sm" onclick="salvarSelecaoPlanilha(${analise_id})">✓ Salvar seleção</button>
           </div>
         </div>
-        <div`;
-
-      html += `<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <div style="overflow-x:auto;border-radius:8px;border:1px solid #1e3a4a;">
+        <table class="planilha-tabela">
         <thead>
-          <tr style="background:rgba(76,197,215,.08);border-bottom:2px solid rgba(76,197,215,.2)">
-            <th style="padding:.5rem .75rem;text-align:left;width:32px;color:var(--text-muted);font-weight:600"></th>
-            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Nº</th>
-            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Descrição</th>
-            <th style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Unid.</th>
-            <th style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Qtd</th>
-            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Ref. Unit.</th>
-            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">Total</th>
-            <th style="padding:.5rem .75rem;text-align:left;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Marca/Modelo</th>
-            <th style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Valor Final</th>
+          <tr>
+            <th></th>
+            <th style="text-align:center">Nº</th>
+            <th>Descrição</th>
+            <th>Unid.</th>
+            <th>Qtd</th>
+            <th>Ref. Unit.</th>
+            <th>Total</th>
+            <th>Marca/Modelo</th>
+            <th>Valor Final</th>
           </tr>
         </thead>
         <tbody>`;
@@ -8402,29 +8420,29 @@
         const idSafe = String(item.numero).replace(/[^a-zA-Z0-9]/g, '_');
         const marcaVal = selItem?.marca_modelo || '';
         const vfinalVal = selItem?.valor_final != null ? selItem.valor_final : '';
-        html += `<tr style="border-bottom:1px solid var(--border);${idx % 2 !== 0 ? 'background:rgba(255,255,255,.02)' : ''}">
-          <td style="padding:.5rem .75rem;text-align:center">
-            <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}
-              style="flex-shrink:0;vertical-align:middle">
+        html += `<tr data-item-index="${idx}">
+          <td style="text-align:center">
+            <input type="checkbox" name="pp-item" value="${item.numero}" ${selecionado ? 'checked' : ''}>
           </td>
-          <td style="padding:.5rem .75rem;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${item.numero}</td>
-          <td style="padding:.5rem .75rem;font-size:.83rem;line-height:1.4">${esc(item.descricao || '—')}</td>
-          <td style="padding:.5rem .75rem;text-align:center;color:var(--text-muted);font-size:.8rem">${esc(und)}</td>
-          <td style="padding:.5rem .75rem;text-align:center;font-weight:600;font-size:.85rem">${qtd}</td>
-          <td style="padding:.5rem .75rem;text-align:right;color:var(--text-muted);font-size:.8rem;white-space:nowrap">${vlr}</td>
-          <td style="padding:.5rem .75rem;text-align:right;font-weight:600;font-size:.83rem;white-space:nowrap;color:${vtotal !== '—' ? 'var(--primary)' : 'var(--text-muted)'}">${vtotal}</td>
-          <td style="padding:.5rem .4rem">
-            <input type="text" id="pp-marca-${idSafe}" value="${esc(marcaVal)}" placeholder="Marca/Modelo"
-              style="width:110px;padding:.25rem .4rem;font-size:.78rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--t1)">
+          <td>${item.numero}</td>
+          <td>${esc(item.descricao || '—')}</td>
+          <td style="text-align:center;color:#94a3b8">${esc(und)}</td>
+          <td style="text-align:center">${qtd}</td>
+          <td style="text-align:center;color:#94a3b8">${vlr}</td>
+          <td style="text-align:center;color:${vtotal !== '—' ? 'var(--primary)' : '#94a3b8'}">${vtotal}</td>
+          <td>
+            <input type="text" id="pp-marca-${idSafe}" class="planilha-input"
+              value="${esc(marcaVal)}" placeholder="Marca/Modelo">
           </td>
-          <td style="padding:.5rem .4rem">
-            <input type="number" id="pp-vfinal-${idSafe}" value="${vfinalVal}" placeholder="0,00" step="0.01" min="0"
-              style="width:90px;padding:.25rem .4rem;font-size:.78rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--t1);text-align:right">
+          <td>
+            <input type="number" id="pp-vfinal-${idSafe}" class="planilha-input"
+              value="${vfinalVal}" placeholder="0,00" step="0.01" min="0"
+              style="text-align:right">
           </td>
         </tr>`;
       });
 
-      html += `</tbody></table></div>`;
+      html += `</tbody></table></div></div>`;
 
       // ETAPA 3: Pesquisa de preços
       if (temSelecao) {
