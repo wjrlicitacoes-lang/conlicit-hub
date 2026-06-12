@@ -106,6 +106,18 @@ app.use('/api/dashboard',       dashboardRoutes);
 app.use('/api/financeiro',      financeiroRoutes);
 app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 app.use('/api/marketing/conteudos', autenticar, conteudosMarketingRoutes);
+
+// Rota pública — chamada pelo HTML do boletim externo
+app.options('/api/boletim/interesse', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(200);
+});
+app.post('/api/boletim/interesse',
+  require('./controllers/boletimFilaController').registrarInteresse,
+);
+
 app.use('/api/boletim',            autenticar, boletimManualRoutes);
 
 // Cron: gerar lançamentos de pagamento mensalmente

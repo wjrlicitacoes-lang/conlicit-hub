@@ -693,6 +693,37 @@
       font-family: inherit; border: 1px solid rgba(76,197,215,0.2);
     }
     .btn-edson:hover { border-color: #4CC5D7; }
+    .btn-boletim-fila {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 6px; background: var(--secondary); color: #a78bfa;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s;
+      font-family: inherit; border: 1px solid rgba(167,139,250,.2);
+    }
+    .btn-boletim-fila:hover { border-color: #a78bfa; }
+    .bl-fila-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    .bl-fila-card-body { flex: 1; min-width: 0; }
+    .bl-fila-titulo { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .bl-fila-meta { font-size: 11px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px; }
+    .bl-fila-actions { display: flex; flex-direction: column; gap: 6px; min-width: 90px; align-items: flex-end; }
+    .bl-hist-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .bl-int-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
+    }
+    .bl-int-titulo { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .bl-int-meta { font-size: 11px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .bl-int-status-interesse_confirmado { color: #22c55e; }
+    .bl-int-status-em_analise          { color: #f59e0b; }
+    .bl-int-status-convertido          { color: #4CC5D7; }
+    .bl-int-status-sem_interesse       { color: #94a3b8; }
 
     /* ── MODAL ITENS ── */
     .modal-itens { max-width: 680px; width: 95vw; max-height: 80vh; overflow-y: auto; }
@@ -2072,10 +2103,13 @@
         </div>
 
         <!-- Abas -->
-        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:20px">
-          <button id="bl-tab-montar"  class="tab-btn active" onclick="blSwitchTab('montar')">1 · Montar</button>
-          <button id="bl-tab-revisar" class="tab-btn"        onclick="blSwitchTab('revisar')">2 · Revisar e Gerar</button>
-          <button id="bl-tab-disparar" class="tab-btn"       onclick="blSwitchTab('disparar')">3 · Disparar</button>
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:20px;flex-wrap:wrap">
+          <button id="bl-tab-montar"      class="tab-btn active" onclick="blSwitchTabAll('montar')">1 · Montar</button>
+          <button id="bl-tab-revisar"     class="tab-btn"        onclick="blSwitchTabAll('revisar')">2 · Revisar e Gerar</button>
+          <button id="bl-tab-disparar"    class="tab-btn"        onclick="blSwitchTabAll('disparar')">3 · Disparar</button>
+          <button id="bl-tab-fila"        class="tab-btn"        onclick="blSwitchTabAll('fila')">📋 Fila</button>
+          <button id="bl-tab-enviados"    class="tab-btn"        onclick="blSwitchTabAll('enviados')">📜 Enviados</button>
+          <button id="bl-tab-interesses"  class="tab-btn"        onclick="blSwitchTabAll('interesses')">⭐ Interesses</button>
         </div>
 
         <!-- ABA 1: MONTAR -->
@@ -2202,6 +2236,60 @@
               <button class="btn btn-primary" id="bl-btn-disparar" onclick="blDisparar()">📨 Disparar agora</button>
             </div>
           </div>
+        </div>
+
+        <!-- ABA: FILA -->
+        <div id="bl-panel-fila" style="display:none">
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="flex:1;min-width:180px;margin:0">
+              <label class="form-label">Filtrar por cliente</label>
+              <select id="bl-fila-cliente-sel" class="form-control" onchange="blCarregarFila()">
+                <option value="">Todos os clientes</option>
+              </select>
+            </div>
+            <div class="form-group" style="min-width:140px;margin:0">
+              <label class="form-label">Status</label>
+              <select id="bl-fila-status-sel" class="form-control" onchange="blCarregarFila()">
+                <option value="na_fila">Na fila</option>
+                <option value="incluido_boletim">Incluído em boletim</option>
+                <option value="descartado">Descartados</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="blCarregarFila()">↻</button>
+          </div>
+          <div id="bl-fila-lista"><div class="state-box"><p>Selecione um cliente ou carregue a fila.</p></div></div>
+          <div id="bl-fila-gerar-wrap" style="display:none;margin-top:16px;padding:16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:14px;font-weight:600;margin-bottom:12px">Gerar boletim da fila</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div class="form-group" style="flex:1;min-width:140px;margin:0">
+                <label class="form-label">Semana</label>
+                <input type="text" id="bl-fila-semana-inp" class="form-control" placeholder="24/2026">
+              </div>
+              <button class="btn btn-primary" id="bl-btn-gerar-fila" onclick="blGerarDaFila()">🤖 Triar e Gerar HTML</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA: ENVIADOS -->
+        <div id="bl-panel-enviados" style="display:none">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+            <button class="btn btn-ghost btn-sm" onclick="blCarregarHistorico()">↻ Atualizar</button>
+          </div>
+          <div id="bl-historico-lista"><div class="state-box"><p>Carregando histórico…</p></div></div>
+        </div>
+
+        <!-- ABA: INTERESSES -->
+        <div id="bl-panel-interesses" style="display:none">
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0">
+              <label class="form-label">Cliente</label>
+              <select id="bl-int-cliente-sel" class="form-control" onchange="blCarregarInteresses()">
+                <option value="">Selecionar cliente…</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="blCarregarInteresses()">↻</button>
+          </div>
+          <div id="bl-interesses-lista"><div class="state-box"><p>Selecione um cliente para ver os interesses.</p></div></div>
         </div>
 
       </section>
@@ -6121,20 +6209,93 @@
   }
 
   // ── TAB: INTERESSES ──
-  function preencherTabInteresses(c) {
+  async function preencherTabInteresses(c) {
     if (!c) return;
     const kws = c.palavras_chave || [];
     const tagsHtml = kws.length > 0
       ? kws.map(k => `<span class="keyword-tag" style="font-size:.8rem;padding:.25rem .7rem">${esc(k)}</span>`).join('')
       : '<p style="color:var(--text-muted);font-size:.88rem">Nenhuma palavra-chave cadastrada.</p>';
-    document.getElementById('tab-interesses').innerHTML = `
+
+    const pane = document.getElementById('tab-interesses');
+    pane.innerHTML = `
       <div style="margin-bottom:.75rem">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.6rem">Palavras-chave que acionam o boletim:</p>
         <div class="client-keywords" style="gap:.5rem">${tagsHtml}</div>
       </div>
       ${c.uf ? `<p style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem">Estado monitorado: <strong style="color:var(--text)">${c.uf}</strong></p>` : ''}
       <hr class="divider">
+      <div id="tab-int-interesses-area">
+        <div class="state-box"><div class="spinner"></div><p>Carregando interesses…</p></div>
+      </div>
+      <hr class="divider">
       <button class="btn btn-ghost btn-sm" onclick="editarClienteAtual()">Editar interesses</button>`;
+
+    try {
+      const r = await fetch(`${API}/api/boletim/interesses/${c.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      const area = document.getElementById('tab-int-interesses-area');
+      if (!area) return;
+      const interesses = d.interesses || [];
+      if (!interesses.length) {
+        area.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem">Nenhum interesse registrado via boletim.</p>';
+        return;
+      }
+      const statusLabel = { interesse_confirmado:'✅ Confirmado', em_analise:'⏳ Em análise', convertido:'🏆 Convertido', sem_interesse:'❌ Sem interesse' };
+      area.innerHTML = `
+        <p style="font-size:.85rem;font-weight:600;margin-bottom:10px">Interesses via boletim (${interesses.length}):</p>
+        ${interesses.map(int => `
+          <div class="bl-int-card">
+            <div class="bl-int-titulo">${esc(int.titulo || '—')}</div>
+            <div class="bl-int-meta">
+              ${int.orgao ? `<span>🏛 ${esc(int.orgao)}</span>` : ''}
+              ${int.valor ? `<span>💰 ${esc(int.valor)}</span>` : ''}
+              ${int.prazo ? `<span>📅 ${esc(int.prazo)}</span>` : ''}
+              ${int.semana ? `<span>📄 Semana ${esc(int.semana)}</span>` : ''}
+              <span class="bl-int-status-${int.status}">${statusLabel[int.status] || int.status}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${int.status !== 'convertido' ? `<button class="btn btn-primary btn-sm" onclick="blClienteConverterPregao(${int.id})">→ Pregão</button>` : ''}
+              <select class="form-control" style="font-size:11px;padding:4px 8px;height:auto"
+                onchange="blClienteAtualizarInteresse(${int.id},this.value)">
+                <option value="">Alterar status…</option>
+                <option value="em_analise">Em análise</option>
+                <option value="sem_interesse">Sem interesse</option>
+              </select>
+            </div>
+          </div>`).join('')}`;
+    } catch (e) {
+      const area = document.getElementById('tab-int-interesses-area');
+      if (area) area.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem">Erro ao carregar interesses.</p>';
+    }
+  }
+
+  async function blClienteAtualizarInteresse(id, status) {
+    if (!status) return;
+    try {
+      await fetch(`${API}/api/boletim/interesses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      toast('Status atualizado', 'success');
+      if (clienteAtual) preencherTabInteresses(clienteAtual);
+    } catch { toast('Erro ao atualizar', 'error'); }
+  }
+
+  async function blClienteConverterPregao(id) {
+    if (!confirm('Converter este interesse em pregão?')) return;
+    try {
+      const r = await fetch(`${API}/api/boletim/interesses/${id}/pregao`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      toast('Pregão criado com sucesso!', 'success');
+      if (clienteAtual) preencherTabInteresses(clienteAtual);
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   // ── TAB: DADOS ──
@@ -7336,6 +7497,7 @@
         </a>` : ''}
         ${btnItens}
         <button class="btn-oferecer" onclick="adicionarOportunidadeDaBusca(${idx})">+ Fila de oportunidades</button>
+        <button class="btn-boletim-fila" onclick="blAdicionarDaBusca(${idx})">📋 Boletim</button>
         <button class="btn-edson" onclick="analisarComEdson(${idx})">🤖 Edson</button>
       </div>
     </div>`;
@@ -14671,10 +14833,310 @@ async function blDisparar() {
 }
 
 // ─── hook na função de navegação ───
-// carregarBoletins é chamada quando a seção Boletins é ativada (linha 3932)
-// Redefine o comportamento para inicializar o novo workflow
+// carregarBoletins é chamada quando a seção Boletins é ativada
 const _oldCarregarBoletins = typeof carregarBoletins !== 'undefined' ? carregarBoletins : null;
 function carregarBoletins() { blInit(); }
+
+// ── blSwitchTabAll — gerencia TODAS as 6 abas do módulo Boletins ──
+const _BL_TABS_ALL = ['montar','revisar','disparar','fila','enviados','interesses'];
+function blSwitchTabAll(tab) {
+  _BL_TABS_ALL.forEach(t => {
+    document.getElementById(`bl-tab-${t}`)?.classList.toggle('active', t === tab);
+    const p = document.getElementById(`bl-panel-${t}`);
+    if (p) p.style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'fila')        blIniciarFila();
+  if (tab === 'enviados')    blCarregarHistorico();
+  if (tab === 'interesses')  blIniciarInteresses();
+}
+
+// Alias para manter compatibilidade com buttons antigos durante carregamento
+function blSwitchTab(tab) { blSwitchTabAll(tab); }
+
+// ─────────────────────────────────────────────────────────────
+// FILA DE BOLETINS
+// ─────────────────────────────────────────────────────────────
+let _blFilaInicializado = false;
+
+function blIniciarFila() {
+  if (!_blFilaInicializado) {
+    _blFilaInicializado = true;
+    blPopularSelectClientes('bl-fila-cliente-sel');
+    document.getElementById('bl-fila-semana-inp').value = blSemanaAtual();
+    blCarregarFila();
+  }
+}
+
+async function blAdicionarDaBusca(idx) {
+  const e = editaisResultados[idx];
+  if (!e) return;
+  const btns = document.querySelectorAll(`[onclick="blAdicionarDaBusca(${idx})"]`);
+  btns.forEach(b => { b.disabled = true; b.textContent = '⏳…'; });
+  try {
+    const prazoRaw = e.data_encerramento_proposta || e.dataEncerramentoProposta
+      || e.data_abertura || e.dataAbertura || null;
+    const r = await fetch(`${API}/api/boletim/fila`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        pncp_id:    e.numero_controle_pncp || e.numeroControlePNCP || null,
+        titulo:     e.objeto_compra || e.objeto || e.titulo || '—',
+        orgao:      e.orgao_nome    || e.orgaoNome || e.orgao || '—',
+        uf:         e.uf || null,
+        valor:      e.valor_str || null,
+        prazo:      prazoRaw   || null,
+        modalidade: e.modalidade_nome || e.modalidade || null,
+        objeto:     e.objeto_compra || e.objeto || null,
+        link_pncp:  e.link_sistema_origem_edital || e.linkSistemaOrigemEdital || null,
+      }),
+    });
+    const d = await r.json();
+    if (r.status === 409) { toast('Edital já está na fila de boletins', 'error'); btns.forEach(b => { b.disabled = false; b.textContent = '📋 Boletim'; }); return; }
+    if (!r.ok) throw new Error(d.erro || 'Erro ao adicionar');
+    toast('✅ Edital adicionado à fila de boletins!', 'success');
+    btns.forEach(b => { b.textContent = '✅ Na fila'; });
+  } catch (err) {
+    toast(err.message, 'error');
+    btns.forEach(b => { b.disabled = false; b.textContent = '📋 Boletim'; });
+  }
+}
+
+async function blCarregarFila() {
+  const clienteId = document.getElementById('bl-fila-cliente-sel')?.value || '';
+  const status    = document.getElementById('bl-fila-status-sel')?.value  || 'na_fila';
+  const lista     = document.getElementById('bl-fila-lista');
+  const gerarWrap = document.getElementById('bl-fila-gerar-wrap');
+  if (!lista) return;
+  lista.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Carregando…</p></div>';
+  try {
+    let url = `${API}/api/boletim/fila?status=${encodeURIComponent(status)}`;
+    if (clienteId) url += `&cliente_id=${clienteId}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    blRenderFila(d.itens || []);
+    if (gerarWrap) gerarWrap.style.display = clienteId && status === 'na_fila' && (d.itens || []).length > 0 ? '' : 'none';
+  } catch (err) {
+    lista.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${err.message}</p></div>`;
+  }
+}
+
+function blRenderFila(itens) {
+  const lista = document.getElementById('bl-fila-lista');
+  if (!lista) return;
+  if (!itens.length) {
+    lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Nenhum edital nesta fila.</p></div>';
+    return;
+  }
+  lista.innerHTML = itens.map(it => `
+    <div class="bl-fila-card">
+      <div class="bl-fila-card-body">
+        <div class="bl-fila-titulo">${esc(it.titulo || '—')}</div>
+        <div class="bl-fila-meta">
+          ${it.orgao ? `<span>🏛 ${esc(it.orgao)}</span>` : ''}
+          ${it.uf    ? `<span>📍 ${it.uf}</span>` : ''}
+          ${it.valor ? `<span>💰 ${esc(it.valor)}</span>` : ''}
+          ${it.prazo ? `<span>📅 ${new Date(it.prazo).toLocaleDateString('pt-BR')}</span>` : ''}
+          <span style="color:var(--text-muted)">Cliente: ${esc(it.cliente_nome || 'Não atribuído')}</span>
+        </div>
+      </div>
+      <div class="bl-fila-actions">
+        <select class="form-control" style="font-size:11px;padding:3px 6px;height:auto;min-width:130px"
+          onchange="blAtribuirClienteFila(${it.id},this.value)">
+          <option value="">Atribuir cliente…</option>
+          ${(clientesCache || window._todosClientes || []).map(c =>
+            `<option value="${c.id}" ${it.cliente_id == c.id ? 'selected' : ''}>${esc(c.nome)}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:11px"
+          onclick="blDescartarFilaItem(${it.id})">✕ Descartar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function blAtribuirClienteFila(filaId, clienteId) {
+  try {
+    const r = await fetch(`${API}/api/boletim/fila/${filaId}/cliente`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cliente_id: clienteId || null }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Cliente atribuído', 'success');
+    blCarregarFila();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function blDescartarFilaItem(id) {
+  if (!confirm('Descartar este edital da fila?')) return;
+  try {
+    const r = await fetch(`${API}/api/boletim/fila/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Edital descartado', 'success');
+    blCarregarFila();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function blGerarDaFila() {
+  const clienteId = document.getElementById('bl-fila-cliente-sel')?.value;
+  const semana    = document.getElementById('bl-fila-semana-inp')?.value?.trim();
+  if (!clienteId) { toast('Selecione um cliente', 'error'); return; }
+  if (!semana)    { toast('Informe a semana', 'error'); return; }
+  const btn = document.getElementById('bl-btn-gerar-fila');
+  btn.disabled = true; btn.textContent = '⏳ Gerando…';
+  try {
+    const r = await fetch(`${API}/api/boletim/fila/gerar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cliente_id: clienteId, semana }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Erro ao gerar');
+    toast(`✅ Boletim gerado! ${d.editais_triados?.length || 0} editais.`, 'success');
+    blCarregarFila();
+    const appUrl = window.location.origin;
+    window.open(appUrl + d.url, '_blank');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🤖 Triar e Gerar HTML';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// HISTÓRICO DE BOLETINS
+// ─────────────────────────────────────────────────────────────
+async function blCarregarHistorico() {
+  const lista = document.getElementById('bl-historico-lista');
+  if (!lista) return;
+  lista.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Carregando…</p></div>';
+  try {
+    const r = await fetch(`${API}/api/boletim/historico`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    const boletins = d.boletins || [];
+    if (!boletins.length) {
+      lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Nenhum boletim enviado ainda.</p></div>';
+      return;
+    }
+    lista.innerHTML = boletins.map(b => {
+      const dt = b.disparado_em || b.html_gerado_em || b.criado_em;
+      const dtFmt = dt ? new Date(dt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+      return `
+        <div class="bl-hist-card">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(b.cliente_nome || '—')}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
+              Semana ${esc(b.semana || '—')} · ${dtFmt}
+              ${b.canal ? ` · ${b.canal}` : ''}
+              · ${b.total_items || 0} edital(is)
+              ${b.total_interesses > 0 ? ` · ⭐ ${b.total_interesses} interesse(s)` : ''}
+            </div>
+          </div>
+          ${b.html_url ? `<a class="btn btn-ghost btn-sm" href="${b.html_url}" target="_blank">↗ Ver boletim</a>` : ''}
+        </div>`;
+    }).join('');
+  } catch (err) {
+    lista.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${err.message}</p></div>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// INTERESSES (aba global)
+// ─────────────────────────────────────────────────────────────
+function blIniciarInteresses() {
+  blPopularSelectClientes('bl-int-cliente-sel');
+  blCarregarInteresses();
+}
+
+async function blCarregarInteresses() {
+  const clienteId = document.getElementById('bl-int-cliente-sel')?.value;
+  const lista     = document.getElementById('bl-interesses-lista');
+  if (!lista) return;
+  if (!clienteId) {
+    lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Selecione um cliente para ver os interesses.</p></div>';
+    return;
+  }
+  lista.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Carregando…</p></div>';
+  try {
+    const r = await fetch(`${API}/api/boletim/interesses/${clienteId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    const interesses = d.interesses || [];
+    if (!interesses.length) {
+      lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Nenhum interesse registrado para este cliente.</p></div>';
+      return;
+    }
+    const statusLabel = { interesse_confirmado:'✅ Confirmado', em_analise:'⏳ Em análise', convertido:'🏆 Convertido', sem_interesse:'❌ Sem interesse' };
+    lista.innerHTML = interesses.map(int => `
+      <div class="bl-int-card">
+        <div class="bl-int-titulo">${esc(int.titulo || '—')}</div>
+        <div class="bl-int-meta">
+          ${int.orgao   ? `<span>🏛 ${esc(int.orgao)}</span>` : ''}
+          ${int.valor   ? `<span>💰 ${esc(int.valor)}</span>` : ''}
+          ${int.prazo   ? `<span>📅 ${esc(int.prazo)}</span>` : ''}
+          ${int.semana  ? `<span>📄 Semana ${esc(int.semana)}</span>` : ''}
+          <span class="bl-int-status-${int.status}">${statusLabel[int.status] || int.status}</span>
+          <span style="color:var(--text-muted)">${new Date(int.registrado_em).toLocaleDateString('pt-BR')}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          ${int.status !== 'convertido' ? `<button class="btn btn-primary btn-sm" onclick="blConverterPregaoGlobal(${int.id})">→ Pregão</button>` : '<span style="color:#4CC5D7;font-size:12px">Convertido</span>'}
+          <select class="form-control" style="font-size:11px;padding:4px 8px;height:auto"
+            onchange="blAtualizarInteresseGlobal(${int.id},this.value)">
+            <option value="">Alterar status…</option>
+            <option value="em_analise">Em análise</option>
+            <option value="sem_interesse">Sem interesse</option>
+          </select>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    lista.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${err.message}</p></div>`;
+  }
+}
+
+async function blAtualizarInteresseGlobal(id, status) {
+  if (!status) return;
+  try {
+    const r = await fetch(`${API}/api/boletim/interesses/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Status atualizado', 'success');
+    blCarregarInteresses();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function blConverterPregaoGlobal(id) {
+  if (!confirm('Converter este interesse em pregão?')) return;
+  try {
+    const r = await fetch(`${API}/api/boletim/interesses/${id}/pregao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    toast('Pregão criado com sucesso!', 'success');
+    blCarregarInteresses();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// Helper: popula selects de clientes nas abas de boletim
+function blPopularSelectClientes(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const clientes = clientesCache || window._todosClientes || [];
+  if (!clientes.length) return;
+  const primOpt = sel.options[0]?.text || '';
+  sel.innerHTML = `<option value="">${primOpt}</option>` +
+    clientes.filter(c => c.ativo).map(c =>
+      `<option value="${c.id}">${esc(c.nome)}</option>`
+    ).join('');
+}
 
 // ═══════════════════════════════════════════════════
 // MÓDULO MARKETING — CALENDÁRIO EDITORIAL

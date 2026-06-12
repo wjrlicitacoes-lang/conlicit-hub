@@ -913,6 +913,67 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_data   ON marketing_conteudos(data_publicacao)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_status ON marketing_conteudos(status)`);
 
+  // boletins — colunas complementares (idempotente)
+  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS total_editais  INTEGER`);
+  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS html_gerado_em TIMESTAMPTZ`);
+  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS criado_por     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
+
+  // boletins_items — colunas complementares (idempotente)
+  await db.query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS fila_id  INTEGER`);
+  await db.query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS pncp_id  VARCHAR(200)`);
+
+  // boletim_fila — fila de editais aguardando inclusão em boletins
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS boletim_fila (
+      id             SERIAL PRIMARY KEY,
+      pncp_id        VARCHAR(200),
+      titulo         TEXT,
+      orgao          VARCHAR(255),
+      uf             CHAR(2),
+      valor          VARCHAR(50),
+      prazo          DATE,
+      modalidade     VARCHAR(100),
+      objeto         TEXT,
+      link_pncp      TEXT,
+      cliente_id     INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      score          INTEGER,
+      justificativa  TEXT,
+      recomendacao   VARCHAR(20),
+      status         VARCHAR(30) NOT NULL DEFAULT 'na_fila',
+      boletim_id     INTEGER REFERENCES boletins(id) ON DELETE SET NULL,
+      adicionado_em  TIMESTAMPTZ DEFAULT NOW(),
+      adicionado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      CONSTRAINT boletim_fila_status_check
+        CHECK (status IN ('na_fila','incluido_boletim','descartado'))
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_cliente ON boletim_fila(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_status  ON boletim_fila(status)`);
+
+  // boletins_interesses — interesses manifestados via botão no HTML do boletim
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS boletins_interesses (
+      id              SERIAL PRIMARY KEY,
+      boletim_id      INTEGER REFERENCES boletins(id) ON DELETE SET NULL,
+      boletim_item_id INTEGER REFERENCES boletins_items(id) ON DELETE SET NULL,
+      cliente_id      INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      titulo          TEXT,
+      orgao           VARCHAR(255),
+      uf              CHAR(2),
+      valor           VARCHAR(50),
+      prazo           VARCHAR(50),
+      status          VARCHAR(30) NOT NULL DEFAULT 'interesse_confirmado',
+      observacao      TEXT,
+      convertido_em   TIMESTAMPTZ,
+      pregao_id       INTEGER REFERENCES pregoes(id) ON DELETE SET NULL,
+      registrado_em   TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT boletins_interesses_status_check
+        CHECK (status IN ('interesse_confirmado','em_analise','convertido','sem_interesse'))
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_cliente ON boletins_interesses(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_status  ON boletins_interesses(status)`);
+
   console.log('Migrações executadas com sucesso');
 }
 
