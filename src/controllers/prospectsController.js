@@ -339,8 +339,15 @@ async function processarAnaliseProspect(prospect) {
 // ── Endpoint público — landing page ──────────────────────────────────────────
 
 async function receberLanding(req, res) {
-  const { nome, empresa, email, whatsapp, segmento, tipo_edital, edital, obs, origem } = req.body ?? {};
+  const {
+    nome, empresa, email, whatsapp, segmento, tipo_edital, edital, obs, origem,
+    utm_source, utm_medium, utm_campaign, utm_content,
+  } = req.body ?? {};
   if (!nome?.trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
+
+  // Mapear utm_source → canal_origem
+  const UTM_CANAL = { email: 'email', linkedin: 'linkedin', instagram: 'instagram', facebook: 'facebook', google: 'google' };
+  const canal = utm_source ? (UTM_CANAL[utm_source] || utm_source) : 'landing_page';
 
   try {
     // Verifica se já existe pelo email para evitar duplicata
@@ -353,34 +360,40 @@ async function receberLanding(req, res) {
     }
 
     if (prospect) {
-      // Atualiza lead existente
+      // Atualiza lead existente — inclui UTMs se ainda não preenchidos
       const { rows: [p] } = await db.query(
         `UPDATE prospects SET
            empresa=COALESCE($1, empresa), whatsapp=COALESCE($2, whatsapp),
            segmento=COALESCE($3, segmento), edital=COALESCE($4, edital),
            obs=COALESCE($5, obs), formulario_preenchido=TRUE,
+           canal_origem=COALESCE(canal_origem, $7),
+           utm_source=COALESCE(utm_source, $8), utm_medium=COALESCE(utm_medium, $9),
+           utm_campaign=COALESCE(utm_campaign, $10), utm_content=COALESCE(utm_content, $11),
            status='novo_lead', updated_at=NOW()
          WHERE id=$6 RETURNING *`,
-        [empresa || null, whatsapp || null, segmento || null, edital || null, obs || null, prospect.id],
+        [empresa || null, whatsapp || null, segmento || null, edital || null, obs || null,
+         prospect.id, canal, utm_source || null, utm_medium || null, utm_campaign || null, utm_content || null],
       );
       await registrarEvento(p.id, 'formulario_preenchido',
-        `Formulário de análise preenchido via landing page (edital: ${edital || '—'})`);
+        `Formulário de análise preenchido via landing page (edital: ${edital || '—'}, canal: ${canal})`);
       prospect = p;
     } else {
-      // Cria novo lead
+      // Cria novo lead com UTMs
       const { rows: [p] } = await db.query(
         `INSERT INTO prospects
            (nome, empresa, email, whatsapp, segmento, edital, obs,
-            origem, status, formulario_preenchido)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'novo_lead',TRUE) RETURNING *`,
+            origem, status, formulario_preenchido,
+            canal_origem, utm_source, utm_medium, utm_campaign, utm_content)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'novo_lead',TRUE,$9,$10,$11,$12,$13) RETURNING *`,
         [
           nome.trim(), empresa || null, email || null, whatsapp || null,
           segmento || null, edital || null, obs || null,
-          origem || 'landing_page',
+          origem || canal,
+          canal, utm_source || null, utm_medium || null, utm_campaign || null, utm_content || null,
         ],
       );
       await registrarEvento(p.id, 'lead_criado',
-        `Lead criado via landing page (${origem || 'landing_page'})`);
+        `Lead criado via landing page (canal: ${canal})`);
       await registrarEvento(p.id, 'formulario_preenchido',
         `Formulário de análise preenchido (edital: ${edital || '—'})`);
       prospect = p;

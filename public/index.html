@@ -2404,7 +2404,7 @@
       <section id="section-prospects" class="section">
         <div class="section-header">
           <h1>Prospecção</h1>
-          <div class="section-header-actions">
+          <div class="section-header-actions" id="prc-header-pipeline-actions">
             <button class="btn btn-ghost btn-sm" id="btn-view-kanban" onclick="setViewProspects('kanban')" title="Kanban">⬛ Kanban</button>
             <button class="btn btn-ghost btn-sm" id="btn-view-lista"  onclick="setViewProspects('lista')"  title="Lista">☰ Lista</button>
             <button class="btn btn-ghost btn-sm" onclick="abrirModalProspectar()" style="border-color:var(--primary);color:var(--primary)"><i class="ti ti-search"></i> Prospectar</button>
@@ -2413,6 +2413,19 @@
             <button class="btn btn-ghost btn-sm" onclick="carregarProspects()">↻</button>
           </div>
         </div>
+
+        <!-- Abas de canal -->
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:18px;flex-wrap:wrap">
+          <button id="prc-tab-pipeline"   class="tab-btn active" onclick="prcSwitchTab('pipeline')">📋 Pipeline</button>
+          <button id="prc-tab-google"     class="tab-btn"        onclick="prcSwitchTab('google')">🔍 Busca Google</button>
+          <button id="prc-tab-linkedin"   class="tab-btn"        onclick="prcSwitchTab('linkedin')">💼 LinkedIn</button>
+          <button id="prc-tab-instagram"  class="tab-btn"        onclick="prcSwitchTab('instagram')">📸 Instagram</button>
+          <button id="prc-tab-facebook"   class="tab-btn"        onclick="prcSwitchTab('facebook')">👥 Facebook</button>
+          <button id="prc-tab-multicanal" class="tab-btn"        onclick="prcSwitchTab('multicanal')">📊 Multicanal</button>
+        </div>
+
+        <!-- PIPELINE (conteúdo existente) -->
+        <div id="prc-panel-pipeline">
 
         <!-- Stats -->
         <div id="prospects-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem"></div>
@@ -2473,6 +2486,155 @@
         <div id="prospects-area">
           <div class="state-box"><div class="spinner spinner-lg"></div></div>
         </div>
+
+        </div><!-- /prc-panel-pipeline -->
+
+        <!-- BUSCA GOOGLE -->
+        <div id="prc-panel-google" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px">
+            <div class="form-group" style="flex:1;min-width:160px;margin:0">
+              <label class="form-label">Nicho</label>
+              <select id="gg-nicho" class="form-control">
+                <option value="">Selecione…</option>
+                <option>Saúde / Medicamentos</option>
+                <option>Limpeza e Conservação</option>
+                <option>Obras / Engenharia</option>
+                <option>TI / Software</option>
+                <option>Segurança / Vigilância</option>
+                <option>Transporte / Frota</option>
+                <option>Alimentação / Merenda</option>
+                <option>EPI / Equipamentos</option>
+                <option>Manutenção Predial</option>
+                <option>Saneamento / Ambiental</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:130px;margin:0">
+              <label class="form-label">Cidade</label>
+              <input type="text" id="gg-cidade" class="form-control" value="Belo Horizonte" placeholder="Belo Horizonte">
+            </div>
+            <div class="form-group" style="min-width:140px;margin:0">
+              <label class="form-label">Abrangência</label>
+              <select id="gg-raio" class="form-control">
+                <option>BH</option>
+                <option>RMBH</option>
+                <option>Interior MG</option>
+                <option>Brasil</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="gg-btn-buscar" onclick="ggBuscar()">🔍 Buscar →</button>
+          </div>
+          <div id="gg-resultados-area"></div>
+          <div style="margin-top:24px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-muted)">Histórico de buscas</div>
+            <div id="gg-historico-area"><div class="state-box"><p>Carregando…</p></div></div>
+          </div>
+        </div>
+
+        <!-- LINKEDIN -->
+        <div id="prc-panel-linkedin" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+            <select id="li-nicho-sel" class="form-control" style="max-width:180px;font-size:12px" onchange="prcCarregarTemplates('linkedin')">
+              <option value="">Todos os nichos</option>
+              <option>Saúde / Medicamentos</option><option>Limpeza e Conservação</option>
+              <option>Obras / Engenharia</option><option>TI / Software</option>
+              <option>Segurança / Vigilância</option><option>Transporte / Frota</option>
+              <option>Alimentação / Merenda</option><option>EPI / Equipamentos</option>
+              <option>Manutenção Predial</option><option>Saneamento / Ambiental</option>
+            </select>
+            <select id="li-tipo-sel" class="form-control" style="max-width:140px;font-size:12px" onchange="prcCarregarTemplates('linkedin')">
+              <option value="">Todos os tipos</option>
+              <option value="post">Post</option>
+              <option value="carrossel">Carrossel</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="prcCarregarTemplates('linkedin')">↻</button>
+          </div>
+          <div id="prc-templates-linkedin"></div>
+          <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">➕ Adicionar lead manual do LinkedIn</div>
+            <div id="prc-li-leads-area"><div class="state-box"><p>Leads via LinkedIn aparecerão aqui.</p></div></div>
+            <button class="btn btn-ghost btn-sm" onclick="prcAbrirLeadManual('linkedin')" style="margin-top:10px">+ Adicionar lead LinkedIn</button>
+          </div>
+        </div>
+
+        <!-- INSTAGRAM -->
+        <div id="prc-panel-instagram" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+            <select id="ig-nicho-sel" class="form-control" style="max-width:180px;font-size:12px" onchange="prcCarregarTemplates('instagram')">
+              <option value="">Todos os nichos</option>
+              <option>Saúde / Medicamentos</option><option>Limpeza e Conservação</option>
+              <option>Obras / Engenharia</option><option>TI / Software</option>
+              <option>Segurança / Vigilância</option><option>Transporte / Frota</option>
+              <option>Alimentação / Merenda</option><option>EPI / Equipamentos</option>
+              <option>Manutenção Predial</option><option>Saneamento / Ambiental</option>
+            </select>
+            <select id="ig-tipo-sel" class="form-control" style="max-width:140px;font-size:12px" onchange="prcCarregarTemplates('instagram')">
+              <option value="">Todos os tipos</option>
+              <option value="carrossel">Carrossel</option>
+              <option value="reels">Reels</option>
+              <option value="story">Stories</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="prcCarregarTemplates('instagram')">↻</button>
+          </div>
+          <div id="prc-templates-instagram"></div>
+          <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+            <button class="btn btn-ghost btn-sm" onclick="prcAbrirLeadManual('instagram')">+ Adicionar lead Instagram</button>
+            <div id="prc-ig-leads-area" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <!-- FACEBOOK -->
+        <div id="prc-panel-facebook" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+            <select id="fb-nicho-sel" class="form-control" style="max-width:180px;font-size:12px" onchange="prcCarregarTemplates('facebook')">
+              <option value="">Todos os nichos</option>
+              <option>Saúde / Medicamentos</option><option>Limpeza e Conservação</option>
+              <option>Obras / Engenharia</option><option>TI / Software</option>
+              <option>Segurança / Vigilância</option><option>Transporte / Frota</option>
+              <option>Alimentação / Merenda</option><option>EPI / Equipamentos</option>
+              <option>Manutenção Predial</option><option>Saneamento / Ambiental</option>
+            </select>
+            <select id="fb-tipo-sel" class="form-control" style="max-width:160px;font-size:12px" onchange="prcCarregarTemplates('facebook')">
+              <option value="">Todos os tipos</option>
+              <option value="post">Posts para grupos</option>
+              <option value="resposta_rapida">Respostas rápidas</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="prcCarregarTemplates('facebook')">↻</button>
+          </div>
+          <div id="prc-templates-facebook"></div>
+          <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px">Grupos sugeridos para participação</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
+              • Licitações e Pregões Eletrônicos Brasil<br>
+              • Fornecedores de Licitações Públicas<br>
+              • Pregão Eletrônico — Fornecedores e Compradores<br>
+              • Licitações MG — Minas Gerais<br>
+              • Empresas que participam de Licitações
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="prcAbrirLeadManual('facebook')" style="margin-top:12px">+ Adicionar lead Facebook</button>
+            <div id="prc-fb-leads-area" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <!-- MULTICANAL DASHBOARD -->
+        <div id="prc-panel-multicanal" style="display:none">
+          <div id="prc-mc-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:20px">
+            <div class="state-box"><div class="spinner"></div></div>
+          </div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px">Atividade recente</div>
+          <div id="prc-mc-recentes"></div>
+          <div style="margin-top:20px;padding:16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">Ações rápidas</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="prcSwitchTab('google')">🔍 Nova busca Google</button>
+              <button class="btn btn-ghost btn-sm" onclick="abrirModalProspectar()">📧 Novo disparo email</button>
+              <button class="btn btn-ghost btn-sm" onclick="prcSwitchTab('linkedin')">💼 Copiar post LinkedIn</button>
+              <button class="btn btn-ghost btn-sm" onclick="prcSwitchTab('instagram')">📸 Copiar carrossel Instagram</button>
+              <button class="btn btn-ghost btn-sm" onclick="prcSwitchTab('facebook')">👥 Copiar post Facebook</button>
+              <button class="btn btn-primary btn-sm" onclick="abrirModalProspect()">+ Adicionar lead manual</button>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ── DOCUMENTAÇÃO INTERNA ── -->
@@ -16071,5 +16233,396 @@ async function mktEdExcluir(id) {
     </div>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MÓDULO MULTICANAL — Prospecção                             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<style>
+  .prc-template-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .prc-template-titulo { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .prc-template-canal-badge {
+    display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .badge-linkedin   { background: #0a66c2; color: #fff; }
+  .badge-instagram  { background: linear-gradient(135deg,#e1306c,#c13584); color: #fff; }
+  .badge-facebook   { background: #1877f2; color: #fff; }
+  .prc-template-preview {
+    font-size: 12px; color: var(--text-muted); line-height: 1.6; max-height: 100px;
+    overflow: hidden; white-space: pre-wrap; margin-bottom: 10px; position: relative;
+  }
+  .prc-template-preview.expanded { max-height: none; }
+  .prc-template-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .gg-empresa-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+  }
+  .gg-empresa-nome { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .gg-empresa-meta { font-size: 11px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px; }
+  .gg-relevancia-bar {
+    height: 4px; border-radius: 2px; background: var(--border); margin-top: 6px; width: 100%;
+  }
+  .gg-relevancia-fill { height: 100%; border-radius: 2px; background: #4CC5D7; }
+  .prc-mc-canal-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; text-align: center;
+  }
+  .prc-mc-canal-num { font-size: 22px; font-weight: 800; color: var(--text); }
+  .prc-mc-canal-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .prc-mc-canal-dot { width: 8px; height: 8px; border-radius: 50%; margin: 0 auto 6px; }
+</style>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// PROSPECÇÃO MULTICANAL
+// ─────────────────────────────────────────────────────────────
+const PRC_TABS = ['pipeline','google','linkedin','instagram','facebook','multicanal'];
+
+function prcSwitchTab(tab) {
+  PRC_TABS.forEach(t => {
+    document.getElementById(`prc-tab-${t}`)?.classList.toggle('active', t === tab);
+    const p = document.getElementById(`prc-panel-${t}`);
+    if (p) p.style.display = t === tab ? '' : 'none';
+  });
+  // Mostrar/ocultar ações do header de pipeline
+  const pa = document.getElementById('prc-header-pipeline-actions');
+  if (pa) pa.style.display = tab === 'pipeline' ? '' : 'none';
+
+  if (tab === 'google')     { ggInit(); }
+  if (tab === 'linkedin')   { prcCarregarTemplates('linkedin'); prcCarregarLeadsCanal('linkedin'); }
+  if (tab === 'instagram')  { prcCarregarTemplates('instagram'); }
+  if (tab === 'facebook')   { prcCarregarTemplates('facebook'); }
+  if (tab === 'multicanal') { prcCarregarMulticanal(); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BUSCA GOOGLE
+// ─────────────────────────────────────────────────────────────
+let _ggInit = false;
+function ggInit() {
+  if (!_ggInit) { _ggInit = true; ggCarregarHistorico(); }
+}
+
+async function ggBuscar() {
+  const nicho  = document.getElementById('gg-nicho').value;
+  const cidade = document.getElementById('gg-cidade').value.trim() || 'Belo Horizonte';
+  const raio   = document.getElementById('gg-raio').value;
+  if (!nicho) { toast('Selecione um nicho', 'error'); return; }
+
+  const btn = document.getElementById('gg-btn-buscar');
+  btn.disabled = true; btn.textContent = '⏳ Buscando…';
+  const area = document.getElementById('gg-resultados-area');
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div><p>Buscando empresas…</p></div>';
+
+  try {
+    const r = await fetch(`${API}/api/prospects/buscar-google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nicho, cidade, raio }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+
+    if (d.modo === 'manual') {
+      area.innerHTML = `
+        <div class="state-box" style="text-align:left;padding:16px">
+          <p style="color:var(--text-muted);margin-bottom:12px"><strong>Modo manual</strong> — ${d.mensagem}</p>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Clique nas queries abaixo para buscar no Google:</p>
+          ${(d.queries||[]).map(q => `
+            <a href="${q.url_google}" target="_blank" class="btn btn-ghost btn-sm" style="display:block;margin-bottom:6px;text-align:left;font-size:11px">
+              🔍 ${esc(q.query)}
+            </a>`).join('')}
+        </div>`;
+      return;
+    }
+
+    ggRenderResultados(d.resultados || []);
+    ggCarregarHistorico();
+  } catch (err) {
+    area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${err.message}</p></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 Buscar →';
+  }
+}
+
+function ggRenderResultados(resultados) {
+  const area = document.getElementById('gg-resultados-area');
+  if (!resultados.length) {
+    area.innerHTML = '<div class="state-box"><p>Nenhuma empresa relevante encontrada. Tente outro nicho ou cidade.</p></div>';
+    return;
+  }
+  area.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">${resultados.length} empresa(s) encontrada(s)</div>
+    ${resultados.map((e, i) => `
+      <div class="gg-empresa-card" id="gg-card-${i}">
+        <div style="flex:1;min-width:0">
+          <div class="gg-empresa-nome">🏢 ${esc(e.nome_empresa || '—')}</div>
+          <div class="gg-empresa-meta">
+            ${e.site     ? `<span>🌐 <a href="${e.site}" target="_blank" style="color:var(--primary)">${esc(e.site.replace(/^https?:\/\//,'').slice(0,30))}</a></span>` : ''}
+            ${e.telefone ? `<span>📞 ${esc(e.telefone)}</span>` : ''}
+            ${e.email    ? `<span>📧 ${esc(e.email)}</span>` : ''}
+            ${e.endereco ? `<span>📍 ${esc(e.endereco)}</span>` : ''}
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-muted)">
+            Relevância: ${e.relevancia}/10
+            <div class="gg-relevancia-bar"><div class="gg-relevancia-fill" style="width:${e.relevancia*10}%"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:130px;align-items:flex-end">
+          <button class="btn btn-primary btn-sm" onclick="ggAbrirModalProspect(${i})" style="font-size:11px">+ Adicionar como Prospect</button>
+          ${e.site ? `<a href="${e.site}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px">🔗 Ver site</a>` : ''}
+        </div>
+      </div>`).join('')}`;
+  window._ggResultados = resultados;
+}
+
+function ggAbrirModalProspect(idx) {
+  const e = (window._ggResultados || [])[idx];
+  if (!e) return;
+  const nome = prompt(`Nome do contato em "${e.nome_empresa}":`, '');
+  if (nome === null) return;
+  const emailC = prompt('E-mail do contato:', e.email || '');
+  const wpp    = prompt('WhatsApp (com DDI, ex: 5531999999999):', e.telefone || '');
+
+  fetch(`${API}/api/prospects/buscar-google/${idx+1}/prospect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ nome_contato: nome || e.nome_empresa, email: emailC, whatsapp: wpp }),
+  }).catch(() => {});
+
+  // Fallback: abre modal de prospect pré-preenchido
+  abrirModalProspect && abrirModalProspect();
+  setTimeout(() => {
+    const fn = document.getElementById('prospect-nome');     if (fn) fn.value = nome || e.nome_empresa;
+    const fe = document.getElementById('prospect-empresa');  if (fe) fe.value = e.nome_empresa;
+    const fm = document.getElementById('prospect-email');    if (fm) fm.value = emailC || '';
+    const fw = document.getElementById('prospect-whatsapp'); if (fw) fw.value = wpp || '';
+    const fo = document.getElementById('prospect-canal_origem'); if (fo) fo.value = 'google';
+  }, 200);
+}
+
+async function ggCarregarHistorico() {
+  const area = document.getElementById('gg-historico-area');
+  if (!area) return;
+  try {
+    const r = await fetch(`${API}/api/prospects/buscar-google/historico`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await r.json();
+    const hist = d.historico || [];
+    if (!hist.length) { area.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Nenhuma busca realizada ainda.</p>'; return; }
+    area.innerHTML = hist.map(h => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <div>
+          <span style="font-weight:600">${esc(h.nicho)}</span>
+          <span style="color:var(--text-muted)"> — ${esc(h.cidade)}</span>
+        </div>
+        <div style="color:var(--text-muted);text-align:right">
+          ${h.total} empresa(s) · ${h.convertidos} prospect(s)
+        </div>
+      </div>`).join('');
+  } catch { area.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Erro ao carregar histórico.</p>'; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// TEMPLATES SOCIAIS (LinkedIn / Instagram / Facebook)
+// ─────────────────────────────────────────────────────────────
+async function prcCarregarTemplates(canal) {
+  const nichoSel = document.getElementById(`${canal === 'linkedin' ? 'li' : canal === 'instagram' ? 'ig' : 'fb'}-nicho-sel`)?.value || '';
+  const tipoSel  = document.getElementById(`${canal === 'linkedin' ? 'li' : canal === 'instagram' ? 'ig' : 'fb'}-tipo-sel`)?.value  || '';
+  const area     = document.getElementById(`prc-templates-${canal}`);
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
+
+  try {
+    let url = `${API}/api/prospects/social-templates?canal=${encodeURIComponent(canal)}`;
+    if (nichoSel) url += `&nicho=${encodeURIComponent(nichoSel)}`;
+    if (tipoSel)  url += `&tipo=${encodeURIComponent(tipoSel)}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    prcRenderTemplates(area, d.templates || [], canal);
+  } catch (e) {
+    area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`;
+  }
+}
+
+function prcRenderTemplates(area, templates, canal) {
+  if (!templates.length) {
+    area.innerHTML = '<div class="state-box"><p>Nenhum template encontrado.</p></div>'; return;
+  }
+  const badgeClass = { linkedin: 'badge-linkedin', instagram: 'badge-instagram', facebook: 'badge-facebook' };
+  area.innerHTML = templates.map((t, i) => {
+    const preview = (t.conteudo || '').slice(0, 200) + ((t.conteudo || '').length > 200 ? '…' : '');
+    return `
+      <div class="prc-template-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <span class="prc-template-canal-badge ${badgeClass[canal] || ''}">${esc(t.tipo)}</span>
+            ${t.nicho !== 'geral' ? `<span style="font-size:10px;color:var(--text-muted);margin-left:6px">${esc(t.nicho)}</span>` : ''}
+            <div class="prc-template-titulo">${esc(t.titulo || '—')}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <select class="form-control" style="font-size:10px;padding:3px 6px;height:auto;max-width:110px"
+              onchange="prcAtualizarStatusTemplate(${t.id},this.value)">
+              <option value="rascunho" ${t.status==='rascunho'?'selected':''}>Rascunho</option>
+              <option value="publicado" ${t.status==='publicado'?'selected':''}>Publicado</option>
+              <option value="agendado" ${t.status==='agendado'?'selected':''}>Agendado</option>
+            </select>
+          </div>
+        </div>
+        <div class="prc-template-preview" id="prc-prev-${canal}-${t.id}">${esc(preview).replace(/\n/g,'<br>')}</div>
+        <div class="prc-template-actions">
+          <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="prcCopiarTemplate(${t.id})">📋 Copiar texto</button>
+          ${t.conteudo && t.conteudo.length > 200 ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="prcExpandir('prc-prev-${canal}-${t.id}')">↕ Expandir</button>` : ''}
+          ${t.hashtags ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="prcCopiarHashtags(${t.id})">📋 Hashtags</button>` : ''}
+          ${t.imagem_desc ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="alert(${JSON.stringify(t.imagem_desc)})">🖼 Sugestão arte</button>` : ''}
+        </div>
+        ${t.status === 'publicado' || t.publicado_em ? `
+          <div style="margin-top:8px">
+            <input type="text" placeholder="Resultado (alcance, leads…)" value="${esc(t.resultado||'')}" class="form-control" style="font-size:11px"
+              onblur="prcSalvarResultado(${t.id},this.value)">
+          </div>` : ''}
+      </div>`;
+  }).join('');
+  window[`_prc_templates_${canal}`] = templates;
+}
+
+function prcCopiarTemplate(id) {
+  for (const canal of ['linkedin','instagram','facebook']) {
+    const ts = window[`_prc_templates_${canal}`] || [];
+    const t  = ts.find(x => x.id === id);
+    if (t) {
+      navigator.clipboard.writeText(t.conteudo || '').then(() => toast('Texto copiado!', 'success')).catch(() => toast('Erro ao copiar','error'));
+      return;
+    }
+  }
+}
+
+function prcCopiarHashtags(id) {
+  for (const canal of ['linkedin','instagram','facebook']) {
+    const ts = window[`_prc_templates_${canal}`] || [];
+    const t  = ts.find(x => x.id === id);
+    if (t?.hashtags) {
+      navigator.clipboard.writeText(t.hashtags).then(() => toast('Hashtags copiadas!', 'success')).catch(() => {});
+      return;
+    }
+  }
+}
+
+function prcExpandir(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.classList.toggle('expanded');
+}
+
+async function prcAtualizarStatusTemplate(id, status) {
+  await fetch(`${API}/api/prospects/social-templates/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  }).catch(() => {});
+  toast('Status atualizado', 'success');
+}
+
+async function prcSalvarResultado(id, resultado) {
+  if (!resultado) return;
+  await fetch(`${API}/api/prospects/social-templates/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ resultado }),
+  }).catch(() => {});
+}
+
+// ─────────────────────────────────────────────────────────────
+// LEADS POR CANAL (manual)
+// ─────────────────────────────────────────────────────────────
+function prcAbrirLeadManual(canal) {
+  abrirModalProspect && abrirModalProspect();
+  setTimeout(() => {
+    const el = document.getElementById('prospect-canal_origem');
+    if (el) el.value = canal;
+  }, 200);
+}
+
+async function prcCarregarLeadsCanal(canal) {
+  // Leads recentes do canal — mostrado na aba de tracking
+  const areaId = { linkedin: 'prc-li-leads-area', instagram: 'prc-ig-leads-area', facebook: 'prc-fb-leads-area' }[canal];
+  const area = document.getElementById(areaId);
+  if (!area) return;
+  area.innerHTML = '<div class="spinner" style="margin:8px auto"></div>';
+  try {
+    const r = await fetch(`${API}/prospects?canal_origem=${canal}&limit=5`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) { area.innerHTML = ''; return; }
+    const d = await r.json();
+    const leads = d.dados || d || [];
+    if (!leads.length) { area.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Nenhum lead registrado deste canal ainda.</p>'; return; }
+    area.innerHTML = leads.slice(0,5).map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <div>
+          <span style="font-weight:600">${esc(p.nome||'—')}</span>
+          ${p.empresa ? `<span style="color:var(--text-muted)"> — ${esc(p.empresa)}</span>` : ''}
+        </div>
+        <span style="color:var(--text-muted)">${p.status||'—'}</span>
+      </div>`).join('');
+  } catch { area.innerHTML = ''; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DASHBOARD MULTICANAL
+// ─────────────────────────────────────────────────────────────
+const PRC_CANAL_COR = {
+  email: '#162A39', google: '#ea4335', linkedin: '#0a66c2',
+  instagram: '#e1306c', facebook: '#1877f2', manual: '#94a3b8', landing_page: '#4CC5D7',
+};
+const PRC_CANAL_LABEL = {
+  email: 'Email', google: 'Google', linkedin: 'LinkedIn',
+  instagram: 'Instagram', facebook: 'Facebook', manual: 'Manual', landing_page: 'Landing Page',
+};
+
+async function prcCarregarMulticanal() {
+  const kpisEl    = document.getElementById('prc-mc-kpis');
+  const recentesEl = document.getElementById('prc-mc-recentes');
+  if (!kpisEl) return;
+
+  try {
+    const r = await fetch(`${API}/api/prospects/multicanal/kpis`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+
+    const total = (d.por_canal || []).reduce((s, c) => s + parseInt(c.total, 10), 0);
+    kpisEl.innerHTML = `
+      <div class="prc-mc-canal-card">
+        <div class="prc-mc-canal-num">${total}</div>
+        <div class="prc-mc-canal-label">Total leads</div>
+      </div>
+      ${(d.por_canal || []).map(c => `
+        <div class="prc-mc-canal-card">
+          <div class="prc-mc-canal-dot" style="background:${PRC_CANAL_COR[c.canal_origem]||'#94a3b8'}"></div>
+          <div class="prc-mc-canal-num">${c.total}</div>
+          <div class="prc-mc-canal-label">${PRC_CANAL_LABEL[c.canal_origem]||c.canal_origem}</div>
+          ${parseInt(c.esta_semana,10) > 0 ? `<div style="font-size:10px;color:#22c55e">+${c.esta_semana} esta semana</div>` : ''}
+        </div>`).join('')}`;
+
+    if (recentesEl) {
+      recentesEl.innerHTML = (d.recentes || []).map(p => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${PRC_CANAL_COR[p.canal_origem]||'#94a3b8'}"></div>
+          <div style="flex:1;min-width:0">
+            <span style="font-weight:600">${esc(p.nome||'—')}</span>
+            ${p.empresa ? `<span style="color:var(--text-muted)"> — ${esc(p.empresa)}</span>` : ''}
+            <span style="color:var(--text-muted)"> via ${PRC_CANAL_LABEL[p.canal_origem]||p.canal_origem||'—'} · ${p.status||'—'}</span>
+          </div>
+          <span style="color:var(--text-muted);flex-shrink:0">${new Date(p.created_at).toLocaleDateString('pt-BR')}</span>
+        </div>`).join('') || '<p style="color:var(--text-muted);font-size:12px">Nenhum lead ainda.</p>';
+    }
+  } catch (e) {
+    kpisEl.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`;
+  }
+}
+</script>
 </body>
 </html>

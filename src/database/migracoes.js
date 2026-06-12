@@ -974,6 +974,69 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_cliente ON boletins_interesses(cliente_id)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_status  ON boletins_interesses(status)`);
 
+  // ── Multicanal: colunas prospects ────────────────────────────────────────────
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS canal_origem   VARCHAR(50)  DEFAULT 'manual'`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_source     VARCHAR(100)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_medium     VARCHAR(100)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_campaign   VARCHAR(100)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_content    VARCHAR(100)`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS perfil_url     TEXT`);
+  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS empresa_url    TEXT`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_canal ON prospects(canal_origem)`);
+
+  // google_prospects — empresas encontradas via busca
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS google_prospects (
+      id           SERIAL PRIMARY KEY,
+      nome_empresa VARCHAR(255),
+      site         TEXT,
+      telefone     VARCHAR(50),
+      email        VARCHAR(255),
+      endereco     TEXT,
+      nicho        VARCHAR(100),
+      cidade       VARCHAR(100),
+      query_usada  TEXT,
+      relevancia   INTEGER DEFAULT 0,
+      snippet      TEXT,
+      status       VARCHAR(50) NOT NULL DEFAULT 'encontrado',
+      prospect_id  INTEGER REFERENCES prospects(id) ON DELETE SET NULL,
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT google_prospects_status_check
+        CHECK (status IN ('encontrado','contatado','prospect_criado','descartado'))
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_nicho  ON google_prospects(nicho)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_status ON google_prospects(status)`);
+
+  // social_templates — biblioteca de posts para LinkedIn/Instagram/Facebook
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS social_templates (
+      id          SERIAL PRIMARY KEY,
+      canal       VARCHAR(50)  NOT NULL,
+      tipo        VARCHAR(50)  NOT NULL,
+      nicho       VARCHAR(100) NOT NULL DEFAULT 'geral',
+      titulo      VARCHAR(255),
+      conteudo    TEXT,
+      hashtags    TEXT,
+      cta_texto   VARCHAR(255),
+      cta_link    TEXT,
+      imagem_desc TEXT,
+      status      VARCHAR(30)  NOT NULL DEFAULT 'rascunho',
+      publicado_em DATE,
+      resultado   TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_st_canal ON social_templates(canal)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_st_nicho ON social_templates(nicho)`);
+
+  // Seed de templates sociais (apenas se tabela estiver vazia)
+  const { rows: stCount } = await db.query(`SELECT COUNT(*)::int AS n FROM social_templates`);
+  if (stCount[0].n === 0) {
+    const { seedSocialTemplates } = require('../seeds/social_templates');
+    await seedSocialTemplates(db);
+  }
+
   console.log('Migrações executadas com sucesso');
 }
 
