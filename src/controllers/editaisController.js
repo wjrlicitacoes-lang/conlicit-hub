@@ -127,6 +127,7 @@ function formatarEditalSearch(item) {
   // ── Valor estimado (campo confirmado do PNCP: valorTotalEstimadoDaCompra) ───
   const valorRaw = item.valorTotalEstimadoDaCompra
     ?? item.valorTotalEstimado
+    ?? item.valor_total_estimado_da_compra
     ?? item.valor_total_estimado
     ?? item.valorGlobal
     ?? item.valor_global
@@ -162,10 +163,13 @@ function formatarEditalSearch(item) {
       const iso = String(dataEncerramentoRaw).substring(0, 19); // "2026-06-11T08:00:00"
       const [datePart, timePart] = iso.split('T');
       const [ano, mes, dia] = datePart.split('-');
-      const [hora, minuto] = (timePart || '00:00').split(':');
-
       dataEncerramentoFormatada = `${dia}/${mes}/${ano}`;
-      horarioEncerramento = `${hora}:${minuto}`;
+      if (timePart && timePart !== '00:00:00' && timePart !== '00:00') {
+        const [hora, minuto] = timePart.split(':');
+        horarioEncerramento = `${hora}:${minuto}`;
+      } else {
+        horarioEncerramento = '';
+      }
 
       const dtEnc = new Date(Number(ano), Number(mes) - 1, Number(dia));
       const hoje = new Date();
@@ -549,7 +553,15 @@ async function listarEditais(req, res) {
       let total = resp.data?.total ?? items.length;
 
       if (items.length > 0) {
-        console.log('[PNCP RAW ITEM 0]', JSON.stringify(items[0], null, 2));
+        console.log('[PNCP ALL VALOR CHECK]', items.slice(0, 3).map(i => ({
+          objeto: (i.descricaoObjeto || i.objeto || '').substring(0, 50),
+          valorTotalEstimadoDaCompra: i.valorTotalEstimadoDaCompra,
+          valorTotalEstimado: i.valorTotalEstimado,
+          dataEncerramentoProposta: i.dataEncerramentoProposta,
+          dataFimRecebimentoProposta: i.dataFimRecebimentoProposta,
+          orcamentoSigiloso: i.orcamentoSigiloso,
+          status: i.situacaoCompraNome,
+        })));
       }
 
       // Retry com primeira palavra se a busca completa não retornar resultados
@@ -566,18 +578,38 @@ async function listarEditais(req, res) {
         }
       }
 
+      // Último retry: sem filtro de status (captura todos os estados)
       if (items.length === 0) {
-        return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
+        console.log(`[Editais] Zero resultados com status — retry sem status filter`);
+        try {
+          const pSemStatus = new URLSearchParams({
+            q: qSanitizado,
+            tipos_documento: 'edital',
+            pagina: String(paginaSolicitada),
+            tam: String(tamanhoSolicitado),
+          });
+          if (uf) pSemStatus.append('ufs', uf.toUpperCase());
+          if (municipioId) pSemStatus.append('municipios', municipioId);
+          const rSemStatus = await axios.get(`${PNCP_SEARCH_URL}?${pSemStatus}`, { headers: HEADERS_PNCP, timeout: 15000 });
+          items = rSemStatus.data?.items || [];
+          total = rSemStatus.data?.total ?? items.length;
+          if (items.length > 0) {
+            const hoje = new Date();
+            items = items.filter(item => {
+              const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
+              if (!encRaw) return true;
+              try {
+                const dt = new Date(String(encRaw).substring(0, 19));
+                return dt >= hoje;
+              } catch { return true; }
+            });
+            total = items.length;
+          }
+        } catch (_) { /* mantém zero */ }
       }
 
-      // Log diagnóstico do campo de valor (remover após confirmar)
-      if (items.length > 0) {
-        console.log('[PNCP VALOR CHECK]', {
-          valorTotalEstimadoDaCompra: items[0].valorTotalEstimadoDaCompra,
-          valorTotalEstimado:         items[0].valorTotalEstimado,
-          orcamentoSigiloso:          items[0].orcamentoSigiloso,
-          valorMapeado:               formatarEditalSearch(items[0]).valorEstimado,
-        });
+      if (items.length === 0) {
+        return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
       }
 
       // Ordena por proximidade de encerramento: mais urgente primeiro, encerrados no fim
