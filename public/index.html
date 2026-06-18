@@ -1855,6 +1855,137 @@
     .prop-loading-row span:nth-child(3){animation-delay:0.4s}
     @keyframes prop-bounce{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
     /* ===== FIM PLANILHA DE PROPOSTA ===== */
+
+    /* ═══════════════════════════════════════
+       GERADOR DE CONTRATOS
+    ═══════════════════════════════════════ */
+    .gc-wrap {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 0;
+      border: 1px solid #1E3447;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: calc(100vh - 160px);
+    }
+    .gc-painel {
+      background: #0f1e2b;
+      border-right: 1px solid #1E3447;
+      overflow-y: auto;
+      max-height: calc(100vh - 160px);
+    }
+    .gc-secao {
+      padding: 14px 18px;
+      border-bottom: 1px solid #1E3447;
+    }
+    .gc-secao-titulo {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4CC5D7;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .gc-campo { margin-bottom: 10px; }
+    .gc-campo label {
+      display: block;
+      font-size: 12px;
+      color: #8AAABB;
+      margin-bottom: 4px;
+    }
+    .gc-campo input,
+    .gc-campo select,
+    .gc-campo textarea {
+      width: 100%;
+      font-size: 13px;
+      padding: 8px 10px;
+      background: #1E3447;
+      border: 1px solid #2a4a60;
+      border-radius: 8px;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    .gc-campo textarea { resize: vertical; min-height: 64px; }
+    .gc-campo input:focus,
+    .gc-campo select:focus,
+    .gc-campo textarea:focus {
+      outline: none;
+      border-color: #4CC5D7;
+    }
+    .gc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .gc-checks { display: flex; flex-direction: column; gap: 8px; }
+    .gc-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: #DEE6E9;
+      cursor: pointer;
+    }
+    .gc-check input {
+      width: 15px;
+      height: 15px;
+      accent-color: #4CC5D7;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+    .gc-preview {
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 160px);
+    }
+    .gc-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      background: #f5f7f9;
+      border-bottom: 1px solid #e0e6ea;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      flex-shrink: 0;
+    }
+    .gc-preview-body {
+      overflow-y: auto;
+      padding: 28px 36px;
+      flex: 1;
+      font-family: Arial, sans-serif;
+      font-size: 11.5px;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+    .gc-preview-body .ct-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding-bottom:12px; border-bottom:2px solid #182A39; }
+    .gc-preview-body .ct-logo { font-size:17px; font-weight:bold; color:#182A39; }
+    .gc-preview-body .ct-logo span { color:#4CC5D7; }
+    .gc-preview-body .ct-subtag { font-size:10px; color:#666; text-align:right; line-height:1.4; }
+    .gc-preview-body .ct-title { text-align:center; margin-bottom:16px; }
+    .gc-preview-body .ct-title h1 { font-size:14px; color:#182A39; margin-bottom:3px; }
+    .gc-preview-body .ct-title p { font-size:11px; color:#666; }
+    .gc-preview-body .ct-aviso { background:#eef8f9; border-left:3px solid #4CC5D7; padding:7px 11px; font-size:10.5px; color:#555; margin-bottom:16px; border-radius:0 6px 6px 0; }
+    .gc-preview-body .ct-sec { font-size:10px; font-weight:bold; color:#4CC5D7; text-transform:uppercase; letter-spacing:.8px; margin:14px 0 7px; }
+    .gc-preview-body .ct-table { width:100%; border-collapse:collapse; margin-bottom:12px; font-size:11px; }
+    .gc-preview-body .ct-table td { padding:4px 8px; border:0.5px solid #ddd; }
+    .gc-preview-body .ct-table tr:nth-child(odd) td:first-child { background:#f5f5f5; }
+    .gc-preview-body .ct-table td:first-child { font-weight:bold; color:#555; width:30%; }
+    .gc-preview-body .ct-vazio { color:#bbb; font-style:italic; }
+    .gc-preview-body .ct-clausula { margin-bottom:10px; }
+    .gc-preview-body .ct-clausula h3 { font-size:11px; font-weight:bold; color:#182A39; margin-bottom:4px; padding-bottom:3px; border-bottom:0.5px solid #eee; }
+    .gc-preview-body .ct-clausula p { font-size:10.5px; margin-bottom:3px; text-align:justify; }
+    .gc-preview-body .ct-clausula ul { padding-left:14px; margin:3px 0; }
+    .gc-preview-body .ct-clausula ul li { font-size:10.5px; margin-bottom:2px; }
+    .gc-preview-body .ct-assin { margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+    .gc-preview-body .ct-assin-bloco { text-align:center; }
+    .gc-preview-body .ct-assin-linha { border-top:0.5px solid #333; margin-bottom:5px; margin-top:36px; }
+    .gc-preview-body .ct-assin-nome { font-size:10.5px; font-weight:bold; }
+    .gc-preview-body .ct-assin-sub { font-size:10px; color:#666; }
+    .gc-preview-body .ct-data { text-align:center; font-size:10.5px; color:#666; margin:18px 0 3px; }
+    .gc-preview-body .ct-rodape { text-align:center; font-size:10px; color:#999; border-top:0.5px solid #eee; padding-top:8px; margin-top:14px; }
+    /* ===== FIM GERADOR DE CONTRATOS ===== */
   </style>
 </head>
 <body>
@@ -1993,6 +2124,10 @@
         <button class="nav-item" data-nav="planilha" onclick="navTo('planilha')" id="nav-planilha" hidden>
           <span class="nav-icon"><i class="ti ti-file-spreadsheet"></i></span>
           <span class="nav-label">Planilha Proposta</span>
+        </button>
+        <button class="nav-item" data-nav="gerador-contrato" onclick="navTo('gerador-contrato')" id="nav-gerador-contrato" hidden>
+          <span class="nav-icon"><i class="ti ti-file-plus"></i></span>
+          <span class="nav-label">Gerador de Contrato</span>
         </button>
         <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
           <span class="nav-icon"><i class="ti ti-key"></i></span>
@@ -3607,6 +3742,182 @@
       </section>
       <!-- ===== FIM PLANILHA DE PROPOSTA ===== -->
 
+      <!-- ═══════════════════════════════════════════════════════
+           GERADOR DE CONTRATOS
+      ═══════════════════════════════════════════════════════ -->
+      <section id="section-gerador-contrato" class="section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Gerador de Contrato</h1>
+            <p style="color:var(--t3);font-size:.85rem;margin:4px 0 0">Preencha os dados do cliente e gere o contrato em PDF</p>
+          </div>
+          <button class="btn btn-primary" onclick="gcGerarPDF()">
+            <i class="ti ti-download"></i> Baixar PDF
+          </button>
+        </div>
+
+        <div class="gc-wrap">
+          <!-- PAINEL DE DADOS -->
+          <div class="gc-painel" id="gc-painel">
+
+            <!-- CLIENTE -->
+            <div class="gc-secao">
+              <div class="gc-secao-titulo">
+                <i class="ti ti-building"></i> Dados do Cliente
+              </div>
+              <div class="gc-campo">
+                <label>Razão Social / Nome *</label>
+                <input id="gc-cli-nome" type="text" placeholder="Ex: Distribuidora ABC Ltda." oninput="gcAtualizar()">
+              </div>
+              <div class="gc-row2">
+                <div class="gc-campo">
+                  <label>CNPJ / CPF *</label>
+                  <input id="gc-cli-cnpj" type="text" placeholder="00.000.000/0001-00" oninput="gcAtualizar()">
+                </div>
+                <div class="gc-campo">
+                  <label>Telefone</label>
+                  <input id="gc-cli-tel" type="text" placeholder="(31) 9 0000-0000" oninput="gcAtualizar()">
+                </div>
+              </div>
+              <div class="gc-campo">
+                <label>Endereço</label>
+                <input id="gc-cli-end" type="text" placeholder="Rua, nº, Cidade – UF" oninput="gcAtualizar()">
+              </div>
+              <div class="gc-row2">
+                <div class="gc-campo">
+                  <label>Representante legal</label>
+                  <input id="gc-cli-rep" type="text" placeholder="Nome completo" oninput="gcAtualizar()">
+                </div>
+                <div class="gc-campo">
+                  <label>Cargo</label>
+                  <input id="gc-cli-cargo" type="text" placeholder="Ex: Sócio-Administrador" oninput="gcAtualizar()">
+                </div>
+              </div>
+              <div class="gc-campo">
+                <label>E-mail</label>
+                <input id="gc-cli-email" type="text" placeholder="contato@empresa.com.br" oninput="gcAtualizar()">
+              </div>
+            </div>
+
+            <!-- VIGÊNCIA E PLANO -->
+            <div class="gc-secao">
+              <div class="gc-secao-titulo">
+                <i class="ti ti-calendar"></i> Vigência e Plano
+              </div>
+              <div class="gc-row2">
+                <div class="gc-campo">
+                  <label>Data de início *</label>
+                  <input id="gc-inicio" type="date" oninput="gcAtualizar()">
+                </div>
+                <div class="gc-campo">
+                  <label>Prazo (meses) *</label>
+                  <input id="gc-prazo" type="number" min="1" max="60" placeholder="12" oninput="gcAtualizar()">
+                </div>
+              </div>
+              <div class="gc-campo">
+                <label>Plano</label>
+                <select id="gc-plano" onchange="gcAtualizar()">
+                  <option value="">Selecione...</option>
+                  <option>Essencial</option>
+                  <option>Estratégico</option>
+                  <option>Premium</option>
+                  <option>Personalizado</option>
+                </select>
+              </div>
+              <div class="gc-campo">
+                <label>Modalidades cobertas</label>
+                <input id="gc-modal" type="text" placeholder="Pregão Eletrônico, Dispensa..." oninput="gcAtualizar()">
+              </div>
+              <div class="gc-campo">
+                <label>Segmentos / produtos</label>
+                <input id="gc-seg" type="text" placeholder="Ex: Alimentos, TI, Limpeza..." oninput="gcAtualizar()">
+              </div>
+              <div class="gc-campo">
+                <label>Abrangência geográfica</label>
+                <input id="gc-abrang" type="text" placeholder="Ex: Minas Gerais / Nacional" oninput="gcAtualizar()">
+              </div>
+            </div>
+
+            <!-- VALORES -->
+            <div class="gc-secao">
+              <div class="gc-secao-titulo">
+                <i class="ti ti-currency-dollar"></i> Valores e Pagamento
+              </div>
+              <div class="gc-row2">
+                <div class="gc-campo">
+                  <label>Honorários mensais (R$)</label>
+                  <input id="gc-honorario" type="text" placeholder="1.500,00" oninput="gcAtualizar()">
+                </div>
+                <div class="gc-campo">
+                  <label>Vencimento (dia)</label>
+                  <input id="gc-venc" type="number" min="1" max="31" placeholder="10" oninput="gcAtualizar()">
+                </div>
+              </div>
+              <div class="gc-row2">
+                <div class="gc-campo">
+                  <label>Comissão de êxito (%)</label>
+                  <input id="gc-comissao" type="text" placeholder="5" oninput="gcAtualizar()">
+                </div>
+                <div class="gc-campo">
+                  <label>Prazo cobrança êxito (dias)</label>
+                  <input id="gc-prazo-exit" type="number" placeholder="30" oninput="gcAtualizar()">
+                </div>
+              </div>
+              <div class="gc-campo">
+                <label>Forma de pagamento</label>
+                <select id="gc-pgto" onchange="gcAtualizar()">
+                  <option value="">Selecione...</option>
+                  <option>PIX (CNPJ 54.077.796/0001-00)</option>
+                  <option>Transferência bancária</option>
+                  <option>Boleto bancário</option>
+                </select>
+              </div>
+              <div class="gc-campo">
+                <label>Multa rescisória (%)</label>
+                <input id="gc-multa" type="text" placeholder="20" oninput="gcAtualizar()">
+              </div>
+            </div>
+
+            <!-- SERVIÇOS -->
+            <div class="gc-secao">
+              <div class="gc-secao-titulo">
+                <i class="ti ti-list-check"></i> Serviços Incluídos
+              </div>
+              <div class="gc-checks">
+                <label class="gc-check"><input type="checkbox" id="gc-s1" checked onchange="gcAtualizar()"> Monitoramento e boletim de oportunidades</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s2" checked onchange="gcAtualizar()"> Análise técnica de editais</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s3" checked onchange="gcAtualizar()"> Orientação em habilitação e documentação</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s4" checked onchange="gcAtualizar()"> Acompanhamento de sessão de pregão</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s5" checked onchange="gcAtualizar()"> Elaboração de proposta comercial</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s6" onchange="gcAtualizar()"> Orientação em recursos administrativos</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s7" onchange="gcAtualizar()"> Suporte pós-vitória (contrato, NF, prazos)</label>
+                <label class="gc-check"><input type="checkbox" id="gc-s8" checked onchange="gcAtualizar()"> Reunião mensal de alinhamento</label>
+              </div>
+              <div class="gc-campo" style="margin-top:12px">
+                <label>Observações / personalizações</label>
+                <textarea id="gc-obs" rows="3" placeholder="Ex: Limite de 5 editais/mês. Atendimento prioritário às sextas." oninput="gcAtualizar()"></textarea>
+              </div>
+            </div>
+
+          </div><!-- /gc-painel -->
+
+          <!-- PREVIEW DO CONTRATO -->
+          <div class="gc-preview" id="gc-preview-wrap">
+            <div class="gc-preview-header">
+              <span>Preview do Contrato</span>
+              <button class="btn btn-ghost btn-sm" onclick="gcGerarPDF()">
+                <i class="ti ti-download"></i> PDF
+              </button>
+            </div>
+            <div class="gc-preview-body" id="gc-preview-body">
+              <!-- Gerado dinamicamente pelo JavaScript -->
+            </div>
+          </div>
+
+        </div><!-- /gc-wrap -->
+      </section>
+      <!-- ===== FIM GERADOR DE CONTRATOS ===== -->
+
     </main>
   </div>
 </div>
@@ -4461,7 +4772,8 @@
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-pos-vitoria').hidden   = !admin || cliente;
     document.getElementById('nav-marketing').hidden     = !permiteModulo('marketing') || cliente;
-    document.getElementById('nav-planilha').hidden      = !admin || cliente;
+    document.getElementById('nav-planilha').hidden          = !admin || cliente;
+    document.getElementById('nav-gerador-contrato').hidden  = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
@@ -4471,7 +4783,8 @@
        document.getElementById('nav-financeiro').hidden &&
        document.getElementById('nav-pos-vitoria').hidden &&
        document.getElementById('nav-marketing').hidden &&
-       document.getElementById('nav-planilha').hidden);
+       document.getElementById('nav-planilha').hidden &&
+       document.getElementById('nav-gerador-contrato').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -4513,6 +4826,7 @@
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'planilha')        propCarregarLista();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
+    else if (section === 'gerador-contrato') gcAtualizar();
   }
 
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
@@ -17016,6 +17330,258 @@ async function prcCarregarMulticanal() {
   };
 })();
 // ===== FIM PLANILHA DE PROPOSTA =====
+
+// ═══════════════════════════════════════════════════
+// GERADOR DE CONTRATOS
+// ═══════════════════════════════════════════════════
+
+function gcV(id) { return document.getElementById(id)?.value?.trim() || ''; }
+function gcCh(id) { return document.getElementById(id)?.checked || false; }
+
+function gcCel(val) {
+  return val
+    ? `<td>${val}</td>`
+    : `<td class="ct-vazio">— a preencher —</td>`;
+}
+
+function gcFormatarData(d) {
+  if (!d) return '_____ de ________________ de 20_____';
+  const dt = new Date(d + 'T00:00:00');
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho',
+                 'julho','agosto','setembro','outubro','novembro','dezembro'];
+  return `${dt.getDate()} de ${meses[dt.getMonth()]} de ${dt.getFullYear()}`;
+}
+
+function gcCalcVencimento() {
+  const inicio = gcV('gc-inicio');
+  const prazo  = parseInt(gcV('gc-prazo')) || 0;
+  if (!inicio || !prazo) return '';
+  const d = new Date(inicio + 'T00:00:00');
+  d.setMonth(d.getMonth() + prazo);
+  return gcFormatarData(d.toISOString().substring(0, 10));
+}
+
+const GC_SERVICOS = [
+  ['gc-s1', 'Monitoramento e boletim de oportunidades licitatórias'],
+  ['gc-s2', 'Análise técnica de editais (habilitação, riscos, exigências)'],
+  ['gc-s3', 'Orientação em habilitação e documentação'],
+  ['gc-s4', 'Acompanhamento de sessão de pregão eletrônico'],
+  ['gc-s5', 'Elaboração de proposta comercial'],
+  ['gc-s6', 'Orientação em recursos administrativos e impugnações'],
+  ['gc-s7', 'Suporte pós-vitória (assinatura, NF, prazos de entrega)'],
+  ['gc-s8', 'Reunião mensal de alinhamento (videoconferência)'],
+];
+
+function gcAtualizar() {
+  const nome   = gcV('gc-cli-nome');
+  const cnpj   = gcV('gc-cli-cnpj');
+  const end    = gcV('gc-cli-end');
+  const rep    = gcV('gc-cli-rep');
+  const cargo  = gcV('gc-cli-cargo');
+  const email  = gcV('gc-cli-email');
+  const tel    = gcV('gc-cli-tel');
+  const inicio = gcV('gc-inicio');
+  const prazo  = gcV('gc-prazo');
+  const plano  = gcV('gc-plano');
+  const modal  = gcV('gc-modal');
+  const seg    = gcV('gc-seg');
+  const abrang = gcV('gc-abrang');
+  const honor  = gcV('gc-honorario');
+  const venc   = gcV('gc-venc');
+  const comis  = gcV('gc-comissao');
+  const pExit  = gcV('gc-prazo-exit');
+  const pgto   = gcV('gc-pgto');
+  const multa  = gcV('gc-multa');
+  const obs    = gcV('gc-obs');
+  const svcs   = GC_SERVICOS.filter(([id]) => gcCh(id)).map(([, s]) => s);
+  const vencim = gcCalcVencimento();
+  const hoje   = gcFormatarData(new Date().toISOString().substring(0, 10));
+
+  const html = `
+<div id="gc-conteudo-pdf">
+<div class="ct-header">
+  <div class="ct-logo"><span>conlicit</span></div>
+  <div class="ct-subtag">
+    Consultoria em Licitações Públicas<br>
+    CNPJ 54.077.796/0001-00<br>
+    comercial@conlicit.com
+  </div>
+</div>
+<div class="ct-title">
+  <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+  <p>Consultoria Especializada em Licitações Públicas${plano ? ' — Plano ' + plano : ''}</p>
+</div>
+<div class="ct-aviso">
+  Leia atentamente todas as cláusulas antes de assinar.
+  Este documento não substitui assessoria jurídica especializada.
+</div>
+<div class="ct-sec">Identificação das Partes</div>
+<p style="font-size:10.5px;font-weight:bold;color:#4CC5D7;margin-bottom:5px">CONTRATADA</p>
+<table class="ct-table">
+  <tr><td>Razão Social</td><td>Conlicit Consultoria em Licitações Ltda.</td></tr>
+  <tr><td>CNPJ</td><td>54.077.796/0001-00</td></tr>
+  <tr><td>Endereço</td><td>Belo Horizonte – MG</td></tr>
+  <tr><td>Representante</td><td>Werbert Pessoa</td></tr>
+  <tr><td>Cargo</td><td>Diretor</td></tr>
+  <tr><td>E-mail</td><td>comercial@conlicit.com</td></tr>
+</table>
+<p style="font-size:10.5px;font-weight:bold;color:#4CC5D7;margin:10px 0 5px">CONTRATANTE</p>
+<table class="ct-table">
+  <tr><td>Razão Social / Nome</td>${gcCel(nome)}</tr>
+  <tr><td>CNPJ / CPF</td>${gcCel(cnpj)}</tr>
+  <tr><td>Endereço</td>${gcCel(end)}</tr>
+  <tr><td>Representante</td>${gcCel(rep)}</tr>
+  <tr><td>Cargo / Função</td>${gcCel(cargo)}</tr>
+  <tr><td>E-mail</td>${gcCel(email)}</tr>
+  <tr><td>Telefone</td>${gcCel(tel)}</tr>
+</table>
+<div class="ct-clausula">
+  <h3>Cláusula 1ª — Do Objeto</h3>
+  <p>O presente contrato tem por objeto a prestação, pela CONTRATADA, de serviços especializados de consultoria em licitações públicas à CONTRATANTE${plano ? ' no Plano ' + plano : ''}.</p>
+  ${modal ? `<p><strong>Modalidades:</strong> ${modal}</p>` : ''}
+  ${seg   ? `<p><strong>Segmentos:</strong> ${seg}</p>` : ''}
+  ${abrang? `<p><strong>Abrangência:</strong> ${abrang}</p>` : ''}
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 2ª — Dos Serviços Prestados</h3>
+  <p>No âmbito deste contrato, a CONTRATADA prestará os seguintes serviços:</p>
+  <ul>${svcs.map(s => `<li>${s}</li>`).join('') || '<li>— nenhum serviço selecionado —</li>'}</ul>
+  <p>Os serviços serão prestados predominantemente de forma remota (e-mail, WhatsApp, videoconferência).</p>
+  ${obs ? `<p><em>Observações específicas: ${obs}</em></p>` : ''}
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 3ª — Do Prazo de Vigência</h3>
+  <p>O contrato terá vigência de <strong>${prazo || '___'} meses</strong>${inicio ? ', a partir de ' + gcFormatarData(inicio) : ''}${vencim ? ', com término previsto em ' + vencim : ''}. Poderá ser renovado por acordo escrito com antecedência mínima de 30 dias.</p>
+  <p>Qualquer das partes poderá rescindir mediante notificação escrita com antecedência mínima de 30 dias. A rescisão imotivada pela CONTRATANTE antes do término sujeitará ao pagamento de multa compensatória de <strong>${multa || '___'}%</strong> sobre o valor remanescente.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 4ª — Da Remuneração e Forma de Pagamento</h3>
+  <ul>
+    <li><strong>Honorários mensais:</strong> R$ ${honor || '___'}/mês, com vencimento no dia <strong>${venc || '___'}</strong> de cada mês, via ${pgto || '— a definir —'}.</li>
+    <li><strong>Comissão de êxito:</strong> ${comis || '___'}% sobre o valor do contrato público vencido, devida em até ${pExit || '___'} dias após a assinatura do contrato administrativo.</li>
+  </ul>
+  <p>O atraso sujeitará multa moratória de 2%, juros de 1% ao mês e correção pelo IPCA. Inadimplência superior a 30 dias autoriza a suspensão dos serviços.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 5ª — Das Obrigações da Contratada</h3>
+  <p>A CONTRATADA se obriga a prestar os serviços com diligência e boa-fé, manter sigilo sobre as informações da CONTRATANTE, comunicar em tempo hábil qualquer circunstância que afete o andamento dos serviços e emitir nota fiscal pelos serviços prestados. A CONTRATADA não garante resultado específico em processos licitatórios.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 6ª — Das Obrigações da Contratante</h3>
+  <p>A CONTRATANTE se obriga a: fornecer documentos e credenciais necessários; manter certidões de habilitação em situação regular; informar alterações societárias ou fiscais; efetuar os pagamentos nas datas estipuladas; e não revelar metodologias ou informações estratégicas da CONTRATADA a terceiros.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 7ª — Da Confidencialidade</h3>
+  <p>As partes manterão absoluto sigilo sobre informações confidenciais a que tiverem acesso em razão deste contrato. A obrigação persiste por 2 anos após o encerramento.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 8ª — Da Limitação de Responsabilidade</h3>
+  <p>A CONTRATADA não se responsabiliza pelo resultado de processos licitatórios, por irregularidades da CONTRATANTE, por decisões autônomas que contrariem suas orientações ou por alterações normativas supervenientes. Em nenhuma hipótese a responsabilidade da CONTRATADA excederá o valor dos honorários pagos nos últimos 6 meses.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 9ª — Da Não Prestação de Análise Jurídica</h3>
+  <p>Os serviços da CONTRATADA têm natureza exclusivamente consultiva e estratégica. A CONTRATADA não realiza análise jurídica do contrato firmado entre a CONTRATANTE e o órgão público, não emite pareceres jurídicos e não está habilitada ao exercício da advocacia. A revisão jurídica do contrato administrativo é de responsabilidade exclusiva da CONTRATANTE.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 10ª — Da Não Responsabilidade sobre Logística e Entrega</h3>
+  <p>A CONTRATADA não é responsável pela análise de aspectos logísticos, operacionais ou financeiros da execução do contrato público, incluindo prazo, local e condições de entrega, custos de frete e compatibilidade do produto com o edital. É responsabilidade exclusiva da CONTRATANTE verificar, antes de participar de qualquer certame, sua plena capacidade para cumprir todas as obrigações. A validação do edital não implica avaliação de viabilidade de entrega.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 11ª — Das Obrigações Fiscais da Contratante</h3>
+  <p>A CONTRATANTE é inteiramente responsável pelas obrigações fiscais e tributárias decorrentes dos contratos públicos. Toda venda ao setor público exige nota fiscal eletrônica emitida pelo CNPJ que participou do certame. A CONTRATADA não presta assessoria fiscal ou tributária e não se responsabiliza por penalidades decorrentes de descumprimento fiscal da CONTRATANTE.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 12ª — Do Não Acompanhamento de Prazo de Entrega ao Órgão</h3>
+  <p>Após a assinatura do contrato administrativo, o acompanhamento dos prazos de entrega, cronogramas e demais obrigações contratuais é de responsabilidade exclusiva da CONTRATANTE. A CONTRATADA não realiza monitoramento de prazos, ordens de fornecimento ou empenhos. Os serviços da CONTRATADA encerram-se no suporte ao processo licitatório, não abrangendo a fase de execução e entrega do objeto contratual.</p>
+</div>
+<div class="ct-clausula">
+  <h3>Cláusula 13ª — Das Disposições Gerais e do Foro</h3>
+  <p>Este contrato representa o acordo integral entre as partes, substituindo entendimentos anteriores. Qualquer alteração somente terá validade se realizada por escrito e assinada por ambas as partes. Este contrato poderá ser assinado eletronicamente, nos termos da Lei nº 14.063/2020. A CONTRATANTE declara ter lido e concordado com todas as cláusulas, especialmente as Cláusulas 9ª a 12ª. As partes elegem o foro da Comarca de Belo Horizonte – MG.</p>
+</div>
+<div class="ct-sec" style="margin-top:18px">Anexo I — Proposta Comercial</div>
+<table class="ct-table">
+  <tr><td>Plano</td>${gcCel(plano)}</tr>
+  <tr><td>Início</td>${gcCel(inicio ? gcFormatarData(inicio) : '')}</tr>
+  <tr><td>Prazo</td>${gcCel(prazo ? prazo + ' meses' : '')}</tr>
+  <tr><td>Encerramento previsto</td>${gcCel(vencim)}</tr>
+  <tr><td>Honorários mensais</td>${gcCel(honor ? 'R$ ' + honor + '/mês' : '')}</tr>
+  <tr><td>Comissão de êxito</td>${gcCel(comis ? comis + '%' : '')}</tr>
+  <tr><td>Vencimento</td>${gcCel(venc ? 'Dia ' + venc + ' de cada mês' : '')}</tr>
+  <tr><td>Forma de pagamento</td>${gcCel(pgto)}</tr>
+  <tr><td>Multa rescisória</td>${gcCel(multa ? multa + '%' : '')}</tr>
+</table>
+<div class="ct-data">Belo Horizonte, ${hoje}</div>
+<div class="ct-assin">
+  <div class="ct-assin-bloco">
+    <div class="ct-assin-linha"></div>
+    <div class="ct-assin-nome">Conlicit Consultoria em Licitações Ltda.</div>
+    <div class="ct-assin-sub">Werbert Pessoa — Diretor</div>
+    <div class="ct-assin-sub">CNPJ 54.077.796/0001-00</div>
+  </div>
+  <div class="ct-assin-bloco">
+    <div class="ct-assin-linha"></div>
+    <div class="ct-assin-nome">${nome || '— CONTRATANTE —'}</div>
+    ${rep  ? `<div class="ct-assin-sub">${rep}${cargo ? ' — ' + cargo : ''}</div>` : ''}
+    ${cnpj ? `<div class="ct-assin-sub">CNPJ/CPF: ${cnpj}</div>` : ''}
+  </div>
+</div>
+<div class="ct-rodape">
+  Conlicit Consultoria em Licitações · Belo Horizonte, MG · comercial@conlicit.com · conlicit.com
+</div>
+</div>`;
+
+  const previewBody = document.getElementById('gc-preview-body');
+  if (previewBody) previewBody.innerHTML = html;
+}
+
+function gcGerarPDF() {
+  const conteudo = document.getElementById('gc-conteudo-pdf');
+  if (!conteudo) {
+    alert('Preencha os dados do contrato antes de gerar o PDF.');
+    return;
+  }
+  const nome = gcV('gc-cli-nome') || 'contrato';
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Contrato Conlicit — ${nome}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;padding:32px 40px;font-size:11.5px;color:#1a1a1a;line-height:1.7}
+.ct-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #182A39}
+.ct-logo{font-size:17px;font-weight:bold;color:#182A39}
+.ct-logo span{color:#4CC5D7}
+.ct-subtag{font-size:10px;color:#666;text-align:right;line-height:1.4}
+.ct-title{text-align:center;margin-bottom:16px}
+.ct-title h1{font-size:14px;color:#182A39;margin-bottom:3px}
+.ct-title p{font-size:11px;color:#666}
+.ct-aviso{background:#eef8f9;border-left:3px solid #4CC5D7;padding:7px 11px;font-size:10.5px;color:#555;margin-bottom:16px}
+.ct-sec{font-size:10px;font-weight:bold;color:#4CC5D7;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 7px}
+.ct-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
+.ct-table td{padding:4px 8px;border:0.5px solid #ddd}
+.ct-table tr:nth-child(odd) td:first-child{background:#f5f5f5}
+.ct-table td:first-child{font-weight:bold;color:#555;width:30%}
+.ct-vazio{color:#bbb;font-style:italic}
+.ct-clausula{margin-bottom:10px}
+.ct-clausula h3{font-size:11px;font-weight:bold;color:#182A39;margin-bottom:4px;padding-bottom:3px;border-bottom:0.5px solid #eee}
+.ct-clausula p{font-size:10.5px;margin-bottom:3px;text-align:justify}
+.ct-clausula ul{padding-left:14px;margin:3px 0}
+.ct-clausula ul li{font-size:10.5px;margin-bottom:2px}
+.ct-assin{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.ct-assin-bloco{text-align:center}
+.ct-assin-linha{border-top:0.5px solid #333;margin-bottom:5px;margin-top:36px}
+.ct-assin-nome{font-size:10.5px;font-weight:bold}
+.ct-assin-sub{font-size:10px;color:#666}
+.ct-data{text-align:center;font-size:10.5px;color:#666;margin:18px 0 3px}
+.ct-rodape{text-align:center;font-size:10px;color:#999;border-top:0.5px solid #eee;padding-top:8px;margin-top:14px}
+@page{margin:20mm 25mm}
+@media print{body{padding:0}}
+</style></head><body>`);
+  w.document.write(conteudo.innerHTML);
+  w.document.write('</body></html>');
+  w.document.close();
+  w.onload = () => { setTimeout(() => { w.print(); }, 300); };
+}
+// ===== FIM GERADOR DE CONTRATOS =====
 </script>
 </body>
 </html>
