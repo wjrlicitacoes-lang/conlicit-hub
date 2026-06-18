@@ -34,6 +34,7 @@ const onboardingRoutes         = require('./routes/onboarding');
 const conteudosMarketingRoutes = require('./routes/conteudosMarketing');
 const boletimManualRoutes      = require('./routes/boletimManual');
 const googleProspectRoutes     = require('./routes/googleProspect');
+const planilhaRoutes           = require('./routes/planilha');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -108,6 +109,7 @@ app.use('/api/financeiro',      financeiroRoutes);
 app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 app.use('/api/marketing/conteudos', autenticar, conteudosMarketingRoutes);
 app.use('/api/prospects',           autenticar, googleProspectRoutes);
+app.use('/api/planilha',            autenticar, planilhaRoutes);
 
 // Rota pública — chamada pelo HTML do boletim externo
 app.options('/api/boletim/interesse', (req, res) => {

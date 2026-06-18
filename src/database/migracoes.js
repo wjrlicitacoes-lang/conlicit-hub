@@ -1037,6 +1037,41 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     await seedSocialTemplates(db);
   }
 
+  // Planilha de proposta — extração de itens de edital via IA
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS proposta_planilhas (
+      id            SERIAL PRIMARY KEY,
+      cliente_id    INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      pregao_id     INTEGER REFERENCES pregoes(id) ON DELETE SET NULL,
+      titulo        VARCHAR(300),
+      arquivo_origem VARCHAR(500),
+      paginas_itens VARCHAR(100),
+      status        VARCHAR(50) DEFAULT 'ativo',
+      criado_em     TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS proposta_itens (
+      id                  SERIAL PRIMARY KEY,
+      planilha_id         INTEGER REFERENCES proposta_planilhas(id) ON DELETE CASCADE,
+      numero_item         INTEGER,
+      descricao           TEXT NOT NULL,
+      unidade             VARCHAR(50),
+      quantidade          DECIMAL(12,4),
+      valor_estimado      DECIMAL(12,2),
+      valor_minimo        DECIMAL(12,2),
+      marca_modelo        VARCHAR(300),
+      ml_produto_id       VARCHAR(100),
+      ml_preco_encontrado DECIMAL(12,2),
+      ml_link             VARCHAR(500),
+      criado_em           TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_proposta_itens_planilha ON proposta_itens(planilha_id)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

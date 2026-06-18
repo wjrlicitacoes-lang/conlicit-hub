@@ -1785,6 +1785,76 @@
     .mkt-upload-preview .ed-file-name{font-size:12px;color:#4CC5D7;margin-top:6px}
     .mkt-midia-link a{color:#4CC5D7;font-size:13px;text-decoration:none}
     .mkt-midia-link a:hover{text-decoration:underline}
+
+    /* ===== PLANILHA DE PROPOSTA ===== */
+    .prop-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+    .prop-topbar h2{font-size:18px;font-weight:600;color:#fff}
+    .prop-upload-card{background:#1e3345;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:20px}
+    .prop-upload-zone{border:1.5px dashed rgba(76,197,215,0.4);border-radius:8px;padding:28px;text-align:center;background:rgba(76,197,215,0.04);cursor:pointer;transition:border-color 0.2s}
+    .prop-upload-zone:hover{border-color:#4CC5D7}
+    .prop-upload-zone i{font-size:32px;color:#4CC5D7;display:block;margin-bottom:10px}
+    .prop-upload-zone p{font-size:13px;color:rgba(255,255,255,0.6)}
+    .prop-upload-zone small{font-size:11px;color:rgba(255,255,255,0.35)}
+    .prop-pages-row{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+    .prop-pages-row label{font-size:12px;color:rgba(255,255,255,0.5)}
+    .prop-pages-input{background:#243d52;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 12px;color:#fff;font-size:13px;width:160px;outline:none}
+    .prop-pages-input:focus{border-color:#4CC5D7}
+    .prop-btn-primary{background:#4CC5D7;color:#182A39;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+    .prop-btn-primary:hover{opacity:0.88}
+    .prop-btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+    .prop-btn-outline{background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
+    .prop-btn-outline:hover{border-color:rgba(255,255,255,0.4);color:#fff}
+    .prop-status{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,0.5);padding:10px 0}
+    .prop-spinner{width:14px;height:14px;border:2px solid rgba(76,197,215,0.3);border-top-color:#4CC5D7;border-radius:50%;animation:prop-spin 0.8s linear infinite;flex-shrink:0}
+    @keyframes prop-spin{to{transform:rotate(360deg)}}
+    .prop-table-wrapper{overflow-x:auto;border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:16px}
+    .prop-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:780px}
+    .prop-table thead tr{background:#182A39}
+    .prop-table thead th{padding:10px 12px;text-align:left;font-weight:500;color:#fff;white-space:nowrap;font-size:12px}
+    .prop-table thead th.prop-th-auto{background:rgba(76,197,215,0.18)}
+    .prop-table thead th.prop-th-edit{background:rgba(255,255,255,0.08)}
+    .prop-table tbody tr:nth-child(even){background:rgba(255,255,255,0.03)}
+    .prop-table tbody tr:hover{background:rgba(76,197,215,0.07)}
+    .prop-table td{padding:8px 12px;vertical-align:middle;color:#dee6e9;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .prop-table td.prop-td-right{text-align:right}
+    .prop-badge-ia{background:rgba(76,197,215,0.2);color:#4CC5D7;font-size:10px;padding:2px 6px;border-radius:99px;font-weight:500;margin-left:6px}
+    .prop-td-input{background:#1e3345;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 8px;color:#fff;font-size:12px;width:100%;outline:none;font-family:inherit}
+    .prop-td-input:focus{border-color:#4CC5D7}
+    .prop-btn-ml{background:transparent;border:1px solid #4CC5D7;color:#4CC5D7;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px}
+    .prop-btn-ml:hover{background:rgba(76,197,215,0.12)}
+    .prop-btn-ml:disabled{opacity:0.4;cursor:not-allowed}
+    .prop-results-panel{border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15);display:none}
+    .prop-results-panel.prop-open{display:block}
+    .prop-results-inner{padding:12px 16px}
+    .prop-results-title{font-size:10px;font-weight:500;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+    .prop-result-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px}
+    .prop-result-row:last-child{border-bottom:none}
+    .prop-result-name{font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+    .prop-result-meta{font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px}
+    .prop-result-price{font-size:14px;font-weight:600;color:#fff;white-space:nowrap}
+    .prop-result-price.prop-best{color:#4CC5D7}
+    .prop-btn-usar{background:#4CC5D7;color:#182A39;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .prop-btn-usar:hover{opacity:0.85}
+    .prop-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 0 0}
+    .prop-stats{display:flex;gap:24px;flex-wrap:wrap}
+    .prop-stat label{font-size:11px;color:rgba(255,255,255,0.4);display:block}
+    .prop-stat span{font-size:15px;font-weight:600;color:#fff}
+    .prop-stat span.prop-teal{color:#4CC5D7}
+    .prop-export-row{display:flex;gap:8px}
+    .prop-btn-export{background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 14px;font-size:12px;color:rgba(255,255,255,0.7);cursor:pointer;display:flex;align-items:center;gap:5px}
+    .prop-btn-export:hover{border-color:rgba(255,255,255,0.35);color:#fff}
+    .prop-planilhas-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px}
+    .prop-planilha-card{background:#1e3345;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;cursor:pointer;transition:border-color 0.2s}
+    .prop-planilha-card:hover{border-color:#4CC5D7}
+    .prop-planilha-card h3{font-size:14px;font-weight:500;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .prop-planilha-card small{font-size:11px;color:rgba(255,255,255,0.4)}
+    .prop-planilha-card .prop-badge{background:rgba(76,197,215,0.15);color:#4CC5D7;font-size:11px;padding:2px 8px;border-radius:99px;margin-top:8px;display:inline-block}
+    .prop-loading-row{display:flex;gap:5px;padding:16px;justify-content:center}
+    .prop-loading-row span{width:7px;height:7px;border-radius:50%;background:#4CC5D7;opacity:0.3;animation:prop-bounce 1.2s infinite}
+    .prop-loading-row span:nth-child(2){animation-delay:0.2s}
+    .prop-loading-row span:nth-child(3){animation-delay:0.4s}
+    @keyframes prop-bounce{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
+    /* ===== FIM PLANILHA DE PROPOSTA ===== */
   </style>
 </head>
 <body>
@@ -1919,6 +1989,10 @@
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
+        </button>
+        <button class="nav-item" data-nav="planilha" onclick="navTo('planilha')" id="nav-planilha" hidden>
+          <span class="nav-icon"><i class="ti ti-file-spreadsheet"></i></span>
+          <span class="nav-label">Planilha Proposta</span>
         </button>
         <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
           <span class="nav-icon"><i class="ti ti-key"></i></span>
@@ -3436,6 +3510,103 @@
         </div>
       </section>
 
+      <!-- ===== PLANILHA DE PROPOSTA ===== -->
+      <section id="section-planilha" class="section">
+
+        <div class="prop-topbar">
+          <h2><i class="ti ti-file-spreadsheet" style="color:#4CC5D7;margin-right:8px;"></i>Planilha de Proposta</h2>
+          <button class="prop-btn-outline" onclick="propNovaPlanilha()">
+            <i class="ti ti-plus"></i> Nova planilha
+          </button>
+        </div>
+
+        <!-- Lista de planilhas salvas -->
+        <div id="prop-lista-planilhas" class="prop-planilhas-lista"></div>
+
+        <!-- Área principal -->
+        <div id="prop-area-principal" style="display:none">
+
+          <!-- Upload do edital -->
+          <div class="prop-upload-card" id="prop-upload-card">
+            <div style="font-size:12px;font-weight:500;color:#4CC5D7;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">
+              Extrair itens do edital
+            </div>
+            <div class="prop-upload-zone" onclick="document.getElementById('prop-file-input').click()" id="prop-upload-zone">
+              <i class="ti ti-file-upload"></i>
+              <p>Clique ou arraste o PDF / imagem do edital</p>
+              <small>PDF, JPG, PNG — máx. 20 MB</small>
+            </div>
+            <input type="file" id="prop-file-input" accept=".pdf,image/*" style="display:none" onchange="propArquivoSelecionado(this)">
+            <div class="prop-pages-row">
+              <label>Páginas com os itens:</label>
+              <input class="prop-pages-input" id="prop-paginas" placeholder="ex: 12-15 ou 12, 14, 18" />
+              <button class="prop-btn-primary" id="prop-btn-extrair" onclick="propExtrairItens()">
+                <i class="ti ti-cpu"></i> Extrair com IA
+              </button>
+            </div>
+            <div class="prop-status" id="prop-status-extracao" style="display:none">
+              <div class="prop-spinner"></div>
+              <span>Analisando edital... isso pode levar até 20 segundos.</span>
+            </div>
+          </div>
+
+          <!-- Tabela de itens -->
+          <div id="prop-tabela-area" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:14px;font-weight:500;color:#fff;" id="prop-titulo-planilha"></span>
+                <span style="font-size:11px;background:rgba(76,197,215,0.15);color:#4CC5D7;padding:2px 8px;border-radius:99px;" id="prop-badge-itens"></span>
+              </div>
+              <button class="prop-btn-outline" onclick="propBuscarTodos()">
+                <i class="ti ti-world-search"></i> Buscar todos no ML
+              </button>
+            </div>
+
+            <div class="prop-table-wrapper">
+              <table class="prop-table">
+                <thead>
+                  <tr>
+                    <th style="width:40px;">#</th>
+                    <th class="prop-th-auto">Descrição <span style="font-size:10px;opacity:0.6;font-weight:400;">(IA)</span></th>
+                    <th class="prop-th-auto" style="width:65px;">Unid.</th>
+                    <th class="prop-th-auto" style="width:70px;">Qtd.</th>
+                    <th class="prop-th-auto" style="width:110px;">Val. estimado</th>
+                    <th class="prop-th-edit" style="width:115px;">Val. mínimo</th>
+                    <th class="prop-th-edit" style="width:140px;">Marca / Modelo</th>
+                    <th style="width:100px;">Buscar preço</th>
+                  </tr>
+                </thead>
+                <tbody id="prop-tbody"></tbody>
+              </table>
+            </div>
+
+            <div class="prop-footer">
+              <div class="prop-stats">
+                <div class="prop-stat">
+                  <label>Total estimado</label>
+                  <span class="prop-teal" id="prop-total-estimado">—</span>
+                </div>
+                <div class="prop-stat">
+                  <label>Total proposto</label>
+                  <span id="prop-total-proposto">—</span>
+                </div>
+                <div class="prop-stat">
+                  <label>Itens preenchidos</label>
+                  <span id="prop-itens-preenchidos">0</span>
+                </div>
+              </div>
+              <div class="prop-export-row">
+                <button class="prop-btn-export" onclick="propExportarCSV()">
+                  <i class="ti ti-file-type-csv"></i> CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+      <!-- ===== FIM PLANILHA DE PROPOSTA ===== -->
+
     </main>
   </div>
 </div>
@@ -4290,6 +4461,7 @@
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-pos-vitoria').hidden   = !admin || cliente;
     document.getElementById('nav-marketing').hidden     = !permiteModulo('marketing') || cliente;
+    document.getElementById('nav-planilha').hidden      = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
@@ -4298,7 +4470,8 @@
        document.getElementById('nav-proposta').hidden &&
        document.getElementById('nav-financeiro').hidden &&
        document.getElementById('nav-pos-vitoria').hidden &&
-       document.getElementById('nav-marketing').hidden);
+       document.getElementById('nav-marketing').hidden &&
+       document.getElementById('nav-planilha').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -4338,6 +4511,7 @@
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
+    else if (section === 'planilha')        propCarregarLista();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -16623,6 +16797,225 @@ async function prcCarregarMulticanal() {
     kpisEl.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`;
   }
 }
+
+// ===== PLANILHA DE PROPOSTA =====
+(function () {
+  let propPlanilhaAtual = null;
+  let propItens = [];
+  let propArquivo = null;
+
+  function propToken() {
+    return localStorage.getItem('ch_token') || localStorage.getItem('token') || '';
+  }
+
+  function propAuthHeader() {
+    const t = propToken();
+    return t ? { 'Authorization': `Bearer ${t}` } : {};
+  }
+
+  window.propNovaPlanilha = function () {
+    propPlanilhaAtual = null;
+    propItens = [];
+    propArquivo = null;
+    document.getElementById('prop-area-principal').style.display = 'block';
+    document.getElementById('prop-upload-card').style.display = 'block';
+    document.getElementById('prop-tabela-area').style.display = 'none';
+    document.getElementById('prop-file-input').value = '';
+    document.getElementById('prop-upload-zone').innerHTML =
+      '<i class="ti ti-file-upload"></i><p>Clique ou arraste o PDF / imagem do edital</p><small>PDF, JPG, PNG — máx. 20 MB</small>';
+    document.getElementById('prop-paginas').value = '';
+  };
+
+  window.propArquivoSelecionado = function (input) {
+    propArquivo = input.files[0];
+    if (!propArquivo) return;
+    document.getElementById('prop-upload-zone').innerHTML =
+      `<i class="ti ti-file-check" style="color:#4CC5D7"></i>
+       <p style="color:#4CC5D7;font-weight:500;">${propArquivo.name}</p>
+       <small>${(propArquivo.size / 1024 / 1024).toFixed(2)} MB</small>`;
+  };
+
+  window.propExtrairItens = async function () {
+    if (!propArquivo) { alert('Selecione um arquivo primeiro.'); return; }
+    const btn = document.getElementById('prop-btn-extrair');
+    const status = document.getElementById('prop-status-extracao');
+    btn.disabled = true;
+    status.style.display = 'flex';
+    try {
+      const form = new FormData();
+      form.append('arquivo', propArquivo);
+      form.append('paginas', document.getElementById('prop-paginas').value);
+      form.append('titulo', propArquivo.name);
+
+      const resp = await fetch('/api/planilha/extrair-itens', {
+        method: 'POST',
+        headers: propAuthHeader(),
+        body: form,
+      });
+      if (!resp.ok) { const e = await resp.json(); throw new Error(e.erro || 'Erro ao extrair itens.'); }
+
+      const data = await resp.json();
+      propPlanilhaAtual = data.planilha_id;
+      propItens = data.itens;
+      propRenderTabela();
+      document.getElementById('prop-tabela-area').style.display = 'block';
+      document.getElementById('prop-upload-card').style.display = 'none';
+      propCarregarLista();
+    } catch (e) {
+      alert('Erro: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      status.style.display = 'none';
+    }
+  };
+
+  window.propCarregarLista = async function () {
+    try {
+      const resp = await fetch('/api/planilha/planilhas', { headers: propAuthHeader() });
+      const lista = await resp.json();
+      const container = document.getElementById('prop-lista-planilhas');
+      if (!lista.length) { container.innerHTML = ''; return; }
+      container.innerHTML = lista.map(p => `
+        <div class="prop-planilha-card" onclick="propAbrirPlanilha(${p.id},'${(p.titulo||'').replace(/'/g,"\\'")}')">
+          <h3>${p.titulo || 'Planilha sem título'}</h3>
+          <small>${new Date(p.criado_em).toLocaleDateString('pt-BR')}</small>
+          <div class="prop-badge">${p.total_itens || 0} itens</div>
+        </div>`).join('');
+    } catch (e) { console.error('[prop] lista:', e); }
+  };
+
+  window.propAbrirPlanilha = async function (id, titulo) {
+    propPlanilhaAtual = id;
+    document.getElementById('prop-area-principal').style.display = 'block';
+    document.getElementById('prop-upload-card').style.display = 'none';
+    document.getElementById('prop-tabela-area').style.display = 'block';
+    document.getElementById('prop-tbody').innerHTML =
+      '<tr><td colspan="8"><div class="prop-loading-row"><span></span><span></span><span></span></div></td></tr>';
+    try {
+      const resp = await fetch(`/api/planilha/planilhas/${id}/itens`, { headers: propAuthHeader() });
+      propItens = await resp.json();
+      document.getElementById('prop-titulo-planilha').textContent = titulo;
+      propRenderTabela();
+    } catch (e) { console.error('[prop] abrir:', e); }
+  };
+
+  function propRenderTabela() {
+    const tbody = document.getElementById('prop-tbody');
+    document.getElementById('prop-badge-itens').textContent = `${propItens.length} itens`;
+    tbody.innerHTML = propItens.map((item, idx) => `
+      <tr>
+        <td style="color:rgba(255,255,255,0.4);font-size:11px;">${item.numero_item || idx + 1}</td>
+        <td>${item.descricao}<span class="prop-badge-ia">IA</span></td>
+        <td class="prop-td-right">${item.unidade || '—'}</td>
+        <td class="prop-td-right">${item.quantidade || '—'}</td>
+        <td class="prop-td-right">${item.valor_estimado ? 'R$ ' + Number(item.valor_estimado).toFixed(2) : '—'}</td>
+        <td><input class="prop-td-input" value="${item.valor_minimo ? Number(item.valor_minimo).toFixed(2) : ''}"
+              placeholder="0,00" id="prop-min-${idx}" onblur="propSalvarItem(${idx})"/></td>
+        <td><input class="prop-td-input" value="${item.marca_modelo || ''}"
+              placeholder="Marca / modelo" id="prop-marca-${idx}" onblur="propSalvarItem(${idx})"/></td>
+        <td>
+          <button class="prop-btn-ml" id="prop-btn-ml-${idx}" onclick="propBuscarItemML(${idx})">
+            <i class="ti ti-world-search"></i> Buscar
+          </button>
+        </td>
+      </tr>
+      <tr id="prop-results-row-${idx}" style="display:none">
+        <td colspan="8" style="padding:0;">
+          <div class="prop-results-panel prop-open" id="prop-results-${idx}"></div>
+        </td>
+      </tr>`).join('');
+    propAtualizarTotais();
+  }
+
+  window.propSalvarItem = async function (idx) {
+    const item = propItens[idx];
+    if (!item?.id) return;
+    const valMin = document.getElementById(`prop-min-${idx}`)?.value.replace(',', '.').trim();
+    const marca  = document.getElementById(`prop-marca-${idx}`)?.value.trim();
+    const updates = {};
+    if (valMin !== undefined) updates.valor_minimo = parseFloat(valMin) || null;
+    if (marca !== undefined) updates.marca_modelo = marca || null;
+    try {
+      await fetch(`/api/planilha/itens/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...propAuthHeader() },
+        body: JSON.stringify(updates),
+      });
+      if (updates.valor_minimo !== undefined) propItens[idx].valor_minimo = updates.valor_minimo;
+      if (updates.marca_modelo !== undefined) propItens[idx].marca_modelo = updates.marca_modelo;
+      propAtualizarTotais();
+    } catch (e) { console.error('[prop] salvar item:', e); }
+  };
+
+  window.propBuscarItemML = async function (idx) {
+    const item = propItens[idx];
+    const btn      = document.getElementById(`prop-btn-ml-${idx}`);
+    const panelRow = document.getElementById(`prop-results-row-${idx}`);
+    const panel    = document.getElementById(`prop-results-${idx}`);
+    btn.disabled = true;
+    btn.innerHTML = '<div class="prop-spinner"></div>';
+    panelRow.style.display = 'table-row';
+    panel.innerHTML = '<div class="prop-loading-row"><span></span><span></span><span></span></div>';
+    try {
+      const q = encodeURIComponent(item.descricao.substring(0, 100));
+      const resp = await fetch(`/api/planilha/buscar-preco?q=${q}&item_id=${item.id}`, { headers: propAuthHeader() });
+      const results = await resp.json();
+      if (!results.length) {
+        panel.innerHTML = '<div class="prop-results-inner"><p style="font-size:12px;color:rgba(255,255,255,0.4);">Nenhum resultado. Preencha manualmente.</p></div>';
+      } else {
+        panel.innerHTML = `<div class="prop-results-inner">
+          <div class="prop-results-title">Resultados Mercado Livre — do mais barato</div>
+          ${results.map((r, i) => `
+            <div class="prop-result-row">
+              <div style="min-width:0;flex:1">
+                <div class="prop-result-name">${r.titulo}</div>
+                <div class="prop-result-meta">${r.vendedor} · ${r.quantidade_disponivel || '—'} disponíveis</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                <span class="prop-result-price ${i === 0 ? 'prop-best' : ''}">R$ ${Number(r.preco).toFixed(2)}</span>
+                <button class="prop-btn-usar" onclick="propUsarPreco(${idx},${r.preco})">Usar</button>
+              </div>
+            </div>`).join('')}
+        </div>`;
+      }
+    } catch (e) {
+      panel.innerHTML = '<div class="prop-results-inner"><p style="font-size:12px;color:rgba(255,255,255,0.4);">Erro na busca. Preencha manualmente.</p></div>';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-refresh"></i> Buscar';
+  };
+
+  window.propUsarPreco = function (idx, preco) {
+    const input = document.getElementById(`prop-min-${idx}`);
+    if (!input) return;
+    input.value = Number(preco).toFixed(2);
+    propItens[idx].valor_minimo = preco;
+    propSalvarItem(idx);
+    propAtualizarTotais();
+  };
+
+  window.propBuscarTodos = async function () {
+    for (let i = 0; i < propItens.length; i++) {
+      await propBuscarItemML(i);
+      await new Promise(r => setTimeout(r, 400));
+    }
+  };
+
+  function propAtualizarTotais() {
+    const totalEst  = propItens.reduce((acc, it) => acc + (Number(it.valor_estimado) || 0) * (Number(it.quantidade) || 1), 0);
+    const totalProp = propItens.reduce((acc, it) => acc + (Number(it.valor_minimo) || 0) * (Number(it.quantidade) || 1), 0);
+    const preenchidos = propItens.filter(it => it.valor_minimo).length;
+    document.getElementById('prop-total-estimado').textContent  = totalEst  > 0 ? `R$ ${totalEst.toFixed(2)}`  : '—';
+    document.getElementById('prop-total-proposto').textContent  = totalProp > 0 ? `R$ ${totalProp.toFixed(2)}` : '—';
+    document.getElementById('prop-itens-preenchidos').textContent = `${preenchidos}/${propItens.length}`;
+  }
+
+  window.propExportarCSV = function () {
+    if (!propPlanilhaAtual) return;
+    window.location.href = `/api/planilha/planilhas/${propPlanilhaAtual}/exportar-csv`;
+  };
+})();
+// ===== FIM PLANILHA DE PROPOSTA =====
 </script>
 </body>
 </html>
