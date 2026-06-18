@@ -1,130 +1,175 @@
-const multer = require('multer');
-const axios  = require('axios');
+const multer   = require('multer');
+const axios    = require('axios');
 const pdfParse = require('pdf-parse');
-const db = require('../database/db');
+const db       = require('../database/db');
 
-const ANTHROPIC_URL   = 'https://api.anthropic.com/v1/messages';
-const PNCP_SEARCH_URL = 'https://api.mercadolibre.com/sites/MLB/search';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const ML_SEARCH_URL = 'https://api.mercadolibre.com/sites/MLB/search';
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ok = file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/');
-    cb(null, ok);
+    cb(null, file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'));
   },
 });
 
-// POST /api/planilha/extrair-itens
+// ── Prompt compartilhado ──────────────────────────────────────────────────────
+const INSTRUCAO_JSON = `Retorne APENAS um JSON válido, sem explicações, sem markdown, sem blocos de código:
+{"itens":[{"numero_item":1,"descricao":"descrição completa do item","unidade":"un","quantidade":100,"valor_estimado":25.90}]}
+Regras: campo ausente → null | não invente valores | inclua TODOS os itens | lotes → itens individuais`;
+
+function promptTexto(conteudo, paginas) {
+  return `Você é especialista em licitações públicas brasileiras.
+Analise o texto abaixo extraído de um edital e extraia TODOS os itens/lotes listados para compra.
+${paginas ? `O usuário indicou que os itens estão próximas das páginas: ${paginas}. Priorize essa região, mas extraia todos os itens encontrados.` : 'Encontre automaticamente onde estão os itens no documento.'}
+Itens geralmente aparecem em tabelas ou listas com: número, descrição, unidade (un/cx/kg/m/lt), quantidade e valor estimado.
+${INSTRUCAO_JSON}
+
+TEXTO DO EDITAL:
+${conteudo}`;
+}
+
+const PROMPT_VISUAL = `Você é especialista em licitações públicas brasileiras.
+Analise as páginas do edital nas imagens acima e extraia TODOS os itens/lotes listados para compra.
+Se não houver itens nessas páginas, retorne {"itens":[]}.
+${INSTRUCAO_JSON}`;
+
+// ── Chamada Anthropic ─────────────────────────────────────────────────────────
+async function callClaude(messages) {
+  const resp = await axios.post(
+    ANTHROPIC_URL,
+    { model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5', max_tokens: 4000, messages },
+    {
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      timeout: 90000,
+    },
+  );
+  return resp.data.content?.[0]?.text || '{}';
+}
+
+function parseItens(raw) {
+  const clean = raw.replace(/```json|```/g, '').trim();
+  try {
+    return JSON.parse(clean).itens || [];
+  } catch {
+    console.warn('[planilha] JSON inválido da IA:', raw.slice(0, 200));
+    return [];
+  }
+}
+
+// ── Fallback visual: envia PDF completo como documento nativo do Claude ───────
+// Claude 3.x suporta type:"document" com media_type:"application/pdf" — sem dependências nativas
+async function extrairItensPorVisao(pdfBuffer, paginas) {
+  console.log('[planilha] Ativando fallback visual — enviando PDF nativo ao Claude');
+  const base64 = pdfBuffer.toString('base64');
+
+  const content = [
+    {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+    },
+    { type: 'text', text: PROMPT_VISUAL + (paginas ? `\nFoque especialmente nas páginas: ${paginas}` : '') },
+  ];
+
+  try {
+    const raw = await callClaude([{ role: 'user', content }]);
+    return parseItens(raw);
+  } catch (err) {
+    console.error('[planilha] fallback visual falhou:', err.message);
+    return [];
+  }
+}
+
+// ── POST /api/planilha/extrair-itens ─────────────────────────────────────────
 async function extrairItens(req, res) {
   try {
     const { paginas, cliente_id, pregao_id, titulo } = req.body;
     const arquivo = req.file;
     if (!arquivo) return res.status(400).json({ erro: 'Arquivo não enviado.' });
 
-    const isImagem = arquivo.mimetype.startsWith('image/');
-    let mensagens;
+    let itens = [];
 
-    if (isImagem) {
-      mensagens = [{
+    // ── Caminho B: imagem direta ──────────────────────────────────────────────
+    if (arquivo.mimetype.startsWith('image/')) {
+      const raw = await callClaude([{
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: arquivo.mimetype, data: arquivo.buffer.toString('base64') },
-          },
-          {
-            type: 'text',
-            text: `Analise esta imagem de um edital de licitação pública brasileira e extraia TODOS os itens/lotes listados.
-Retorne APENAS um JSON válido, sem explicações, sem markdown:
-{"itens":[{"numero_item":1,"descricao":"descrição completa","unidade":"un","quantidade":100,"valor_estimado":25.90}]}
-Se um campo não estiver visível, use null. Não invente valores.`,
-          },
+          { type: 'image', source: { type: 'base64', media_type: arquivo.mimetype, data: arquivo.buffer.toString('base64') } },
+          { type: 'text', text: `Você é especialista em licitações públicas brasileiras.
+Analise esta imagem de um edital e extraia TODOS os itens listados para compra.
+${INSTRUCAO_JSON}` },
         ],
-      }];
+      }]);
+      itens = parseItens(raw);
+
+    // ── Caminho A: PDF ────────────────────────────────────────────────────────
+    } else if (arquivo.mimetype === 'application/pdf') {
+      let textoPDF = '';
+      try {
+        const pdfData = await pdfParse(arquivo.buffer);
+        textoPDF = pdfData.text || '';
+      } catch (e) {
+        console.warn('[planilha] pdf-parse falhou:', e.message);
+      }
+
+      const temTexto = textoPDF.replace(/\s/g, '').length > 100;
+
+      if (temTexto) {
+        // A1: PDF com texto selecionável — manda texto ao Claude
+        console.log('[planilha] PDF com texto — extração via texto');
+        const raw = await callClaude([{
+          role: 'user',
+          content: promptTexto(textoPDF.slice(0, 15000), paginas),
+        }]);
+        itens = parseItens(raw);
+      }
+
+      // A2: PDF escaneado OU texto não gerou itens → fallback visual (PDF nativo)
+      if (!temTexto || itens.length === 0) {
+        itens = await extrairItensPorVisao(arquivo.buffer, paginas);
+      }
+
     } else {
-      const pdfData = await pdfParse(arquivo.buffer);
-      const conteudo = pdfData.text;
-
-      mensagens = [{
-        role: 'user',
-        content: `Analise o conteúdo abaixo de um edital de licitação pública brasileira e extraia TODOS os itens/lotes.
-${paginas ? `Foque nas páginas: ${paginas}` : ''}
-
-Retorne APENAS um JSON válido, sem explicações, sem markdown, sem blocos de código:
-{"itens":[{"numero_item":1,"descricao":"descrição completa","unidade":"un","quantidade":100,"valor_estimado":25.90}]}
-
-Se um campo não estiver disponível, use null. Não invente valores. Extraia apenas o que está no documento.
-
-CONTEÚDO DO EDITAL:
-${conteudo.slice(0, 12000)}`,
-      }];
+      return res.status(400).json({ erro: 'Formato não suportado. Envie PDF ou imagem (JPG, PNG).' });
     }
-
-    const respIA = await axios.post(
-      ANTHROPIC_URL,
-      {
-        model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5',
-        max_tokens: 4000,
-        messages: mensagens,
-      },
-      {
-        headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        timeout: 60000,
-      },
-    );
-
-    const rawJSON = respIA.data.content?.[0]?.text || '{}';
-    const cleanJSON = rawJSON.replace(/```json|```/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(cleanJSON);
-    } catch {
-      return res.status(422).json({ erro: 'A IA não retornou JSON válido. Tente novamente ou use páginas mais específicas.' });
-    }
-    const itens = parsed.itens || [];
 
     if (!itens.length) {
-      return res.status(422).json({ erro: 'Nenhum item encontrado. Verifique o arquivo e as páginas indicadas.' });
+      return res.status(422).json({
+        erro: 'Nenhum item encontrado no edital. Verifique se o PDF está legível ou tente enviar como imagem.',
+      });
     }
 
+    // ── Salvar no banco ───────────────────────────────────────────────────────
     const { rows: [planilha] } = await db.query(
       `INSERT INTO proposta_planilhas (cliente_id, pregao_id, titulo, arquivo_origem, paginas_itens, status)
        VALUES ($1, $2, $3, $4, $5, 'ativo') RETURNING *`,
-      [cliente_id || null, pregao_id || null, titulo || arquivo.originalname, arquivo.originalname, paginas || null],
+      [cliente_id || null, pregao_id || null, titulo || arquivo.originalname, arquivo.originalname, paginas || 'auto'],
     );
 
-    const itensParaInserir = itens.map((it, idx) => [
-      planilha.id,
-      it.numero_item ?? (idx + 1),
-      it.descricao,
-      it.unidade || null,
-      it.quantidade || null,
-      it.valor_estimado || null,
-    ]);
-
     const itensSalvos = [];
-    for (const vals of itensParaInserir) {
+    for (const [idx, it] of itens.entries()) {
       const { rows } = await db.query(
         `INSERT INTO proposta_itens (planilha_id, numero_item, descricao, unidade, quantidade, valor_estimado)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        vals,
+        [planilha.id, it.numero_item ?? (idx + 1), it.descricao || '', it.unidade || null, it.quantidade || null, it.valor_estimado || null],
       );
       itensSalvos.push(rows[0]);
     }
 
     res.json({ planilha_id: planilha.id, itens: itensSalvos });
+
   } catch (err) {
-    console.error('[planilha/extrair-itens]', err.message);
+    console.error('[planilha/extrair-itens] ERRO:', err.message);
     res.status(500).json({ erro: 'Erro ao processar edital.', detalhe: err.message });
   }
 }
 
-// GET /api/planilha/planilhas
+// ── GET /api/planilha/planilhas ───────────────────────────────────────────────
 async function listarPlanilhas(req, res) {
   try {
     const { rows } = await db.query(`
@@ -141,7 +186,7 @@ async function listarPlanilhas(req, res) {
   }
 }
 
-// GET /api/planilha/planilhas/:id/itens
+// ── GET /api/planilha/planilhas/:id/itens ────────────────────────────────────
 async function listarItens(req, res) {
   try {
     const { rows } = await db.query(
@@ -155,7 +200,7 @@ async function listarItens(req, res) {
   }
 }
 
-// PATCH /api/planilha/itens/:id
+// ── PATCH /api/planilha/itens/:id ────────────────────────────────────────────
 async function atualizarItem(req, res) {
   try {
     const { valor_minimo, marca_modelo } = req.body;
@@ -177,13 +222,13 @@ async function atualizarItem(req, res) {
   }
 }
 
-// GET /api/planilha/buscar-preco?q=...&item_id=...
+// ── GET /api/planilha/buscar-preco ───────────────────────────────────────────
 async function buscarPreco(req, res) {
   try {
     const { q, item_id } = req.query;
     if (!q) return res.status(400).json({ erro: 'Parâmetro q obrigatório.' });
 
-    const resp = await axios.get(PNCP_SEARCH_URL, {
+    const resp = await axios.get(ML_SEARCH_URL, {
       params: { q, limit: 5, sort: 'price_asc' },
       timeout: 10000,
     });
@@ -202,7 +247,7 @@ async function buscarPreco(req, res) {
       const melhor = results[0];
       await db.query(
         `UPDATE proposta_itens SET ml_preco_encontrado=$1, ml_link=$2, ml_produto_id=$3, atualizado_em=NOW() WHERE id=$4`,
-        [melhor.preco, melhor.link, melhor.id, item_id],
+        [melhor.preco, melhor.link, String(melhor.id), item_id],
       );
     }
 
@@ -213,7 +258,7 @@ async function buscarPreco(req, res) {
   }
 }
 
-// GET /api/planilha/planilhas/:id/exportar-csv
+// ── GET /api/planilha/planilhas/:id/exportar-csv ─────────────────────────────
 async function exportarCSV(req, res) {
   try {
     const { rows: [planilha] } = await db.query(
