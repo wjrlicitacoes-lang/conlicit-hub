@@ -497,10 +497,10 @@ async function listarEditais(req, res) {
   const filtraLocal = !!(q || uf || cidade || portal || portais.length > 0 || modalidades.length > 0 || vMin != null || vMax != null);
 
   try {
-    // ── Busca por palavra-chave: usa /api/search do PNCP (suporta full-text search) ──
+    // ── Busca por palavra-chave: cascata /api/search → fallback REST ──
     if (q) {
-      // Remove caracteres especiais que quebram o full-text search do PNCP
       const qSanitizado = sanitizarBusca(q);
+      const HEADERS_PNCP = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' };
 
       let municipioId = null;
       if (cidade) {
@@ -510,109 +510,126 @@ async function listarEditais(req, res) {
         }
       }
 
-      const HEADERS_PNCP = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' };
-
-      const makeParams = (qStr, extra = {}) => {
-        const p = new URLSearchParams({
-          q: qStr,
-          tipos_documento: 'edital',
-          status: 'recebendo_proposta',
-          pagina: String(paginaSolicitada),
-          tam: String(tamanhoSolicitado),
-          ...extra,
-        });
+      // Monta params para /api/search com ou sem filtro de status
+      const makeSearchParams = (qStr, comStatus) => {
+        const p = new URLSearchParams({ q: qStr, tipos_documento: 'edital', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
+        if (comStatus) p.append('status', 'recebendo_proposta');
         if (uf) p.append('ufs', uf.toUpperCase());
         if (municipioId) p.append('municipios', municipioId);
         return p;
       };
 
-      const searchUrl = `${PNCP_SEARCH_URL}?${makeParams(qSanitizado)}`;
-      console.log(`[Editais] PNCP search: ${searchUrl}`);
-
-      let resp;
-      try {
-        resp = await axios.get(searchUrl, { headers: HEADERS_PNCP, timeout: 15000 });
-      } catch (searchErr) {
-        console.error('[PNCP ERROR]', {
-          status: searchErr.response?.status,
-          data: JSON.stringify(searchErr.response?.data),
-          url: searchUrl,
-          message: searchErr.message,
+      // Filtra itens sem status para manter apenas encerramento futuro
+      const filtrarAbertos = (lista) => {
+        const hoje = new Date();
+        return lista.filter(item => {
+          const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
+          if (!encRaw) return true;
+          try { return new Date(String(encRaw).substring(0, 19)) >= hoje; } catch { return true; }
         });
-        // Retry sem filtros de localização em erros 4xx
-        if (searchErr.response?.status >= 400 && searchErr.response?.status < 500) {
-          console.log('[PNCP] Tentando sem filtros opcionais...');
-          const p2 = new URLSearchParams({ q: qSanitizado, tipos_documento: 'edital', status: 'recebendo_proposta', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
-          resp = await axios.get(`${PNCP_SEARCH_URL}?${p2}`, { headers: HEADERS_PNCP, timeout: 15000 });
-        } else {
+      };
+
+      const primeiraPalavra = qSanitizado.split(' ').filter(p => p.length >= 3)[0] || qSanitizado;
+
+      // Cascata de 3 tentativas no /api/search
+      // Qualquer erro de rede (ECONNRESET, timeout, 4xx, 5xx) avança para a próxima
+      const tentativas = [
+        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: false },
+        { label: 'sem_status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, false)}`, filtrar: true },
+        { label: 'sem_status+primeira_palavra', url: primeiraPalavra !== qSanitizado ? `${PNCP_SEARCH_URL}?${makeSearchParams(primeiraPalavra, false)}` : null, filtrar: true },
+      ];
+
+      let items = [];
+      let total = 0;
+      let searchAlcancou = false; // true se pelo menos uma tentativa retornou HTTP 2xx
+
+      for (const t of tentativas) {
+        if (!t.url) continue;
+        console.log(`[Editais] /api/search tentativa [${t.label}]`);
+        try {
+          const r = await axios.get(t.url, { headers: HEADERS_PNCP, timeout: 15000 });
+          searchAlcancou = true;
+          let candidatos = r.data?.items || [];
+          total = r.data?.total ?? candidatos.length;
+          if (t.filtrar) candidatos = filtrarAbertos(candidatos);
+          if (candidatos.length > 0) {
+            items = candidatos;
+            total = items.length;
+            console.log(`[Editais] /api/search [${t.label}]: ${items.length} resultado(s)`);
+            console.log('[PNCP ALL VALOR CHECK]', items.slice(0, 3).map(i => ({
+              objeto: (i.descricaoObjeto || i.objeto || '').substring(0, 50),
+              valorTotalEstimadoDaCompra: i.valorTotalEstimadoDaCompra,
+              valorTotalEstimado: i.valorTotalEstimado,
+              dataEncerramentoProposta: i.dataEncerramentoProposta,
+              dataFimRecebimentoProposta: i.dataFimRecebimentoProposta,
+              orcamentoSigiloso: i.orcamentoSigiloso,
+              status: i.situacaoCompraNome,
+            })));
+            break;
+          }
+          console.log(`[Editais] [${t.label}]: zero resultados — próxima tentativa`);
+        } catch (err) {
+          console.error(`[Editais] [${t.label}] ERRO: ${err.message} (code=${err.code ?? err.response?.status ?? '?'})`);
+          // continua para próxima tentativa independente do tipo de erro
+        }
+      }
+
+      // Se /api/search falhou em rede ou retornou zero → fallback para API REST com filtro local
+      if (items.length === 0) {
+        const motivo = searchAlcancou ? 'zero resultados no /api/search' : '/api/search indisponível (erro de rede)';
+        console.log(`[Editais] ${motivo} — fallback para /contratacoes/proposta`);
+        try {
+          const dataIni = dataInicial || (() => {
+            const d = new Date(); d.setDate(d.getDate() - 7);
+            return d.toISOString().slice(0, 10).replace(/-/g, '');
+          })();
+          const paginas = await Promise.all(
+            Array.from({ length: 20 }, (_, i) =>
+              axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
+                params: { dataInicial: dataIni, dataFinal: dataFinalEfetivo, pagina: i + 1, tamanhoPagina: 50 },
+                headers: { 'Accept': 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
+                timeout: 15000,
+              }).then(r => r.data.data ?? []).catch(() => []),
+            ),
+          );
+          let dados = paginas.flat();
+          const termo = semAcento(qSanitizado);
+          dados = dados.filter(item =>
+            semAcento(item.objetoCompra ?? '').includes(termo) ||
+            semAcento(item.orgaoEntidade?.razaoSocial ?? '').includes(termo),
+          );
+          if (uf) {
+            const ufUpper = uf.toUpperCase();
+            dados = dados.filter(item => (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper);
+          }
+          if (cidade) {
+            const cidadeLow = semAcento(cidade);
+            dados = dados.filter(item => semAcento(item.unidadeOrgao?.municipioNome ?? '').includes(cidadeLow));
+          }
+          const vistos = new Set();
+          dados = dados.filter(item => {
+            if (vistos.has(item.numeroControlePNCP)) return false;
+            vistos.add(item.numeroControlePNCP); return true;
+          });
+          if (dados.length === 0) {
+            return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
+          }
+          const inicio = (paginaSolicitada - 1) * tamanhoSolicitado;
+          return res.json({
+            total: dados.length,
+            pagina: paginaSolicitada,
+            tamanhoPagina: tamanhoSolicitado,
+            fonte: 'pncp-rest-fallback',
+            aviso: `Resultado via API REST (${motivo}).`,
+            dados: dados.slice(inicio, inicio + tamanhoSolicitado).map(formatarEdital),
+          });
+        } catch (fallbackErr) {
+          console.error('[Editais] fallback REST também falhou:', fallbackErr.message);
           return res.json({ mensagem: 'Serviço PNCP temporariamente indisponível. Tente novamente em instantes.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
         }
       }
 
-      let items = resp.data?.items || [];
-      let total = resp.data?.total ?? items.length;
-
-      if (items.length > 0) {
-        console.log('[PNCP ALL VALOR CHECK]', items.slice(0, 3).map(i => ({
-          objeto: (i.descricaoObjeto || i.objeto || '').substring(0, 50),
-          valorTotalEstimadoDaCompra: i.valorTotalEstimadoDaCompra,
-          valorTotalEstimado: i.valorTotalEstimado,
-          dataEncerramentoProposta: i.dataEncerramentoProposta,
-          dataFimRecebimentoProposta: i.dataFimRecebimentoProposta,
-          orcamentoSigiloso: i.orcamentoSigiloso,
-          status: i.situacaoCompraNome,
-        })));
-      }
-
-      // Retry com primeira palavra se a busca completa não retornar resultados
-      if (items.length === 0) {
-        const palavras = qSanitizado.split(' ').filter(p => p.length >= 3);
-        if (palavras.length > 1) {
-          const qCurto = palavras[0];
-          console.log(`[Editais] Zero resultados — retry com primeira palavra: "${qCurto}"`);
-          try {
-            const rRetry = await axios.get(`${PNCP_SEARCH_URL}?${makeParams(qCurto)}`, { headers: HEADERS_PNCP, timeout: 15000 });
-            items = rRetry.data?.items || [];
-            total = rRetry.data?.total ?? items.length;
-          } catch (_) { /* mantém zero */ }
-        }
-      }
-
-      // Último retry: sem filtro de status (captura todos os estados)
-      if (items.length === 0) {
-        console.log(`[Editais] Zero resultados com status — retry sem status filter`);
-        try {
-          const pSemStatus = new URLSearchParams({
-            q: qSanitizado,
-            tipos_documento: 'edital',
-            pagina: String(paginaSolicitada),
-            tam: String(tamanhoSolicitado),
-          });
-          if (uf) pSemStatus.append('ufs', uf.toUpperCase());
-          if (municipioId) pSemStatus.append('municipios', municipioId);
-          const rSemStatus = await axios.get(`${PNCP_SEARCH_URL}?${pSemStatus}`, { headers: HEADERS_PNCP, timeout: 15000 });
-          items = rSemStatus.data?.items || [];
-          total = rSemStatus.data?.total ?? items.length;
-          if (items.length > 0) {
-            const hoje = new Date();
-            items = items.filter(item => {
-              const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
-              if (!encRaw) return true;
-              try {
-                const dt = new Date(String(encRaw).substring(0, 19));
-                return dt >= hoje;
-              } catch { return true; }
-            });
-            total = items.length;
-          }
-        } catch (_) { /* mantém zero */ }
-      }
-
-      if (items.length === 0) {
-        return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
-      }
-
-      // Ordena por proximidade de encerramento: mais urgente primeiro, encerrados no fim
+      // /api/search funcionou com resultados → ordenar e retornar
       const dadosOrdenados = items.map(formatarEditalSearch).sort((a, b) => {
         const dA = a.diasRestantes;
         const dB = b.diasRestantes;
