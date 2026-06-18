@@ -521,11 +521,21 @@ async function listarEditais(req, res) {
 
       // Filtra itens sem status para manter apenas encerramento futuro
       const filtrarAbertos = (lista) => {
-        const hoje = new Date();
+        const agora = new Date();
+        let dtFimUsuario = null;
+        if (dataFinal) {
+          const s = String(dataFinal).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+          dtFimUsuario = new Date(s + 'T23:59:59');
+        }
         return lista.filter(item => {
           const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
           if (!encRaw) return true;
-          try { return new Date(String(encRaw).substring(0, 19)) >= hoje; } catch { return true; }
+          try {
+            const dt = new Date(String(encRaw).substring(0, 19));
+            if (dt < agora) return false;
+            if (dtFimUsuario && dt > dtFimUsuario) return false;
+            return true;
+          } catch { return true; }
         });
       };
 
@@ -534,7 +544,7 @@ async function listarEditais(req, res) {
       // Cascata de 3 tentativas no /api/search
       // Qualquer erro de rede (ECONNRESET, timeout, 4xx, 5xx) avança para a próxima
       const tentativas = [
-        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: false },
+        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: true },
         { label: 'sem_status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, false)}`, filtrar: true },
         { label: 'sem_status+primeira_palavra', url: primeiraPalavra !== qSanitizado ? `${PNCP_SEARCH_URL}?${makeSearchParams(primeiraPalavra, false)}` : null, filtrar: true },
       ];
@@ -556,15 +566,7 @@ async function listarEditais(req, res) {
             items = candidatos;
             total = items.length;
             console.log(`[Editais] /api/search [${t.label}]: ${items.length} resultado(s)`);
-            console.log('[PNCP ALL VALOR CHECK]', items.slice(0, 3).map(i => ({
-              objeto: (i.descricaoObjeto || i.objeto || '').substring(0, 50),
-              valorTotalEstimadoDaCompra: i.valorTotalEstimadoDaCompra,
-              valorTotalEstimado: i.valorTotalEstimado,
-              dataEncerramentoProposta: i.dataEncerramentoProposta,
-              dataFimRecebimentoProposta: i.dataFimRecebimentoProposta,
-              orcamentoSigiloso: i.orcamentoSigiloso,
-              status: i.situacaoCompraNome,
-            })));
+            if (items[0]) { console.log('[PNCP ITEM0 TODOS CAMPOS]', JSON.stringify(items[0])); }
             break;
           }
           console.log(`[Editais] [${t.label}]: zero resultados — próxima tentativa`);
