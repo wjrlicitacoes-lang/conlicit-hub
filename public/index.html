@@ -3218,39 +3218,57 @@
         <div class="section-header">
           <div>
             <h1>Minha Área</h1>
-            <p style="color:var(--t2);font-size:.83rem;margin-top:.2rem" id="ma-subtitulo">Seus pregões e análises</p>
+            <p style="color:var(--t2);font-size:.83rem;margin-top:.2rem" id="ma-subtitulo">Visão personalizada por perfil</p>
           </div>
           <div class="section-header-actions">
             <button class="btn btn-ghost btn-sm" onclick="carregarMinhaArea()">↻ Atualizar</button>
           </div>
         </div>
 
-        <!-- Métricas rápidas -->
-        <div id="ma-metrics" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem"></div>
-
-        <!-- Tabs para cliente: ofertas / próximos / hoje / vencidos / perdidos -->
-        <div class="tab-bar" style="margin-bottom:1rem" id="ma-tabs-cliente">
-          <button class="tab-btn active" data-ma-tab="ofertas"   onclick="switchMaTab('ofertas')">Ofertas</button>
-          <button class="tab-btn"        data-ma-tab="proximos"  onclick="switchMaTab('proximos')">Próximos</button>
-          <button class="tab-btn"        data-ma-tab="hoje"      onclick="switchMaTab('hoje')">Hoje</button>
-          <button class="tab-btn"        data-ma-tab="vencidos"  onclick="switchMaTab('vencidos')">Vencidos</button>
-          <button class="tab-btn"        data-ma-tab="perdidos"  onclick="switchMaTab('perdidos')">Perdidos</button>
+        <!-- Loading -->
+        <div id="ma-loading" style="text-align:center;padding:48px">
+          <div class="spinner spinner-lg"></div>
         </div>
 
-        <div id="ma-tab-ofertas"  class="tab-pane active"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        <div id="ma-tab-proximos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        <div id="ma-tab-hoje"     class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        <div id="ma-tab-vencidos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        <div id="ma-tab-perdidos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
-        <!-- tab pregoes ainda existe para compatibilidade -->
-        <div id="ma-tab-pregoes" class="tab-pane" style="display:none"></div>
+        <!-- Corpo dinâmico (oculto até carregar) -->
+        <div id="ma-body" style="display:none">
 
-        <!-- Equipe (visível apenas para sócio fundador) -->
-        <div id="minha-area-perfil-extra" style="display:none;margin-top:2rem">
-          <h3 style="font-size:.85rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1rem">
-            <i class="ti ti-users-group" style="margin-right:6px"></i>Minha equipe
-          </h3>
-          <div id="ma-equipe-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+          <!-- Resumo numérico (admin / socio_fundador) -->
+          <div id="ma-secao-resumo" style="display:none;margin-bottom:1.5rem">
+            <div id="ma-resumo-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+          </div>
+
+          <!-- Alertas de prazo -->
+          <div id="ma-secao-alertas" style="display:none;margin-bottom:1.5rem">
+            <h3 style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:.75rem">⚠️ Encerrando em Breve</h3>
+            <div id="ma-lista-alertas"></div>
+          </div>
+
+          <!-- Notificações -->
+          <div id="ma-secao-notif" style="display:none;margin-bottom:1.5rem">
+            <h3 style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:.75rem">🔔 Notificações</h3>
+            <div id="ma-lista-notif"></div>
+          </div>
+
+          <!-- Tarefas pendentes -->
+          <div id="ma-secao-tarefas" style="display:none;margin-bottom:1.5rem">
+            <h3 style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:.75rem">📋 Tarefas Pendentes</h3>
+            <div id="ma-lista-tarefas"></div>
+          </div>
+
+          <!-- Tudo em dia -->
+          <div id="ma-tudo-em-dia" style="display:none;text-align:center;padding:60px 20px;color:var(--t2)">
+            <div style="font-size:3rem;margin-bottom:1rem">✨</div>
+            <p>Tudo em dia! Nenhuma tarefa ou notificação pendente.</p>
+          </div>
+
+          <!-- Equipe (admin / socio_fundador) -->
+          <div id="minha-area-perfil-extra" style="display:none;margin-top:2rem">
+            <h3 style="font-size:.85rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1rem">
+              <i class="ti ti-users-group" style="margin-right:6px"></i>Minha equipe
+            </h3>
+            <div id="ma-equipe-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+          </div>
         </div>
       </section>
 
@@ -4838,7 +4856,7 @@
        document.getElementById('nav-gerador-contrato').hidden);
 
     // Seção Cliente
-    document.getElementById('nav-minha-area').hidden     = !cliente;
+    document.getElementById('nav-minha-area').hidden     = false;   // visível para todos os roles
     document.getElementById('nav-meus-pregoes').hidden   = !cliente;
     document.getElementById('nav-label-cliente').hidden  = !cliente;
 
@@ -4876,7 +4894,7 @@
     else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'planilha')        propCarregarLista();
-    else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
+    else if (section === 'meus-pregoes')    carregarMinhaArea();
     else if (section === 'gerador-contrato') { gcListaAtualizar(); gcAtualizar(); }
   }
 
@@ -9623,109 +9641,167 @@
   }
 
   // ─────────────────────────────────────────
-  // MINHA ÁREA (role cliente)
+  // MINHA ÁREA — todas as roles via /minha-area
   // ─────────────────────────────────────────
-  let maTabAtiva = 'ofertas';
+  const MA_TIPO_LABEL = {
+    gerar_planilha:       '📊 Gerar Planilha de Proposta',
+    analise_edital:       '📋 Análise Completa do Edital',
+    adicionar_calendario: '📆 Adicionar ao Calendário',
+    criar_post:           '📱 Criar Post',
+    agendar_publicacao:   '📅 Agendar Publicação',
+    organizar_documentos: '📁 Organizar Documentos',
+  };
+  const MA_NOTIF_ICONE = {
+    interesse_confirmado:'🎯', tarefa_pendente:'📋',
+    alerta_prazo:'⚠️', follow_up_pendente:'📞',
+    post_pendente:'📱', alerta_urgente:'🚨',
+  };
 
-  function switchMaTab(tab) {
-    maTabAtiva = tab;
-    document.querySelectorAll('[data-ma-tab]').forEach(b => {
-      b.classList.toggle('active', b.dataset.maTab === tab);
-    });
-    document.getElementById('ma-tab-ofertas').classList.toggle('active', tab === 'ofertas');
-    document.getElementById('ma-tab-pregoes').classList.toggle('active', tab === 'pregoes');
+  async function marcarNotificacaoLida(id) {
+    try {
+      await fetch(`${API}/notificacoes/${id}/lida`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch { /* silencioso */ }
+    carregarMinhaArea();
   }
 
   async function carregarMinhaArea() {
-    const isSF = usuarioLogado?.role === 'socio_fundador' || usuarioLogado?.role === 'admin';
-    const extraDiv = document.getElementById('minha-area-perfil-extra');
+    const loadEl = document.getElementById('ma-loading');
+    const bodyEl = document.getElementById('ma-body');
+    if (loadEl) { loadEl.style.display = ''; loadEl.innerHTML = '<div class="spinner spinner-lg"></div>'; }
+    if (bodyEl) bodyEl.style.display = 'none';
 
-    if (isSF) {
+    // Equipe: apenas admin / socio_fundador
+    const extraDiv = document.getElementById('minha-area-perfil-extra');
+    if (isAdmin()) {
       if (extraDiv) extraDiv.style.display = '';
       const gridEl = document.getElementById('ma-equipe-grid');
       if (gridEl) {
         gridEl.innerHTML = '<div class="spinner"></div>';
         try {
-          const r = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
-          if (r.ok) {
-            const { dados = [] } = await r.json();
+          const re = await fetch(`${API}/auth/usuarios`, { headers: { Authorization: `Bearer ${token}` } });
+          if (re.ok) {
+            const { dados = [] } = await re.json();
             const equipe = dados.filter(u => u.role !== 'cliente' && u.ativo !== false);
-            gridEl.innerHTML = equipe.length ? equipe.map(u => `
-              <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1rem;display:flex;align-items:center;gap:12px">
-                <div style="width:38px;height:38px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                  <span style="font-weight:700;font-size:.9rem;color:${ROLE_COR[u.role]||'#94a3b8'}">${(u.nome||u.email).charAt(0).toUpperCase()}</span>
-                </div>
-                <div style="min-width:0">
-                  <div style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(u.nome||'—')}</div>
-                  <div style="font-size:.7rem;color:var(--t2)">${ROLE_LABEL[u.role]||u.role}${u.cargo?` · ${esc(u.cargo)}`:''}</div>
-                </div>
-              </div>`).join('') : '<p style="color:var(--t2);font-size:.8rem">Nenhum colaborador ativo.</p>';
+            gridEl.innerHTML = equipe.length
+              ? equipe.map(u => `
+                <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:12px;padding:1rem;display:flex;align-items:center;gap:12px">
+                  <div style="width:38px;height:38px;border-radius:50%;background:${ROLE_COR[u.role]||'#94a3b8'}22;border:2px solid ${ROLE_COR[u.role]||'#94a3b8'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <span style="font-weight:700;font-size:.9rem;color:${ROLE_COR[u.role]||'#94a3b8'}">${(u.nome||u.email).charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div style="min-width:0">
+                    <div style="font-weight:600;font-size:.82rem;color:var(--t1)">${esc(u.nome||'—')}</div>
+                    <div style="font-size:.7rem;color:var(--t2)">${ROLE_LABEL[u.role]||u.role}${u.cargo?` · ${esc(u.cargo)}`:''}</div>
+                  </div>
+                </div>`).join('')
+              : '<p style="color:var(--t2);font-size:.8rem">Nenhum colaborador ativo.</p>';
           }
-        } catch { gridEl.innerHTML = ''; }
+        } catch { if (gridEl) gridEl.innerHTML = ''; }
       }
     } else {
       if (extraDiv) extraDiv.style.display = 'none';
     }
 
-    if (!userClienteId) {
-      if (!isSF) {
-        document.getElementById('ma-metrics').innerHTML =
-          '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
-      }
-      return;
-    }
-
-    document.getElementById('ma-tab-ofertas').innerHTML =
-      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
-    document.getElementById('ma-tab-pregoes').innerHTML =
-      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
-
     try {
-      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes`,
-        { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API}/minha-area`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.status === 401) { logout(); return; }
-      const { dados = [] } = await r.json();
+      if (!r.ok) throw new Error(`Erro ${r.status}`);
+      const data = await r.json();
 
-      const ofertas    = dados.filter(p => p.status === 'sugerido');
-      const ativos     = dados.filter(p => p.status === 'a_disputar');
-      const encerrados = dados.filter(p => ['vencido','perdido','cancelado'].includes(p.status));
+      if (loadEl) loadEl.style.display = 'none';
+      if (bodyEl) bodyEl.style.display = '';
 
-      // Métricas
-      const proximos = ativos.filter(p => {
-        if (!p.data_hora_abertura) return false;
-        const d = new Date(p.data_hora_abertura);
-        const diff = (d - new Date()) / 86400000;
-        return diff >= 0 && diff <= 7;
-      }).length;
-      document.getElementById('ma-metrics').innerHTML = `
-        <div class="metric-card"><div class="metric-value" style="color:var(--primary)">${ofertas.length}</div><div class="metric-label">Ofertas pendentes</div></div>
-        <div class="metric-card"><div class="metric-value">${ativos.length}</div><div class="metric-label">A disputar</div></div>
-        <div class="metric-card"><div class="metric-value" style="color:var(--warning)">${proximos}</div><div class="metric-label">Nos próximos 7 dias</div></div>
-        <div class="metric-card"><div class="metric-value" style="color:var(--success)">${encerrados.filter(p=>p.status==='vencido').length}</div><div class="metric-label">Vencidos</div></div>`;
-      document.getElementById('ma-subtitulo').textContent = `${dados.length} pregão(ões) registrado(s)`;
+      let temConteudo = false;
 
-      // Tab ofertas
-      if (ofertas.length === 0) {
-        document.getElementById('ma-tab-ofertas').innerHTML =
-          '<div class="state-box"><span class="icon">📭</span><h3>Nenhuma oferta pendente</h3><p>Quando sua equipe identificar um pregão para você, ele aparecerá aqui para sua aprovação.</p></div>';
+      // Resumo numérico
+      const secaoResumo = document.getElementById('ma-secao-resumo');
+      if (data.resumo) {
+        temConteudo = true;
+        const rs = data.resumo;
+        secaoResumo.style.display = '';
+        document.getElementById('ma-resumo-grid').innerHTML = `
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:1.25rem;text-align:center">
+            <div style="font-size:2rem;font-weight:700;color:#4CC5D7">${rs.total_oportunidades_ativas||0}</div>
+            <div style="font-size:.75rem;color:var(--t2);margin-top:4px">Oportunidades ativas</div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:1.25rem;text-align:center">
+            <div style="font-size:2rem;font-weight:700;color:#2ecc71">${rs.total_interesse_confirmado||0}</div>
+            <div style="font-size:.75rem;color:var(--t2);margin-top:4px">Interesse confirmado</div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:1.25rem;text-align:center">
+            <div style="font-size:2rem;font-weight:700;color:#f39c12">${rs.total_tarefas_pendentes||0}</div>
+            <div style="font-size:.75rem;color:var(--t2);margin-top:4px">Tarefas pendentes</div>
+          </div>`;
       } else {
-        document.getElementById('ma-tab-ofertas').innerHTML =
-          '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
-        carregarScoresOfertas(ofertas);
+        if (secaoResumo) secaoResumo.style.display = 'none';
       }
 
-      // Tab pregões (ativos + encerrados)
-      const todos = [...ativos, ...encerrados];
-      if (todos.length === 0) {
-        document.getElementById('ma-tab-pregoes').innerHTML =
-          '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão ainda</h3><p>Aceite as ofertas para começar a disputar pregões.</p></div>';
+      // Alertas de prazo
+      const secaoAlertas = document.getElementById('ma-secao-alertas');
+      if (data.alertas_prazo?.length) {
+        temConteudo = true;
+        secaoAlertas.style.display = '';
+        document.getElementById('ma-lista-alertas').innerHTML = data.alertas_prazo.map(a => {
+          const dias = Math.ceil((new Date(a.data_encerramento) - new Date()) / 86400000);
+          return `
+            <div style="border-left:3px solid #ef4444;background:var(--card-bg);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div>
+                <div style="font-weight:600;font-size:.85rem">${esc(a.titulo||a.orgao||'—')}</div>
+                <div style="font-size:.75rem;color:var(--t2);margin-top:3px">${esc(a.cliente_nome||'')}${a.plataforma?` · ${esc(a.plataforma)}`:''}</div>
+              </div>
+              <span style="color:#ef4444;font-weight:700;font-size:.85rem;white-space:nowrap">${dias} dia(s)</span>
+            </div>`;
+        }).join('');
       } else {
-        document.getElementById('ma-tab-pregoes').innerHTML =
-          renderMaTabelaPregoes(todos);
+        if (secaoAlertas) secaoAlertas.style.display = 'none';
       }
+
+      // Notificações
+      const secaoNotif = document.getElementById('ma-secao-notif');
+      if (data.notificacoes?.length) {
+        temConteudo = true;
+        secaoNotif.style.display = '';
+        document.getElementById('ma-lista-notif').innerHTML = data.notificacoes.map(n => `
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-left:3px solid #4CC5D7;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:.85rem">${MA_NOTIF_ICONE[n.tipo]||'🔔'} ${esc(n.titulo)}</div>
+              <div style="font-size:.75rem;color:var(--t2);margin-top:4px">${esc(n.mensagem)}</div>
+            </div>
+            <button onclick="marcarNotificacaoLida('${n.id}')"
+              style="background:none;border:1px solid var(--bd);color:var(--t2);font-size:.7rem;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+              Marcar lida
+            </button>
+          </div>`).join('');
+      } else {
+        if (secaoNotif) secaoNotif.style.display = 'none';
+      }
+
+      // Tarefas pendentes
+      const secaoTarefas = document.getElementById('ma-secao-tarefas');
+      if (data.tarefas_pendentes?.length) {
+        temConteudo = true;
+        secaoTarefas.style.display = '';
+        document.getElementById('ma-lista-tarefas').innerHTML = data.tarefas_pendentes.map(t => `
+          <div style="background:var(--card-bg);border:1px solid var(--bd);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-weight:600;font-size:.85rem">${MA_TIPO_LABEL[t.tipo]||esc(t.tipo)}</div>
+              ${t.cliente_nome?`<div style="font-size:.75rem;color:var(--t2);margin-top:3px">${esc(t.cliente_nome)}</div>`:''}
+            </div>
+            <span style="font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:12px;background:#fef3c7;color:#92400e;white-space:nowrap">${t.status||'pendente'}</span>
+          </div>`).join('');
+      } else {
+        if (secaoTarefas) secaoTarefas.style.display = 'none';
+      }
+
+      // Tudo em dia
+      const tudoEl = document.getElementById('ma-tudo-em-dia');
+      if (tudoEl) tudoEl.style.display = temConteudo ? 'none' : '';
+
     } catch (e) {
-      document.getElementById('ma-tab-ofertas').innerHTML =
-        `<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`;
+      if (loadEl) loadEl.innerHTML =
+        `<div style="color:var(--danger);text-align:center;padding:40px">⚠️ Erro ao carregar Minha Área: ${esc(e.message)}</div>`;
     }
   }
 
@@ -12238,165 +12314,11 @@ ${nomes}${dados.length > 5 ? `
     toast(`Lead convertido! Complete o cadastro de ${nome}.`, 'success');
   }
 
-  // ── Minha Área: switchMaTab expandido ────────────────────────────────────────
-  function switchMaTab(tab) {
-    const allTabs = ['ofertas','proximos','hoje','vencidos','perdidos','pregoes'];
-    allTabs.forEach(t => {
-      const pane = document.getElementById(`ma-tab-${t}`);
-      const btn  = document.querySelector(`[data-ma-tab="${t}"]`);
-      if (pane) pane.style.display = t === tab ? 'block' : 'none';
-      if (btn)  btn.classList.toggle('active', t === tab);
-    });
-    if (tab === 'proximos')  renderMaProximos();
-    if (tab === 'hoje')      renderMaHoje();
-    if (tab === 'vencidos')  renderMaVencidos();
-    if (tab === 'perdidos')  renderMaPerdidos();
-  }
-
-  let _maCache = [];
-
-  function renderMaProximos() {
-    const hoje = new Date();
-    const proximos = _maCache.filter(p => {
-      if (p.status !== 'a_disputar' || !p.data_hora_abertura) return false;
-      const d = new Date(p.data_hora_abertura);
-      return d >= hoje;
-    }).sort((a,b) => new Date(a.data_hora_abertura) - new Date(b.data_hora_abertura));
-    const tab = document.getElementById('ma-tab-proximos');
-    if (!proximos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão próximo</h3></div>'; return; }
-    tab.innerHTML = '<div class="cal-list">' + proximos.map(p => {
-      const dt = new Date(p.data_hora_abertura);
-      const diff = Math.ceil((dt - new Date()) / 86400000);
-      const dtStr = dt.toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12: false });
-      return `<div class="cal-card" style="border-left:3px solid var(--primary)">
-        <div class="cal-card-time">
-          <div class="cal-time-date" style="font-size:.75rem">${dtStr.split(' ')[0]||'—'}</div>
-          <div class="cal-time-hour">${dtStr.split(' ')[1]||''}</div>
-        </div>
-        <div class="cal-card-body" style="flex:1">
-          <h4>${esc(p.numero||'—')}
-            <span style="font-size:.7rem;color:var(--primary);margin-left:.4rem">⏳ ${diff}d</span>
-          </h4>
-          <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
-          ${p.objeto ? `<div style="font-size:.78rem;color:var(--t2);margin:.3rem 0">${esc(p.objeto.slice(0,120))}</div>` : ''}
-          <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
-            ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📄 Ver edital</a>` : ''}
-            <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})">🤖 Edson</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('') + '</div>';
-  }
-
-  function renderMaHoje() {
-    const hj = new Date().toISOString().slice(0,10);
-    const hoje = _maCache.filter(p => {
-      if (!p.data_hora_abertura) return false;
-      return new Date(p.data_hora_abertura).toISOString().slice(0,10) === hj;
-    });
-    const tab = document.getElementById('ma-tab-hoje');
-    if (!hoje.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📅</span><h3>Nenhum pregão hoje</h3></div>'; return; }
-    tab.innerHTML = `<div style="background:rgba(76,197,215,.08);border:1px solid rgba(76,197,215,.25);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;font-size:.88rem;color:var(--primary);font-weight:600">📅 ${hoje.length} pregão(ões) com sessão hoje</div>
-      <div class="cal-list">` + hoje.map(p => {
-        const dt = new Date(p.data_hora_abertura);
-        const hr = dt.toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit', hour12: false });
-        return `<div class="cal-card" style="border-left:3px solid var(--primary)">
-          <div class="cal-card-time"><div class="cal-time-date">Hoje</div><div class="cal-time-hour">${hr}</div></div>
-          <div class="cal-card-body" style="flex:1">
-            <h4>${esc(p.numero||'—')}</h4>
-            <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
-            ${p.link_pncp ? `<a href="${esc(p.link_pncp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-top:.4rem">📄 Ver edital</a>` : ''}
-            <button class="btn btn-ghost btn-sm" onclick="verEdsonMinhaArea(${p.id})" style="margin-top:.4rem">🤖 Edson</button>
-          </div>
-        </div>`;
-      }).join('') + '</div>';
-  }
-
-  function renderMaVencidos() {
-    const vencidos = _maCache.filter(p => p.status === 'vencido');
-    const tab = document.getElementById('ma-tab-vencidos');
-    if (!vencidos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">🏆</span><h3>Nenhum pregão vencido</h3></div>'; return; }
-    tab.innerHTML = `<div class="table-wrap"><table class="data-table">
-      <thead><tr><th>Número</th><th>Órgão</th><th>Valor vencido</th><th>Contrato</th></tr></thead>
-      <tbody>${vencidos.map(p => `<tr>
-        <td style="font-weight:600">${esc(p.numero||'—')}</td>
-        <td class="td-muted">${esc((p.orgao||'').slice(0,50))}</td>
-        <td style="color:var(--primary);font-weight:700">${p.valor_vencido ? fmtBRL(p.valor_vencido) : '—'}</td>
-        <td>${p.contrato_assinado
-          ? '<span class="s-badge s-vencido">✓ Assinado</span>'
-          : '<span class="s-badge s-pendente">Pendente</span>'}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  }
-
-  function renderMaPerdidos() {
-    const perdidos = _maCache.filter(p => p.status === 'perdido');
-    const tab = document.getElementById('ma-tab-perdidos');
-    if (!perdidos.length) { tab.innerHTML = '<div class="state-box"><span class="icon">📉</span><h3>Nenhum pregão perdido</h3></div>'; return; }
-    tab.innerHTML = '<div class="cal-list">' + perdidos.map(p => `
-      <div class="cal-card">
-        <div class="cal-card-body" style="flex:1">
-          <h4>${esc(p.numero||'—')} <span class="s-badge s-atrasado" style="font-size:.65rem">Perdido</span></h4>
-          <div class="cal-card-meta">${esc(p.orgao||'—')}</div>
-          ${p.objeto ? `<div style="font-size:.78rem;color:var(--t2);margin:.3rem 0">${esc(p.objeto.slice(0,100))}</div>` : ''}
-          <button class="btn btn-ghost btn-sm" style="margin-top:.5rem" onclick="abrirModalRecurso(${p.id},'${esc(p.numero||'')}')">⚖️ Abrir recurso</button>
-        </div>
-      </div>`).join('') + '</div>';
-  }
-
   function abrirModalRecurso(pid, numero) {
     toast(`Funcionalidade de recurso para ${numero} em breve.`, 'success');
   }
 
-  // ── Override carregarMinhaArea para usar _maCache e renderizar 5 abas ───────
-  const _carregarMinhaAreaOriginal = carregarMinhaArea;
-  carregarMinhaArea = async function() {
-    if (!userClienteId) {
-      document.getElementById('ma-metrics').innerHTML =
-        '<p style="color:var(--danger)">Conta não vinculada a um cliente. Contate o administrador.</p>';
-      return;
-    }
-    document.getElementById('ma-tab-ofertas').innerHTML =
-      '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
-    try {
-      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes`,
-        { headers: { Authorization: `Bearer ${token}` } });
-      if (r.status === 401) { logout(); return; }
-      const { dados = [] } = await r.json();
-      _maCache = dados;
-
-      const ofertas    = dados.filter(p => p.status === 'sugerido');
-      const ativos     = dados.filter(p => p.status === 'a_disputar');
-      const proximos = ativos.filter(p => {
-        if (!p.data_hora_abertura) return false;
-        const d = new Date(p.data_hora_abertura);
-        const diff = (d - new Date()) / 86400000;
-        return diff >= 0 && diff <= 7;
-      }).length;
-      const vencidos = dados.filter(p => p.status === 'vencido').length;
-      document.getElementById('ma-metrics').innerHTML = `
-        <div class="metric-card"><div class="metric-value" style="color:var(--primary)">${ofertas.length}</div><div class="metric-label">Ofertas pendentes</div></div>
-        <div class="metric-card"><div class="metric-value">${ativos.length}</div><div class="metric-label">A disputar</div></div>
-        <div class="metric-card"><div class="metric-value" style="color:var(--warning)">${proximos}</div><div class="metric-label">Próximos 7 dias</div></div>
-        <div class="metric-card"><div class="metric-value" style="color:var(--success)">${vencidos}</div><div class="metric-label">Vencidos</div></div>`;
-      document.getElementById('ma-subtitulo').textContent = `${dados.length} pregão(ões) registrado(s)`;
-
-      if (ofertas.length === 0) {
-        document.getElementById('ma-tab-ofertas').innerHTML =
-          '<div class="state-box"><span class="icon">📭</span><h3>Nenhuma oferta pendente</h3><p>Quando sua equipe identificar um pregão para você, ele aparecerá aqui.</p></div>';
-      } else {
-        document.getElementById('ma-tab-ofertas').innerHTML =
-          '<div class="cal-list">' + ofertas.map(renderMaOferta).join('') + '</div>';
-        carregarScoresOfertas(ofertas);
-      }
-      // Renderizar aba ativa atual
-      const activeTab = document.querySelector('[data-ma-tab].active')?.dataset.maTab || 'ofertas';
-      if (activeTab !== 'ofertas') switchMaTab(activeTab);
-    } catch (e) {
-      document.getElementById('ma-tab-ofertas').innerHTML =
-        `<div class="state-box"><span class="icon">⚠️</span><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`;
-    }
-  };
+  // Override das 5 abas removido — carregarMinhaArea usa /minha-area
 
   // ── Edson list card: adicionar botão deletar ─────────────────────────────────
   const _renderEdsonCardOriginal = renderEdsonCard;
