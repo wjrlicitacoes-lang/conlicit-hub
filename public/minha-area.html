@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha Área — Conlicit Hub</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <script src="/js/auth-guard.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; color: #1e293b; }
+    .page-header {
+      background: #182A39; color: #fff; padding: 18px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 700; }
+    .page-header span { font-size: 13px; color: #4CC5D7; }
+    .btn-logout {
+      background: transparent; border: 1px solid #4CC5D7; color: #4CC5D7;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .container { max-width: 1100px; margin: 28px auto; padding: 0 20px; }
+    .resumo-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .resumo-card {
+      background: #fff; border-radius: 10px; padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); text-align: center;
+    }
+    .resumo-card .num { font-size: 32px; font-weight: 700; color: #4CC5D7; }
+    .resumo-card .label { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 16px; font-weight: 700; color: #182A39; margin-bottom: 14px; border-left: 3px solid #4CC5D7; padding-left: 10px; }
+    .cards-list { display: flex; flex-direction: column; gap: 10px; }
+    .card {
+      background: #fff; border-radius: 9px; padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07); display: flex;
+      align-items: flex-start; gap: 12px;
+    }
+    .card.urgente { border-left: 4px solid #ef4444; }
+    .card-icon { font-size: 22px; }
+    .card-body { flex: 1; }
+    .card-title { font-weight: 600; font-size: 14px; }
+    .card-msg { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .card-meta { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-red { background: #fee2e2; color: #dc2626; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .btn-sm {
+      padding: 5px 12px; border-radius: 6px; font-size: 12px;
+      cursor: pointer; border: none; font-weight: 600; margin-left: 6px;
+    }
+    .btn-iniciar  { background: #dbeafe; color: #1d4ed8; }
+    .btn-concluir { background: #dcfce7; color: #16a34a; }
+    .btn-lida     { background: #f1f5f9; color: #475569; }
+    .empty { text-align: center; color: #94a3b8; padding: 32px; font-size: 14px; }
+    .loading { text-align: center; padding: 40px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div>
+      <h1>Minha Área</h1>
+      <span id="usuario-nome"></span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="/" style="color:#4CC5D7;font-size:13px;text-decoration:none">← Painel</a>
+      <button class="btn-logout" id="btn-logout">Sair</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Carregando...</div>
+    <div id="conteudo" style="display:none">
+
+      <!-- Resumo numérico -->
+      <div id="secao-resumo" style="display:none">
+        <div class="resumo-grid" id="resumo-grid"></div>
+      </div>
+
+      <!-- Alertas de prazo -->
+      <div id="secao-alertas" class="section" style="display:none">
+        <h2>⚠️ Alertas de Prazo</h2>
+        <div class="cards-list" id="lista-alertas"></div>
+      </div>
+
+      <!-- Notificações -->
+      <div id="secao-notif" class="section" style="display:none">
+        <h2>🔔 Notificações</h2>
+        <div class="cards-list" id="lista-notif"></div>
+      </div>
+
+      <!-- Tarefas pendentes -->
+      <div id="secao-tarefas" class="section" style="display:none">
+        <h2>📋 Tarefas Pendentes</h2>
+        <div class="cards-list" id="lista-tarefas"></div>
+      </div>
+
+      <!-- Pipeline (comercial) -->
+      <div id="secao-pipeline" class="section" style="display:none">
+        <h2>📊 Pipeline de Oportunidades</h2>
+        <div id="pipeline-content"></div>
+      </div>
+
+      <!-- Posts (redes sociais) -->
+      <div id="secao-posts" class="section" style="display:none">
+        <h2>📱 Posts Pendentes</h2>
+        <div class="cards-list" id="lista-posts"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const TIPO_LABEL = {
+      gerar_planilha:     'Gerar Planilha de Proposta',
+      analise_edital:     'Análise Completa do Edital',
+      adicionar_calendario:'Adicionar ao Calendário',
+      criar_post:         'Criar Post',
+      agendar_publicacao: 'Agendar Publicação',
+      organizar_documentos:'Organizar Documentos',
+    };
+    const TIPO_ICONE = {
+      interesse_confirmado:'🎯', tarefa_pendente:'📋',
+      alerta_prazo:'⚠️', follow_up_pendente:'📞',
+      post_pendente:'📱', alerta_urgente:'🚨',
+    };
+
+    function fmtData(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR');
+    }
+    function diasRestantes(d) {
+      return Math.ceil((new Date(d) - new Date()) / 86400000);
+    }
+    function show(id) { document.getElementById(id).style.display = ''; }
+
+    async function marcarLida(id, el) {
+      await fetch('/notificacoes/' + id + '/lida', { method: 'PATCH' });
+      el.closest('.card').remove();
+    }
+
+    async function atualizarTarefa(id, status, btn) {
+      btn.disabled = true;
+      await fetch('/tarefas/' + id + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      btn.closest('.card').querySelector('.card-meta').textContent =
+        status === 'em_andamento' ? 'Em andamento' : 'Concluída ✅';
+      btn.remove();
+    }
+
+    async function carregarMinhaArea() {
+      const res  = await fetch('/minha-area');
+      const data = await res.json();
+      document.getElementById('loading').style.display = 'none';
+      show('conteudo');
+
+      // Resumo
+      if (data.resumo) {
+        show('secao-resumo');
+        const grid = document.getElementById('resumo-grid');
+        grid.innerHTML = `
+          <div class="resumo-card"><div class="num">${data.resumo.total_oportunidades_ativas || 0}</div><div class="label">Oportunidades ativas</div></div>
+          <div class="resumo-card"><div class="num">${data.resumo.total_interesse_confirmado || 0}</div><div class="label">Interesse confirmado</div></div>
+          <div class="resumo-card"><div class="num">${data.resumo.total_aguardando_resposta || 0}</div><div class="label">Aguardando resposta</div></div>
+          <div class="resumo-card"><div class="num">${data.resumo.total_tarefas_pendentes || 0}</div><div class="label">Tarefas pendentes</div></div>
+        `;
+      }
+
+      // Alertas de prazo
+      if (data.alertas_prazo?.length) {
+        show('secao-alertas');
+        document.getElementById('lista-alertas').innerHTML = data.alertas_prazo.map(a => {
+          const dias = diasRestantes(a.data_encerramento);
+          return `<div class="card urgente">
+            <div class="card-icon">⚠️</div>
+            <div class="card-body">
+              <div class="card-title">${a.titulo}</div>
+              <div class="card-msg">${a.orgao || ''} · ${a.plataforma || ''}</div>
+              <div class="card-meta">${a.cliente_nome || ''}</div>
+              <span class="badge badge-red">${dias} dias restantes</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // Notificações
+      if (data.notificacoes?.length) {
+        show('secao-notif');
+        document.getElementById('lista-notif').innerHTML = data.notificacoes.map(n => `
+          <div class="card" id="notif-${n.id}">
+            <div class="card-icon">${TIPO_ICONE[n.tipo] || '🔔'}</div>
+            <div class="card-body">
+              <div class="card-title">${n.titulo}</div>
+              <div class="card-msg">${n.mensagem}</div>
+              <div class="card-meta">${fmtData(n.criado_em)}</div>
+            </div>
+            <button class="btn-sm btn-lida" onclick="marcarLida('${n.id}', this)">Lida</button>
+          </div>
+        `).join('');
+      }
+
+      // Tarefas
+      if (data.tarefas_pendentes?.length) {
+        show('secao-tarefas');
+        document.getElementById('lista-tarefas').innerHTML = data.tarefas_pendentes.map(t => `
+          <div class="card">
+            <div class="card-icon">📋</div>
+            <div class="card-body">
+              <div class="card-title">${TIPO_LABEL[t.tipo] || t.tipo}</div>
+              <div class="card-msg">${t.cliente_nome || ''}</div>
+              <div class="card-meta" id="tarefa-meta-${t.id}">Pendente</div>
+            </div>
+            <div>
+              ${t.status === 'pendente'
+                ? `<button class="btn-sm btn-iniciar" onclick="atualizarTarefa('${t.id}','em_andamento',this)">Iniciar</button>`
+                : ''}
+              ${t.status !== 'concluido'
+                ? `<button class="btn-sm btn-concluir" onclick="atualizarTarefa('${t.id}','concluido',this)">Concluir</button>`
+                : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Pipeline (comercial)
+      if (data.pipeline) {
+        show('secao-pipeline');
+        const p = data.pipeline;
+        document.getElementById('pipeline-content').innerHTML = `
+          <p>Aguardando: ${p.aguardando_resposta?.length || 0} &nbsp;|&nbsp; Interesse: ${p.interesse?.length || 0} &nbsp;|&nbsp; Sem interesse: ${p.sem_interesse?.length || 0}</p>
+          ${(p.aguardando_resposta || []).map(o => `
+            <div class="card" style="margin-top:8px">
+              <div class="card-body">
+                <div class="card-title">${o.cliente_nome}</div>
+                <div class="card-msg">${o.orgao || ''}</div>
+                <div class="card-meta">Enviado há ${Math.ceil(o.dias_desde_envio || 0)} dias</div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      // Posts
+      if (data.posts_pendentes?.length) {
+        show('secao-posts');
+        document.getElementById('lista-posts').innerHTML = data.posts_pendentes.map(p => `
+          <div class="card">
+            <div class="card-icon">📱</div>
+            <div class="card-body">
+              <div class="card-title">${p.titulo}</div>
+              <div class="card-msg">${p.plataforma || ''} · ${p.status}</div>
+              <div class="card-meta">${p.data_publicacao ? fmtData(p.data_publicacao) : 'Sem data'}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Caso tudo vazio
+      const temConteudo = data.resumo || data.alertas_prazo?.length || data.notificacoes?.length ||
+        data.tarefas_pendentes?.length || data.pipeline || data.posts_pendentes?.length;
+      if (!temConteudo) {
+        document.getElementById('conteudo').innerHTML = '<div class="empty">Nenhuma informação disponível para o seu perfil.</div>';
+      }
+    }
+
+    carregarMinhaArea().catch(e => {
+      document.getElementById('loading').textContent = 'Erro ao carregar: ' + e.message;
+    });
+  </script>
+</body>
+</html>

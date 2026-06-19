@@ -586,7 +586,7 @@ async function listarEditais(req, res) {
             return d.toISOString().slice(0, 10).replace(/-/g, '');
           })();
           const paginas = await Promise.all(
-            Array.from({ length: 20 }, (_, i) =>
+            Array.from({ length: 40 }, (_, i) =>
               axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
                 params: { dataInicial: dataIni, dataFinal: dataFinalEfetivo, pagina: i + 1, tamanhoPagina: 50 },
                 headers: { 'Accept': 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
@@ -595,11 +595,13 @@ async function listarEditais(req, res) {
             ),
           );
           let dados = paginas.flat();
-          const termo = semAcento(qSanitizado);
-          dados = dados.filter(item =>
-            semAcento(item.objetoCompra ?? '').includes(termo) ||
-            semAcento(item.orgaoEntidade?.razaoSocial ?? '').includes(termo),
-          );
+          // Busca por palavras individuais (OR) — basta qualquer palavra da query aparecer
+          const palavrasBusca = semAcento(qSanitizado).split(/\s+/).filter(p => p.length >= 3);
+          dados = dados.filter(item => {
+            const obj  = semAcento(item.objetoCompra ?? '');
+            const orgao = semAcento(item.orgaoEntidade?.razaoSocial ?? '');
+            return palavrasBusca.some(p => obj.includes(p) || orgao.includes(p));
+          });
           if (uf) {
             const ufUpper = uf.toUpperCase();
             dados = dados.filter(item => (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper);

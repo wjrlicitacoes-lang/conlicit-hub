@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Pregões — Conlicit Hub</title>
+  <script src="/js/auth-guard.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; color: #1e293b; }
+    .page-header {
+      background: #182A39; color: #fff; padding: 18px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 700; }
+    .btn-logout {
+      background: transparent; border: 1px solid #4CC5D7; color: #4CC5D7;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .container { max-width: 1100px; margin: 28px auto; padding: 0 20px; }
+    .card {
+      background: #fff; border-radius: 9px; padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 12px;
+    }
+    .card.urgente { border-left: 4px solid #ef4444; }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .card-title { font-weight: 700; font-size: 15px; }
+    .card-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .card-meta { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-red   { background: #fee2e2; color: #dc2626; }
+    .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .tarefas { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .tarefa-pill {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+      background: #f1f5f9; color: #475569;
+    }
+    .tarefa-pill.done { background: #dcfce7; color: #16a34a; }
+    .loading { text-align: center; padding: 40px; color: #64748b; }
+    .empty   { text-align: center; color: #94a3b8; padding: 40px; font-size: 14px; }
+    .filtro { margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .filtro select {
+      padding: 7px 12px; border: 1.5px solid #d1d5db; border-radius: 7px;
+      font-size: 13px; background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div>
+      <h1>Meus Pregões</h1>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="/" style="color:#4CC5D7;font-size:13px;text-decoration:none">← Painel</a>
+      <a href="/minha-area.html" style="color:#4CC5D7;font-size:13px;text-decoration:none">Minha Área</a>
+      <button class="btn-logout" id="btn-logout">Sair</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filtro" id="filtros-container" style="display:none">
+      <select id="filtro-status" onchange="filtrar()">
+        <option value="">Todos os status</option>
+        <option value="interesse">Interesse confirmado</option>
+        <option value="aguardando_resposta">Aguardando resposta</option>
+        <option value="sem_interesse">Sem interesse</option>
+        <option value="expirado">Expirado</option>
+      </select>
+    </div>
+
+    <div id="loading" class="loading">Carregando...</div>
+    <div id="lista"></div>
+    <div id="mensagem" class="empty" style="display:none"></div>
+  </div>
+
+  <script>
+    let todosPreg = [];
+
+    const TIPO_LABEL = {
+      gerar_planilha:     'Planilha',
+      analise_edital:     'Análise',
+      adicionar_calendario:'Calendário',
+    };
+
+    function fmtData(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR');
+    }
+    function fmtMoeda(v) {
+      if (!v) return '—';
+      return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    function diasRestantes(d) {
+      return Math.ceil((new Date(d) - new Date()) / 86400000);
+    }
+
+    function renderizar(lista) {
+      const container = document.getElementById('lista');
+      if (!lista.length) {
+        container.innerHTML = '';
+        document.getElementById('mensagem').style.display = '';
+        document.getElementById('mensagem').textContent = 'Nenhum pregão encontrado.';
+        return;
+      }
+      document.getElementById('mensagem').style.display = 'none';
+
+      container.innerHTML = lista.map(p => {
+        const dias = p.data_encerramento ? diasRestantes(p.data_encerramento) : null;
+        const urgente = dias !== null && dias <= 3 && dias >= 0;
+        const tarefas = (p.tarefas || []).filter(Boolean);
+
+        return `<div class="card ${urgente ? 'urgente' : ''}">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${p.cliente_nome || '—'}</div>
+              <div class="card-sub">${p.orgao || '—'}</div>
+              <div class="card-meta">${p.objeto?.slice(0,100) || ''}${(p.objeto?.length||0)>100?'…':''}</div>
+            </div>
+            <div style="text-align:right">
+              ${urgente ? `<span class="badge badge-red">${dias}d restantes</span>` : ''}
+              <div style="margin-top:6px;font-size:13px;color:#64748b">${fmtMoeda(p.valor_estimado)}</div>
+              <div style="font-size:12px;color:#94a3b8">Encerra: ${fmtData(p.data_encerramento)}</div>
+              ${p.plataforma ? `<div style="font-size:12px;color:#94a3b8">${p.plataforma}</div>` : ''}
+              ${p.dias_desde_envio ? `<div style="font-size:12px;color:#94a3b8">Enviado há ${Math.ceil(p.dias_desde_envio)} dias</div>` : ''}
+            </div>
+          </div>
+          ${tarefas.length ? `
+            <div class="tarefas">
+              ${tarefas.map(t => `
+                <span class="tarefa-pill ${t.status === 'concluido' ? 'done' : ''}">
+                  ${TIPO_LABEL[t.tipo] || t.tipo} ${t.status === 'concluido' ? '✅' : '⏳'}
+                </span>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function filtrar() {
+      const status = document.getElementById('filtro-status').value;
+      const filtrados = status ? todosPreg.filter(p => p.status === status) : todosPreg;
+      renderizar(filtrados);
+    }
+
+    async function carregarMeusPregoes() {
+      const res  = await fetch('/meus-pregoes');
+      const data = await res.json();
+      document.getElementById('loading').style.display = 'none';
+
+      if (data.mensagem) {
+        document.getElementById('mensagem').textContent = data.mensagem;
+        document.getElementById('mensagem').style.display = '';
+        return;
+      }
+
+      todosPreg = data.pregoes || [];
+      if (todosPreg.length > 0) {
+        document.getElementById('filtros-container').style.display = 'flex';
+      }
+      renderizar(todosPreg);
+    }
+
+    carregarMeusPregoes().catch(e => {
+      document.getElementById('loading').textContent = 'Erro: ' + e.message;
+    });
+  </script>
+</body>
+</html>

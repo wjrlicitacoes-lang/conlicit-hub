@@ -3,8 +3,12 @@ const jwt = require('jsonwebtoken');
 const db = require('../database/db');
 const { PERMISSOES_ROLE, TODOS_MODULOS } = require('../middleware/autenticar');
 
-const ROLES_VALIDOS = ['admin','assistente','assistente_junior','cliente','socio_fundador','diretor_comercial','operador','sdr','social_media'];
-const ROLES_GESTORES = ['admin','socio_fundador'];
+const ROLES_VALIDOS = [
+  'admin','assistente','assistente_junior','cliente','socio_fundador',
+  'diretor_comercial','operador','sdr','social_media',
+];
+const ROLES_GESTORES      = ['admin','socio_fundador'];
+const ROLES_ADMIN_APENAS  = ['admin'];
 
 async function getPermissoesEfetivas(userId, role) {
   const padroes = PERMISSOES_ROLE[role] || [];
@@ -49,7 +53,7 @@ async function login(req, res) {
 
   try {
     const resultado = await db.query(
-      'SELECT id, email, senha_hash, role, cliente_id FROM usuarios WHERE email = $1',
+      'SELECT id, nome, email, senha_hash, role, cliente_id FROM usuarios WHERE email = $1',
       [email.trim().toLowerCase()],
     );
 
@@ -59,7 +63,7 @@ async function login(req, res) {
       return res.status(401).json({ erro: 'Credenciais inválidas' });
 
     const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, role: usuario.role, cliente_id: usuario.cliente_id ?? null },
+      { id: usuario.id, nome: usuario.nome ?? null, email: usuario.email, role: usuario.role, cliente_id: usuario.cliente_id ?? null },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRACAO || '8h' },
     );
@@ -72,19 +76,19 @@ async function login(req, res) {
 }
 
 async function me(req, res) {
-  const { id, email, role, cliente_id } = req.usuario;
+  const { id, nome, email, role, cliente_id } = req.usuario;
   try {
     const permissoes = await getPermissoesEfetivas(id, role);
-    return res.json({ id, email, role, cliente_id: cliente_id ?? null, permissoes });
+    return res.json({ id, nome: nome ?? null, email, role, cliente_id: cliente_id ?? null, permissoes });
   } catch {
-    return res.json({ id, email, role, cliente_id: cliente_id ?? null, permissoes: {} });
+    return res.json({ id, nome: nome ?? null, email, role, cliente_id: cliente_id ?? null, permissoes: {} });
   }
 }
 
 const SENHA_PADRAO = 'Conlicit@2024';
 
 async function criarUsuario(req, res) {
-  if (!ROLES_GESTORES.includes(req.usuario.role))
+  if (!ROLES_ADMIN_APENAS.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { nome, email, role, cliente_id } = req.body ?? {};
@@ -145,7 +149,7 @@ async function listarUsuarios(req, res) {
 }
 
 async function editarUsuario(req, res) {
-  if (!ROLES_GESTORES.includes(req.usuario.role))
+  if (!ROLES_ADMIN_APENAS.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;
@@ -187,7 +191,7 @@ async function editarUsuario(req, res) {
 }
 
 async function excluirUsuario(req, res) {
-  if (!ROLES_GESTORES.includes(req.usuario.role))
+  if (!ROLES_ADMIN_APENAS.includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
 
   const { id } = req.params;

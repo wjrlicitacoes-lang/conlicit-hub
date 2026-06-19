@@ -12,29 +12,30 @@ const TODOS_MODULOS = [
 ];
 
 const PERMISSOES_ROLE = {
-  socio_fundador:    [...TODOS_MODULOS],
   admin:             [...TODOS_MODULOS],
+  socio_fundador:    [...TODOS_MODULOS],
   assistente:        [
     'dashboard','clientes','editais','boletins','calendario','edson','monitor',
-    'buscar_editais','edson_ia','robo_pregao','oportunidades',
+    'buscar_editais','edson_ia','robo_pregao','oportunidades','minha_area','pregoes',
   ],
   assistente_junior: [
     'dashboard','clientes','editais','boletins','calendario',
-    'buscar_editais','edson_ia',
+    'buscar_editais','edson_ia','minha_area',
   ],
   diretor_comercial: [
     'dashboard','editais','calendario','prospects','edson','gerador_proposta',
     'buscar_editais','edson_ia','proposta_comercial','oportunidades','prospects',
+    'clientes','minha_area','pregoes',
   ],
   operador:          [
     'dashboard','clientes','editais','boletins','edson','monitor','calendario',
-    'buscar_editais','edson_ia','robo_pregao','oportunidades',
+    'buscar_editais','edson_ia','robo_pregao','oportunidades','minha_area',
   ],
   sdr:               [
     'dashboard','editais','boletins','prospects','calendario',
-    'buscar_editais','prospects',
+    'buscar_editais','prospects','minha_area',
   ],
-  social_media:      ['dashboard','documentacao','marketing'],
+  social_media:      ['dashboard','documentacao','marketing','minha_area'],
   cliente:           ['minha_area','pregoes','edson','edson_ia'],
 };
 
@@ -77,11 +78,12 @@ async function autenticar(req, res, next) {
     // Fallback: busca role (e id) no banco para garantir retrocompatibilidade.
     if ((!req.usuario.role || req.usuario.cliente_id === undefined) && req.usuario.email) {
       const { rows } = await db.query(
-        'SELECT id, role, cliente_id FROM usuarios WHERE email = $1',
+        'SELECT id, nome, role, cliente_id FROM usuarios WHERE email = $1',
         [req.usuario.email],
       );
       if (rows[0]) {
         req.usuario.id         = req.usuario.id   ?? rows[0].id;
+        req.usuario.nome       = req.usuario.nome ?? rows[0].nome ?? null;
         req.usuario.role       = req.usuario.role ?? rows[0].role;
         req.usuario.cliente_id = req.usuario.cliente_id ?? rows[0].cliente_id ?? null;
       }

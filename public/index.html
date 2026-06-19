@@ -1817,7 +1817,7 @@
     .prop-table tbody tr:hover{background:rgba(76,197,215,0.07)}
     .prop-table td{padding:8px 12px;vertical-align:middle;color:#dee6e9;border-bottom:1px solid rgba(255,255,255,0.05)}
     .prop-table td.prop-td-right{text-align:right}
-    .prop-badge-ia{background:rgba(76,197,215,0.2);color:#4CC5D7;font-size:10px;padding:2px 6px;border-radius:99px;font-weight:500;margin-left:6px}
+    /* .prop-badge-ia removed */
     .prop-td-input{background:#1e3345;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 8px;color:#fff;font-size:12px;width:100%;outline:none;font-family:inherit}
     .prop-td-input:focus{border-color:#4CC5D7}
     .prop-btn-ml{background:transparent;border:1px solid #4CC5D7;color:#4CC5D7;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px}
@@ -1859,6 +1859,32 @@
     /* ═══════════════════════════════════════
        GERADOR DE CONTRATOS
     ═══════════════════════════════════════ */
+    .gc-savedbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-card, #1E3447);
+      border: 1px solid var(--border, #2a4a60);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .gc-btn-excluir {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border, #2a4a60);
+      border-radius: 7px;
+      color: var(--t3, #8AAABB);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .15s;
+    }
+    .gc-btn-excluir:hover { background:rgba(220,50,50,.1); border-color:#dc3232; color:#ff6b6b; }
     .gc-wrap {
       display: grid;
       grid-template-columns: 380px minmax(0, 1fr);
@@ -1987,6 +2013,7 @@
     .gc-preview-body .ct-rodape { text-align:center; font-size:10px; color:#999; border-top:0.5px solid #eee; padding-top:8px; margin-top:14px; }
     /* ===== FIM GERADOR DE CONTRATOS ===== */
   </style>
+  <script src="/js/auth-guard.js"></script>
 </head>
 <body>
 
@@ -3751,8 +3778,32 @@
             <h1 class="section-title">Gerador de Contrato</h1>
             <p style="color:var(--t3);font-size:.85rem;margin:4px 0 0">Preencha os dados do cliente e gere o contrato em PDF</p>
           </div>
-          <button class="btn btn-primary" onclick="gcGerarPDF()">
-            <i class="ti ti-download"></i> Baixar PDF
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-ghost btn-sm" onclick="gcNovo()">
+              <i class="ti ti-plus"></i> Novo
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="gcSalvar()" id="gc-btn-salvar">
+              <i class="ti ti-device-floppy"></i> Salvar
+            </button>
+            <button class="btn btn-primary" onclick="gcGerarPDF()">
+              <i class="ti ti-download"></i> Baixar PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de contratos salvos -->
+        <div class="gc-savedbar">
+          <div style="display:flex;align-items:center;gap:8px;flex:1">
+            <i class="ti ti-folders" style="color:var(--primary);font-size:15px"></i>
+            <span style="font-size:12px;color:var(--t3)">Contratos salvos:</span>
+            <select id="gc-lista" onchange="gcCarregarSelecionado()"
+              style="flex:1;max-width:320px;font-size:13px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px">
+              <option value="">— Selecione para editar —</option>
+            </select>
+            <span id="gc-status-msg" style="font-size:12px;color:var(--t3);min-height:16px"></span>
+          </div>
+          <button class="gc-btn-excluir" onclick="gcDeletar()">
+            <i class="ti ti-trash"></i> Excluir
           </button>
         </div>
 
@@ -4826,7 +4877,7 @@
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'planilha')        propCarregarLista();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
-    else if (section === 'gerador-contrato') gcAtualizar();
+    else if (section === 'gerador-contrato') { gcListaAtualizar(); gcAtualizar(); }
   }
 
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
@@ -17213,16 +17264,30 @@ async function prcCarregarMulticanal() {
     } catch (e) { console.error('[prop] abrir:', e); }
   };
 
+  function propFormatarQtd(valor) {
+    if (valor === null || valor === undefined || valor === '') return '—';
+    const n = Number(valor);
+    if (isNaN(n)) return '—';
+    return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace('.', ',');
+  }
+
+  function propFormatarMoeda(valor) {
+    if (valor === null || valor === undefined || valor === '') return '—';
+    const n = Number(valor);
+    if (isNaN(n) || n === 0) return '—';
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
   function propRenderTabela() {
     const tbody = document.getElementById('prop-tbody');
     document.getElementById('prop-badge-itens').textContent = `${propItens.length} itens`;
     tbody.innerHTML = propItens.map((item, idx) => `
       <tr>
         <td style="color:rgba(255,255,255,0.4);font-size:11px;">${item.numero_item || idx + 1}</td>
-        <td>${item.descricao}<span class="prop-badge-ia">IA</span></td>
+        <td>${item.descricao}</td>
         <td class="prop-td-right">${item.unidade || '—'}</td>
-        <td class="prop-td-right">${item.quantidade || '—'}</td>
-        <td class="prop-td-right">${item.valor_estimado ? 'R$ ' + Number(item.valor_estimado).toFixed(2) : '—'}</td>
+        <td class="prop-td-right">${propFormatarQtd(item.quantidade)}</td>
+        <td class="prop-td-right">${propFormatarMoeda(item.valor_estimado)}</td>
         <td><input class="prop-td-input" value="${item.valor_minimo ? Number(item.valor_minimo).toFixed(2) : ''}"
               placeholder="0,00" id="prop-min-${idx}" onblur="propSalvarItem(${idx})"/></td>
         <td><input class="prop-td-input" value="${item.marca_modelo || ''}"
@@ -17273,17 +17338,19 @@ async function prcCarregarMulticanal() {
     try {
       const q = encodeURIComponent(item.descricao.substring(0, 100));
       const resp = await fetch(`/api/planilha/buscar-preco?q=${q}&item_id=${item.id}`, { headers: propAuthHeader() });
-      const results = await resp.json();
+      const data = await resp.json();
+      const results = Array.isArray(data) ? data : (data.results || []);
+      const fonte = data.fonte || 'Mercado Livre';
       if (!results.length) {
-        panel.innerHTML = '<div class="prop-results-inner"><p style="font-size:12px;color:rgba(255,255,255,0.4);">Nenhum resultado. Preencha manualmente.</p></div>';
+        panel.innerHTML = `<div class="prop-results-inner"><p style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">Nenhum resultado encontrado no Mercado Livre nem no Google Shopping.<br>Preencha o valor mínimo manualmente.</p></div>`;
       } else {
         panel.innerHTML = `<div class="prop-results-inner">
-          <div class="prop-results-title">Resultados Mercado Livre — do mais barato</div>
+          <div class="prop-results-title">Resultados ${fonte} — do mais barato</div>
           ${results.map((r, i) => `
             <div class="prop-result-row">
               <div style="min-width:0;flex:1">
                 <div class="prop-result-name">${r.titulo}</div>
-                <div class="prop-result-meta">${r.vendedor} · ${r.quantidade_disponivel || '—'} disponíveis</div>
+                <div class="prop-result-meta">${r.fonte || r.vendedor}</div>
               </div>
               <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
                 <span class="prop-result-price ${i === 0 ? 'prop-best' : ''}">R$ ${Number(r.preco).toFixed(2)}</span>
@@ -17534,54 +17601,194 @@ function gcAtualizar() {
   if (previewBody) previewBody.innerHTML = html;
 }
 
-function gcGerarPDF() {
-  const conteudo = document.getElementById('gc-conteudo-pdf');
-  if (!conteudo) {
-    alert('Preencha os dados do contrato antes de gerar o PDF.');
-    return;
+async function gcGerarPDF() {
+  const el = document.getElementById('gc-conteudo-pdf');
+  if (!el) { mostrarToast('Preencha os dados antes de gerar o PDF', 'aviso'); return; }
+  const btn = document.querySelector('[onclick="gcGerarPDF()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Gerando...'; }
+  try {
+    const jsPDF = window.jspdf?.jsPDF;
+    if (!jsPDF || !window.html2canvas) {
+      // Fallback: abrir janela para imprimir
+      const nome = gcV('gc-cli-nome') || 'contrato';
+      const w = window.open('', '_blank');
+      w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrato Conlicit — ${nome}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:32px 40px;font-size:11.5px;color:#1a1a1a;line-height:1.7}.ct-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #182A39}.ct-logo{font-size:17px;font-weight:bold;color:#182A39}.ct-logo span{color:#4CC5D7}.ct-subtag{font-size:10px;color:#666;text-align:right;line-height:1.4}.ct-title{text-align:center;margin-bottom:16px}.ct-title h1{font-size:14px;color:#182A39;margin-bottom:3px}.ct-title p{font-size:11px;color:#666}.ct-aviso{background:#eef8f9;border-left:3px solid #4CC5D7;padding:7px 11px;font-size:10.5px;color:#555;margin-bottom:16px}.ct-sec{font-size:10px;font-weight:bold;color:#4CC5D7;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 7px}.ct-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}.ct-table td{padding:4px 8px;border:0.5px solid #ddd}.ct-table tr:nth-child(odd) td:first-child{background:#f5f5f5}.ct-table td:first-child{font-weight:bold;color:#555;width:30%}.ct-vazio{color:#bbb;font-style:italic}.ct-clausula{margin-bottom:10px}.ct-clausula h3{font-size:11px;font-weight:bold;color:#182A39;margin-bottom:4px;padding-bottom:3px;border-bottom:0.5px solid #eee}.ct-clausula p{font-size:10.5px;margin-bottom:3px;text-align:justify}.ct-clausula ul{padding-left:14px;margin:3px 0}.ct-clausula ul li{font-size:10.5px;margin-bottom:2px}.ct-assin{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:28px}.ct-assin-bloco{text-align:center}.ct-assin-linha{border-top:0.5px solid #333;margin-bottom:5px;margin-top:36px}.ct-assin-nome{font-size:10.5px;font-weight:bold}.ct-assin-sub{font-size:10px;color:#666}.ct-data{text-align:center;font-size:10.5px;color:#666;margin:18px 0 3px}.ct-rodape{text-align:center;font-size:10px;color:#999;border-top:0.5px solid #eee;padding-top:8px;margin-top:14px}@page{margin:20mm 25mm}@media print{body{padding:0}}</style></head><body>`);
+      w.document.write(el.innerHTML);
+      w.document.write('</body></html>');
+      w.document.close();
+      w.onload = () => { setTimeout(() => { w.print(); }, 300); };
+      return;
+    }
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
+    const cW = canvas.width, cH = canvas.height, pdfH = W * cH / cW;
+    let y = 0, pg = 0;
+    while (y < pdfH) {
+      if (pg > 0) pdf.addPage();
+      const srcY = Math.round(y * cH / pdfH), srcH = Math.min(Math.round(H * cH / pdfH), cH - srcY);
+      const pc = document.createElement('canvas'); pc.width = cW; pc.height = srcH;
+      pc.getContext('2d').drawImage(canvas, 0, srcY, cW, srcH, 0, 0, cW, srcH);
+      pdf.addImage(pc.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, W, H * (srcH / (H * cH / pdfH)));
+      y += H; pg++;
+    }
+    const nome = gcV('gc-cli-nome') || 'contrato';
+    pdf.save('Conlicit_' + nome.replace(/[^a-zA-Z0-9]/g, '_') + '.pdf');
+    mostrarToast('PDF gerado!', 'sucesso');
+  } catch (e) {
+    console.error('[gc] PDF:', e);
+    mostrarToast('Erro ao gerar PDF', 'erro');
   }
-  const nome = gcV('gc-cli-nome') || 'contrato';
-  const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Contrato Conlicit — ${nome}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;padding:32px 40px;font-size:11.5px;color:#1a1a1a;line-height:1.7}
-.ct-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #182A39}
-.ct-logo{font-size:17px;font-weight:bold;color:#182A39}
-.ct-logo span{color:#4CC5D7}
-.ct-subtag{font-size:10px;color:#666;text-align:right;line-height:1.4}
-.ct-title{text-align:center;margin-bottom:16px}
-.ct-title h1{font-size:14px;color:#182A39;margin-bottom:3px}
-.ct-title p{font-size:11px;color:#666}
-.ct-aviso{background:#eef8f9;border-left:3px solid #4CC5D7;padding:7px 11px;font-size:10.5px;color:#555;margin-bottom:16px}
-.ct-sec{font-size:10px;font-weight:bold;color:#4CC5D7;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 7px}
-.ct-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
-.ct-table td{padding:4px 8px;border:0.5px solid #ddd}
-.ct-table tr:nth-child(odd) td:first-child{background:#f5f5f5}
-.ct-table td:first-child{font-weight:bold;color:#555;width:30%}
-.ct-vazio{color:#bbb;font-style:italic}
-.ct-clausula{margin-bottom:10px}
-.ct-clausula h3{font-size:11px;font-weight:bold;color:#182A39;margin-bottom:4px;padding-bottom:3px;border-bottom:0.5px solid #eee}
-.ct-clausula p{font-size:10.5px;margin-bottom:3px;text-align:justify}
-.ct-clausula ul{padding-left:14px;margin:3px 0}
-.ct-clausula ul li{font-size:10.5px;margin-bottom:2px}
-.ct-assin{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
-.ct-assin-bloco{text-align:center}
-.ct-assin-linha{border-top:0.5px solid #333;margin-bottom:5px;margin-top:36px}
-.ct-assin-nome{font-size:10.5px;font-weight:bold}
-.ct-assin-sub{font-size:10px;color:#666}
-.ct-data{text-align:center;font-size:10.5px;color:#666;margin:18px 0 3px}
-.ct-rodape{text-align:center;font-size:10px;color:#999;border-top:0.5px solid #eee;padding-top:8px;margin-top:14px}
-@page{margin:20mm 25mm}
-@media print{body{padding:0}}
-</style></head><body>`);
-  w.document.write(conteudo.innerHTML);
-  w.document.write('</body></html>');
-  w.document.close();
-  w.onload = () => { setTimeout(() => { w.print(); }, 300); };
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-download"></i> Baixar PDF'; }
+}
+
+// ── Salvar / carregar contratos no banco ─────────────────────────────────────
+
+let gcIdAtual = null;
+
+function gcSB(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; }
+function gcStatus(msg) { const el = document.getElementById('gc-status-msg'); if (el) el.textContent = msg; }
+
+function gcDados() {
+  return {
+    nome_cliente:     gcV('gc-cli-nome'),
+    cnpj_cpf:         gcV('gc-cli-cnpj'),
+    telefone:         gcV('gc-cli-tel'),
+    endereco:         gcV('gc-cli-end'),
+    representante:    gcV('gc-cli-rep'),
+    cargo:            gcV('gc-cli-cargo'),
+    email:            gcV('gc-cli-email'),
+    data_inicio:      gcV('gc-inicio') || null,
+    prazo_meses:      parseInt(gcV('gc-prazo')) || null,
+    plano:            gcV('gc-plano'),
+    modalidades:      gcV('gc-modal'),
+    segmentos:        gcV('gc-seg'),
+    abrangencia:      gcV('gc-abrang'),
+    honorario_mensal: gcV('gc-honorario'),
+    dia_vencimento:   parseInt(gcV('gc-venc')) || null,
+    comissao_exitop:  gcV('gc-comissao'),
+    prazo_exito_dias: parseInt(gcV('gc-prazo-exit')) || null,
+    forma_pagamento:  gcV('gc-pgto'),
+    multa_rescisoria: gcV('gc-multa'),
+    observacoes:      gcV('gc-obs'),
+    servicos:         GC_SERVICOS.filter(([id]) => gcCh(id)).map(([, s]) => s),
+  };
+}
+
+function gcAplicar(d) {
+  const sv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  sv('gc-cli-nome',   d.nome_cliente);
+  sv('gc-cli-cnpj',   d.cnpj_cpf);
+  sv('gc-cli-tel',    d.telefone);
+  sv('gc-cli-end',    d.endereco);
+  sv('gc-cli-rep',    d.representante);
+  sv('gc-cli-cargo',  d.cargo);
+  sv('gc-cli-email',  d.email);
+  sv('gc-inicio',     d.data_inicio ? d.data_inicio.substring(0, 10) : '');
+  sv('gc-prazo',      d.prazo_meses);
+  sv('gc-plano',      d.plano);
+  sv('gc-modal',      d.modalidades);
+  sv('gc-seg',        d.segmentos);
+  sv('gc-abrang',     d.abrangencia);
+  sv('gc-honorario',  d.honorario_mensal);
+  sv('gc-venc',       d.dia_vencimento);
+  sv('gc-comissao',   d.comissao_exitop);
+  sv('gc-prazo-exit', d.prazo_exito_dias);
+  sv('gc-pgto',       d.forma_pagamento);
+  sv('gc-multa',      d.multa_rescisoria);
+  sv('gc-obs',        d.observacoes);
+  const svcsAtivos = Array.isArray(d.servicos) ? d.servicos : [];
+  GC_SERVICOS.forEach(([id, label]) => gcSB(id, svcsAtivos.includes(label)));
+}
+
+async function gcListaAtualizar() {
+  const token = localStorage.getItem('token');
+  const sel = document.getElementById('gc-lista');
+  if (!sel) return;
+  const anterior = sel.value;
+  sel.innerHTML = '<option value="">— Selecione para editar —</option>';
+  try {
+    const res = await fetch('/api/contratos-gerador', { headers: { Authorization: 'Bearer ' + token } });
+    const lista = await res.json();
+    (lista || []).forEach(c => {
+      const op = document.createElement('option');
+      op.value = c.id;
+      op.textContent = (c.nome_cliente || '(sem nome)') + (c.cnpj_cpf ? ' — ' + c.cnpj_cpf : '');
+      sel.appendChild(op);
+    });
+    if (anterior && [...sel.options].some(o => o.value == anterior)) sel.value = anterior;
+  } catch (e) { console.error('[gc] lista:', e); }
+}
+
+async function gcCarregarSelecionado() {
+  const id = document.getElementById('gc-lista')?.value;
+  if (!id) { gcNovo(); return; }
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`/api/contratos-gerador/${id}`, { headers: { Authorization: 'Bearer ' + token } });
+    const d = await res.json();
+    gcIdAtual = d.id;
+    gcAplicar(d);
+    gcAtualizar();
+    gcStatus('Carregado: ' + (d.nome_cliente || 'contrato'));
+  } catch (e) { mostrarToast('Erro ao carregar contrato', 'erro'); }
+}
+
+async function gcSalvar() {
+  if (!gcV('gc-cli-nome')) { mostrarToast('Informe o nome do cliente', 'aviso'); return; }
+  const token = localStorage.getItem('token');
+  const dados = gcDados();
+  const url    = gcIdAtual ? `/api/contratos-gerador/${gcIdAtual}` : '/api/contratos-gerador';
+  const method = gcIdAtual ? 'PUT' : 'POST';
+  const btn = document.getElementById('gc-btn-salvar');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(dados),
+    });
+    if (!res.ok) throw new Error('erro');
+    const salvo = await res.json();
+    gcIdAtual = salvo.id;
+    await gcListaAtualizar();
+    document.getElementById('gc-lista').value = gcIdAtual;
+    gcStatus('Salvo em ' + new Date().toLocaleTimeString('pt-BR'));
+    mostrarToast('Contrato salvo!', 'sucesso');
+  } catch (e) { mostrarToast('Erro ao salvar contrato', 'erro'); }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar'; }
+}
+
+async function gcDeletar() {
+  const id = document.getElementById('gc-lista')?.value;
+  if (!id) { mostrarToast('Selecione um contrato para excluir', 'aviso'); return; }
+  if (!confirm('Excluir este contrato permanentemente?')) return;
+  const token = localStorage.getItem('token');
+  try {
+    await fetch(`/api/contratos-gerador/${id}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+    if (gcIdAtual == id) gcIdAtual = null;
+    await gcListaAtualizar();
+    gcNovo();
+    mostrarToast('Contrato excluído', 'sucesso');
+  } catch (e) { mostrarToast('Erro ao excluir', 'erro'); }
+}
+
+function gcNovo() {
+  gcIdAtual = null;
+  ['gc-cli-nome','gc-cli-cnpj','gc-cli-tel','gc-cli-end','gc-cli-rep','gc-cli-cargo','gc-cli-email',
+   'gc-inicio','gc-prazo','gc-plano','gc-modal','gc-seg','gc-abrang',
+   'gc-honorario','gc-venc','gc-comissao','gc-prazo-exit','gc-pgto','gc-multa','gc-obs'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  GC_SERVICOS.forEach(([id]) => gcSB(id, ['gc-s1','gc-s2','gc-s3','gc-s4','gc-s5','gc-s8'].includes(id)));
+  const sel = document.getElementById('gc-lista');
+  if (sel) sel.value = '';
+  gcStatus('Novo contrato');
+  gcAtualizar();
 }
 // ===== FIM GERADOR DE CONTRATOS =====
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conlicit Hub — Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #182A39;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      color: #182A39;
+    }
+    .logo-text span { color: #4CC5D7; }
+    .logo-sub {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+      margin-top: 18px;
+    }
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 15px;
+      color: #111;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #4CC5D7; }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      margin-top: 26px;
+      background: #4CC5D7;
+      color: #182A39;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background .2s, opacity .2s;
+    }
+    .btn:hover { background: #38b3c4; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .erro {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    .spinner {
+      display: none;
+      border: 3px solid rgba(24,42,57,.2);
+      border-top-color: #182A39;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-text">Conlicit<span>Hub</span></div>
+      <div class="logo-sub">Gestão de Licitações Públicas</div>
+    </div>
+
+    <form id="form-login" autocomplete="on">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" name="email" placeholder="seu@email.com.br" required autocomplete="email">
+
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" name="senha" placeholder="••••••••" required autocomplete="current-password">
+
+      <button class="btn" type="submit" id="btn-entrar">
+        <span id="btn-label">Entrar</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <div class="erro" id="msg-erro">E-mail ou senha inválidos.</div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('form-login').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btn   = document.getElementById('btn-entrar');
+      const label = document.getElementById('btn-label');
+      const spin  = document.getElementById('spinner');
+      const erro  = document.getElementById('msg-erro');
+
+      erro.style.display = 'none';
+      btn.disabled = true;
+      label.style.display = 'none';
+      spin.style.display  = 'block';
+
+      try {
+        const res  = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          erro.textContent = data.erro || 'E-mail ou senha inválidos.';
+          erro.style.display = 'block';
+          return;
+        }
+
+        // Buscar dados do usuário
+        const meRes  = await fetch('/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + data.token },
+        });
+        const meData = await meRes.json();
+
+        localStorage.setItem('token',   data.token);
+        localStorage.setItem('usuario', JSON.stringify(meData));
+
+        window.location.href = '/';
+      } catch (err) {
+        erro.textContent = 'Erro de conexão. Tente novamente.';
+        erro.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        label.style.display = 'block';
+        spin.style.display  = 'none';
+      }
+    });
+
+    // Redirecionar se já estiver logado
+    if (localStorage.getItem('token')) {
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

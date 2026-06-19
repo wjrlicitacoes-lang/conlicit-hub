@@ -16,8 +16,14 @@ const upload = multer({
 
 // ── Prompt compartilhado ──────────────────────────────────────────────────────
 const INSTRUCAO_JSON = `Retorne APENAS um JSON válido, sem explicações, sem markdown, sem blocos de código:
-{"itens":[{"numero_item":1,"descricao":"descrição completa do item","unidade":"un","quantidade":100,"valor_estimado":25.90}]}
-Regras: campo ausente → null | não invente valores | inclua TODOS os itens | lotes → itens individuais`;
+{"itens":[{"numero_item":1,"descricao":"descrição completa do item","unidade":"UN","quantidade":100,"valor_estimado":25.90}]}
+
+Regras gerais: campo ausente → null | não invente valores | inclua TODOS os itens | lotes → itens individuais
+
+Regras OBRIGATÓRIAS para os campos:
+"unidade": APENAS embalagem ou medida resumida e abreviada. Ex corretos: "UN","CX","KG","M²","M³","L","SACO 20KG","GALÃO 18L","ROLO 50M","PCT". Ex ERRADOS: "SACO 20,00 QUILOGRAMA","METRO CUBICO","UNIDADE". Abreviações: QUILOGRAMA→KG, LITRO→L, METRO→M, METRO CUBICO→M³, METRO QUADRADO→M², UNIDADE→UN, CAIXA→CX, PACOTE→PCT. NUNCA inclua a quantidade do pedido na unidade.
+"quantidade": número inteiro ou decimal de quantas unidades o edital pede. Nunca inclua a unidade aqui.
+"valor_estimado": valor UNITÁRIO por unidade conforme o edital. Se o edital mostrar apenas valor total, divida pela quantidade. NUNCA o valor total.`;
 
 function promptTexto(conteudo, paginas) {
   return `Você é especialista em licitações públicas brasileiras.
@@ -222,39 +228,112 @@ async function atualizarItem(req, res) {
   }
 }
 
+// ── Simplificar termo de busca com IA ────────────────────────────────────────
+async function simplificarTermoBusca(descricao) {
+  try {
+    const resp = await axios.post(
+      ANTHROPIC_URL,
+      {
+        model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5',
+        max_tokens: 60,
+        messages: [{
+          role: 'user',
+          content: `Simplifique esta descrição técnica de licitação para um termo de busca curto (máximo 5 palavras) que funcione bem no Mercado Livre. Retorne APENAS o termo, sem explicações.\n\nDescrição: ${descricao}`,
+        }],
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      },
+    );
+    return resp.data?.content?.[0]?.text?.trim() || descricao.split(' ').slice(0, 4).join(' ');
+  } catch (e) {
+    return descricao.split(' ').slice(0, 4).join(' ');
+  }
+}
+
 // ── GET /api/planilha/buscar-preco ───────────────────────────────────────────
 async function buscarPreco(req, res) {
   try {
     const { q, item_id } = req.query;
     if (!q) return res.status(400).json({ erro: 'Parâmetro q obrigatório.' });
 
-    const resp = await axios.get(ML_SEARCH_URL, {
-      params: { q, limit: 5, sort: 'price_asc' },
-      timeout: 10000,
-    });
+    let results = [];
+    let fonte = '';
 
-    const results = (resp.data.results || []).map(r => ({
-      id: r.id,
-      titulo: r.title,
-      preco: r.price,
-      link: r.permalink,
-      thumbnail: r.thumbnail,
-      vendedor: r.seller?.nickname || '',
-      quantidade_disponivel: r.available_quantity,
-    }));
+    const termoSimplificado = await simplificarTermoBusca(q);
+    console.log(`[planilha/buscar-preco] "${q}" → "${termoSimplificado}"`);
+
+    // Tentativa 1: Mercado Livre com termo simplificado
+    try {
+      const respML = await axios.get(ML_SEARCH_URL, {
+        params: { q: termoSimplificado, limit: 5, sort: 'price_asc' },
+        timeout: 8000,
+      });
+      const itensML = (respML.data.results || []);
+      if (itensML.length > 0) {
+        results = itensML.map(r => ({
+          id: r.id,
+          titulo: r.title,
+          preco: r.price,
+          link: r.permalink,
+          thumbnail: r.thumbnail,
+          vendedor: r.seller?.nickname || 'Mercado Livre',
+          fonte: 'Mercado Livre',
+          quantidade_disponivel: r.available_quantity,
+        }));
+        fonte = 'Mercado Livre';
+      }
+    } catch (e) {
+      console.warn('[planilha/buscar-preco] ML falhou:', e.message);
+    }
+
+    // Tentativa 2: Google Shopping via SerpApi (se ML vazio e chave configurada)
+    if (results.length === 0 && process.env.SERPAPI_KEY) {
+      for (const termo of [termoSimplificado, termoSimplificado.split(' ').slice(0, 2).join(' ')]) {
+        if (results.length > 0) break;
+        try {
+          const { getJson } = require('serpapi');
+          const dados = await new Promise((resolve, reject) => {
+            getJson({
+              engine: 'google_shopping', q: termo,
+              gl: 'br', hl: 'pt', location: 'Brazil',
+              api_key: process.env.SERPAPI_KEY,
+            }, (d) => d.error ? reject(new Error(d.error)) : resolve(d));
+          });
+          const itens = (dados.shopping_results || []).slice(0, 5)
+            .map(r => ({
+              titulo: r.title,
+              preco: r.extracted_price || null,
+              link: r.link || r.product_link,
+              thumbnail: r.thumbnail,
+              vendedor: r.source || 'Google Shopping',
+              fonte: r.source || 'Google Shopping',
+            }))
+            .filter(r => r.preco);
+          if (itens.length > 0) { results = itens; fonte = 'Google Shopping'; }
+        } catch (e) {
+          console.warn('[planilha/buscar-preco] SerpApi falhou:', e.message);
+        }
+      }
+    }
 
     if (item_id && results.length > 0) {
       const melhor = results[0];
       await db.query(
         `UPDATE proposta_itens SET ml_preco_encontrado=$1, ml_link=$2, ml_produto_id=$3, atualizado_em=NOW() WHERE id=$4`,
-        [melhor.preco, melhor.link, String(melhor.id), item_id],
+        [melhor.preco, melhor.link, melhor.id ? String(melhor.id) : null, item_id],
       );
     }
 
-    res.json(results);
+    res.json({ results, fonte, termo_usado: termoSimplificado });
   } catch (err) {
     console.error('[planilha/buscar-preco]', err.message);
-    res.status(500).json({ erro: 'Erro ao buscar no Mercado Livre.', detalhe: err.message });
+    res.status(500).json({ erro: 'Erro ao buscar preços.', detalhe: err.message });
   }
 }
 

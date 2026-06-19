@@ -35,6 +35,11 @@ const conteudosMarketingRoutes = require('./routes/conteudosMarketing');
 const boletimManualRoutes      = require('./routes/boletimManual');
 const googleProspectRoutes     = require('./routes/googleProspect');
 const planilhaRoutes           = require('./routes/planilha');
+const contratosGeradorRoutes   = require('./routes/contratos-gerador');
+const webhookRoutes            = require('./routes/webhook');
+const minhaAreaRoutes          = require('./routes/minhaArea');
+const notificacoesRoutes       = require('./routes/notificacoes');
+const tarefasRoutes            = require('./routes/tarefas');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -74,6 +79,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
+app.use('/webhook',       webhookRoutes);   // Z-API sem JWT
 app.use('/auth',          authRoutes);
 
 // Página pública de onboarding (serve o HTML sem auth)
@@ -110,6 +116,30 @@ app.use('/api/marketing/campanhas', autenticar, marketingRoutes);
 app.use('/api/marketing/conteudos', autenticar, conteudosMarketingRoutes);
 app.use('/api/prospects',           autenticar, googleProspectRoutes);
 app.use('/api/planilha',            autenticar, planilhaRoutes);
+app.use('/api/contratos-gerador',   autenticar, contratosGeradorRoutes);
+app.use('/minha-area',              autenticar, minhaAreaRoutes);
+app.get('/meus-pregoes',            autenticar, async (req, res) => {
+  try {
+    const { getMeusPregoes } = require('./services/meusPregoes');
+    const dados = await getMeusPregoes(req.usuario.id);
+    return res.json(dados);
+  } catch (e) { return res.status(500).json({ erro: e.message }); }
+});
+app.use('/notificacoes',            autenticar, notificacoesRoutes);
+app.use('/tarefas',                 autenticar, tarefasRoutes);
+app.post('/pos-confirmacao/teste',  autenticar, async (req, res) => {
+  if (!['admin','socio_fundador'].includes(req.usuario.role))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  const { oportunidade_id } = req.query;
+  if (!oportunidade_id) return res.status(400).json({ erro: 'oportunidade_id obrigatório' });
+  try {
+    const { processarConfirmacaoCliente } = require('./services/posConfirmacao');
+    await processarConfirmacaoCliente(oportunidade_id);
+    return res.json({ ok: true, mensagem: 'Pós-confirmação executada' });
+  } catch (e) {
+    return res.status(500).json({ erro: e.message });
+  }
+});
 
 // Rota pública — chamada pelo HTML do boletim externo
 app.options('/api/boletim/interesse', (req, res) => {

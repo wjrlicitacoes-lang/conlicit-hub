@@ -6,8 +6,11 @@ const { sincronizarPNCP } = require('../services/pncpSyncService');
 const { processarAlertas } = require('../services/alertasService');
 const zapiSvc = require('../services/zapiService');
 const db      = require('../database/db');
+const { processarOportunidadesParaCliente } = require('../services/oportunidadesHub');
 
-const ALERTA_EMAIL = 'wjrlicitacoes@gmail.com';
+const ALERTA_WPP   = process.env.ADMIN_WHATSAPP || '5531982388210';
+const ALERTA_EMAIL = process.env.ADMIN_EMAIL    || 'wjrlicitacoes@gmail.com';
+
 const LIMITE_SALDO_USD = 3;
 
 async function verificarSaldoAnthropic() {
@@ -297,11 +300,101 @@ function iniciarAgendador() {
 
   console.log('[Cron] Follow-up de prospects agendado: 0 9 * * * (America/Sao_Paulo)');
 
+  // ── JOB Hub: processar oportunidades por cliente — 7h30 (após PNCP sync)
+  cron.schedule('30 7 * * *', async () => {
+    console.log('[Cron Hub] Iniciando processamento de oportunidades por cliente...');
+    try {
+      const { rows: clientes } = await db.query(
+        `SELECT * FROM clientes WHERE ativo = true AND municipio_base IS NOT NULL`,
+      );
+      for (const cliente of clientes) {
+        try {
+          const stats = await processarOportunidadesParaCliente(cliente);
+          if (stats.enviados > 0 || stats.alertas_urgentes > 0) {
+            console.log(`[Cron Hub] ${cliente.nome}: ${stats.enviados} enviadas, ${stats.alertas_urgentes} alertas urgentes`);
+          }
+        } catch (e) {
+          console.error(`[Cron Hub] Erro cliente ${cliente.nome}:`, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[Cron Hub] Erro no job de oportunidades:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
+  // ── JOB Hub: lembretes de 3 dias — 8h30
+  cron.schedule('30 8 * * *', async () => {
+    console.log('[Cron Hub] Verificando lembretes de 3 dias...');
+    try {
+      const { rows: eventos } = await db.query(
+        `SELECT cc.*, c.nome AS cliente_nome FROM calendario_conlicit cc
+         LEFT JOIN clientes c ON c.id = cc.cliente_id
+         WHERE cc.data_encerramento = CURRENT_DATE + 3
+           AND cc.lembrete_3dias_enviado = false`,
+      );
+      for (const ev of eventos) {
+        const msg =
+          `⚠️ *Lembrete: Pregão encerrando em 3 dias!*\n\n` +
+          `📋 ${ev.titulo}\n` +
+          `📅 Encerra: ${new Date(ev.data_encerramento).toLocaleDateString('pt-BR')}\n` +
+          `💰 R$ ${ev.valor_estimado ? Number(ev.valor_estimado).toLocaleString('pt-BR') : 'Não informado'}\n` +
+          `🖥️ ${ev.plataforma || 'Não informada'}\n\n` +
+          `Verifique se planilha e documentação estão prontos.\n` +
+          `Acesse: https://web-production-18d79.up.railway.app`;
+
+        try {
+          await zapiSvc.enviarTexto(ALERTA_WPP, msg);
+        } catch (e) {
+          console.error('[Cron Hub] Erro Z-API lembrete:', e.message);
+        }
+
+        try {
+          const resendKey = process.env.RESEND_API_KEY;
+          if (resendKey) {
+            const resend = new Resend(resendKey);
+            await resend.emails.send({
+              from: 'Conlicit Hub <noreply@hub.conlicit.com>',
+              to: ALERTA_EMAIL,
+              subject: `⚠️ Lembrete 3 dias — ${ev.titulo}`,
+              html: `<p><strong>${ev.titulo}</strong></p><p>Encerramento: ${new Date(ev.data_encerramento).toLocaleDateString('pt-BR')}</p><p>Plataforma: ${ev.plataforma || 'Não informada'}</p><p>Verifique planilha e documentação.</p>`,
+            });
+          }
+        } catch (e) {
+          console.error('[Cron Hub] Erro Resend lembrete:', e.message);
+        }
+
+        await db.query(
+          'UPDATE calendario_conlicit SET lembrete_3dias_enviado=true WHERE id=$1',
+          [ev.id],
+        );
+      }
+    } catch (e) {
+      console.error('[Cron Hub] Erro no job de lembretes:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
+  // ── JOB Hub: expirar oportunidades vencidas — meia-noite
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      const { rowCount } = await db.query(
+        `UPDATE oportunidades SET status='expirado'
+         WHERE data_encerramento < CURRENT_DATE
+           AND status IN ('aguardando_resposta','alerta_urgente_enviado')`,
+      );
+      if (rowCount > 0) console.log(`[Cron Hub] ${rowCount} oportunidade(s) expirada(s)`);
+    } catch (e) {
+      console.error('[Cron Hub] Erro ao expirar oportunidades:', e.message);
+    }
+  }, { timezone: 'America/Sao_Paulo' });
+
   console.log(`[Cron] Sync PNCP agendado: "${cronSync}" (America/Sao_Paulo)`);
   console.log(`[Cron] Boletim agendado: "${cronBoletim}" (America/Sao_Paulo)`);
   console.log('[Cron] Alertas de pregão agendados: */30 * * * * (America/Sao_Paulo)');
   console.log('[Cron] Verificação saldo Anthropic agendada: 0 */6 * * * (America/Sao_Paulo)');
   console.log('[Cron] Cobranças de oportunidades agendadas: 0 * * * * (America/Sao_Paulo)');
+  console.log('[Cron Hub] Oportunidades por cliente: 30 7 * * * (America/Sao_Paulo)');
+  console.log('[Cron Hub] Lembretes 3 dias: 30 8 * * * (America/Sao_Paulo)');
+  console.log('[Cron Hub] Expirar oportunidades: 0 0 * * * (America/Sao_Paulo)');
 }
 
 module.exports = { iniciarAgendador };
