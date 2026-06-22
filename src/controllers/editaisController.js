@@ -280,7 +280,13 @@ function formatarEdital(item) {
     numeroEdital:             item.numeroControlePNCP ?? item.numero_controle_pncp ?? null,
     orgao:                    item.orgaoEntidade?.razaoSocial ?? item.orgao_nome ?? null,
     objeto:                   item.objetoCompra ?? item.objeto ?? null,
-    valorEstimado:            formatarMoeda(item.valorTotalEstimado ?? item.valor_estimado),
+    valorEstimado:            formatarMoeda(
+      item.valorTotalEstimadoDaCompra
+      ?? item.valorTotalEstimado
+      ?? item.valor_total_estimado_da_compra
+      ?? item.valor_estimado
+      ?? null
+    ),
     dataPublicacao:           formatarData(item.dataPublicacaoPncp ?? item.data_publicacao),
     dataEncerramentoProposta: formatarData(item.dataEncerramentoProposta ?? item.data_encerramento),
     modalidade:               item.modalidadeNome ?? item.modalidade_nome ?? null,
@@ -529,7 +535,7 @@ async function listarEditais(req, res) {
         }
         return lista.filter(item => {
           const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
-          if (!encRaw) return true;
+          if (!encRaw) return false; // sem data = não exibir (evita encerrados sem data)
           try {
             const dt = new Date(String(encRaw).substring(0, 19));
             if (dt < agora) return false;
@@ -615,6 +621,7 @@ async function listarEditais(req, res) {
             if (vistos.has(item.numeroControlePNCP)) return false;
             vistos.add(item.numeroControlePNCP); return true;
           });
+          dados = filtrarAbertos(dados);
           if (dados.length === 0) {
             return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
           }

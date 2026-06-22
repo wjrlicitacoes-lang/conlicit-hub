@@ -14065,6 +14065,18 @@ async function adicionarOportunidadeDaBusca(idx) {
       }
     } catch {}
   }
+
+  // Auto-selecionar cliente se houver apenas um compatível ou apenas um total
+  const sel = document.getElementById('op-cliente-id');
+  const opts = Array.from(sel.options).filter(o => o.value);
+  if (opts.length === 1) {
+    sel.value = opts[0].value;
+  } else if (opts.length > 1) {
+    const optgroup = sel.querySelector('optgroup');
+    if (optgroup && optgroup.options && optgroup.options.length > 0) {
+      sel.value = optgroup.options[0].value;
+    }
+  }
 }
 
 let _editalExpandidoIdx = null;
@@ -14207,7 +14219,8 @@ async function excluirOportunidade(id) {
 async function salvarOportunidade() {
   const clienteId = document.getElementById('op-cliente-id').value;
   const objeto    = document.getElementById('op-objeto').value.trim();
-  if (!clienteId||!objeto) { toast('Cliente e objeto são obrigatórios','error'); return; }
+  if (!clienteId) { toast('Selecione um cliente antes de continuar','error'); return; }
+  if (!objeto)    { toast('Informe o objeto da licitação','error'); return; }
   const cidade = document.getElementById('op-cidade').value.trim();
   const [municipio, uf] = cidade.includes('/')? cidade.split('/') : [cidade,''];
   try {
