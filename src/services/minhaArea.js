@@ -8,7 +8,10 @@ async function getMinhaArea(usuarioId) {
   if (!usuario) throw new Error('Usuário não encontrado');
   const { role } = usuario;
 
-  if (role === 'admin' || role === 'socio_fundador') {
+  if (role === 'socio_fundador') {
+    return getDiretorGeral();
+  }
+  if (role === 'admin') {
     return getDiretora(usuarioId, role);
   }
   if (role === 'assistente' || role === 'assistente_junior') {
@@ -23,26 +26,28 @@ async function getMinhaArea(usuarioId) {
   return { mensagem: 'Perfil não configurado para Minha Área' };
 }
 
-async function getDiretora(usuarioId) {
+async function getDiretora(usuarioId, role) {
   const [notifR, tarefasR, alertasR, resumoR] = await Promise.all([
     db.query(
       `SELECT * FROM notificacoes
-       WHERE (usuario_id = $1 OR role_destino = 'admin') AND lida = false
+       WHERE (usuario_id = $1 OR role_destino = $2) AND lida = false
        ORDER BY criado_em DESC LIMIT 10`,
-      [usuarioId],
+      [usuarioId, role],
     ),
     db.query(
       `SELECT t.*, c.nome AS cliente_nome FROM tarefas_internas t
        LEFT JOIN clientes c ON c.id = t.cliente_id
-       WHERE t.atribuido_para_role = 'admin' AND t.status = 'pendente'
+       WHERE t.atribuido_para_role = $1 AND t.status = 'pendente'
        ORDER BY t.criado_em DESC`,
+      [role],
     ),
     db.query(
       `SELECT cc.*, c.nome AS cliente_nome FROM calendario_conlicit cc
        LEFT JOIN clientes c ON c.id = cc.cliente_id
        WHERE cc.data_encerramento BETWEEN now() AND now() + INTERVAL '5 days'
-         AND 'admin' = ANY(cc.visivel_para_roles)
+         AND $1 = ANY(cc.visivel_para_roles)
        ORDER BY cc.data_encerramento ASC`,
+      [role],
     ),
     db.query(
       `SELECT

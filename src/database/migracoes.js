@@ -1072,6 +1072,115 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_proposta_itens_planilha ON proposta_itens(planilha_id)`);
 
+  // ── Módulo Minha Área ─────────────────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS oportunidades (
+      id                UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+      cliente_id        INTEGER     REFERENCES clientes(id) ON DELETE CASCADE,
+      numero_edital     TEXT        NOT NULL,
+      orgao             TEXT,
+      objeto            TEXT,
+      valor_estimado    NUMERIC(15,2),
+      data_encerramento DATE,
+      plataforma        TEXT,
+      itens_match       TEXT[],
+      url_edital        TEXT,
+      status            TEXT        DEFAULT 'aguardando_resposta'
+                          CHECK (status IN (
+                            'aguardando_resposta','interesse','sem_interesse',
+                            'expirado','alerta_urgente_enviado'
+                          )),
+      data_envio        TIMESTAMPTZ DEFAULT now(),
+      data_resposta     TIMESTAMPTZ,
+      criado_em         TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(cliente_id, numero_edital)
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_cliente ON oportunidades(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_status  ON oportunidades(status)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS tarefas_internas (
+      id                        UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
+      oportunidade_id           UUID    REFERENCES oportunidades(id) ON DELETE CASCADE,
+      cliente_id                INTEGER REFERENCES clientes(id),
+      tipo                      TEXT    CHECK (tipo IN (
+        'gerar_planilha','analise_edital','adicionar_calendario',
+        'criar_post','agendar_publicacao','organizar_documentos'
+      )),
+      atribuido_para_role       TEXT,
+      atribuido_para_usuario_id INTEGER REFERENCES usuarios(id),
+      status                    TEXT    DEFAULT 'pendente' CHECK (status IN (
+        'pendente','em_andamento','concluido'
+      )),
+      url_resultado             TEXT,
+      criado_em                 TIMESTAMPTZ DEFAULT now(),
+      concluido_em              TIMESTAMPTZ
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_role    ON tarefas_internas(atribuido_para_role, status)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_usuario ON tarefas_internas(atribuido_para_usuario_id, status)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS notificacoes (
+      id              UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
+      usuario_id      INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+      role_destino    TEXT,
+      oportunidade_id UUID    REFERENCES oportunidades(id) ON DELETE SET NULL,
+      tipo            TEXT    CHECK (tipo IN (
+        'interesse_confirmado','tarefa_pendente','alerta_prazo',
+        'follow_up_pendente','post_pendente','alerta_urgente'
+      )),
+      titulo          TEXT NOT NULL,
+      mensagem        TEXT NOT NULL,
+      lida            BOOLEAN DEFAULT false,
+      criado_em       TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_usuario ON notificacoes(usuario_id, lida)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_role    ON notificacoes(role_destino, lida)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS calendario_conlicit (
+      id                        UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
+      tipo                      TEXT    DEFAULT 'pregao' CHECK (tipo IN (
+        'pregao','editorial','reuniao','prazo_interno'
+      )),
+      oportunidade_id           UUID    REFERENCES oportunidades(id) ON DELETE SET NULL,
+      cliente_id                INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      titulo                    TEXT    NOT NULL,
+      descricao                 TEXT,
+      data_evento               DATE    NOT NULL,
+      data_encerramento         DATE,
+      plataforma                TEXT,
+      orgao                     TEXT,
+      valor_estimado            NUMERIC(15,2),
+      visivel_para_roles        TEXT[]  DEFAULT ARRAY['admin','socio_fundador'],
+      lembrete_3dias_enviado    BOOLEAN DEFAULT false,
+      criado_em                 TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_cal_conlicit_evento ON calendario_conlicit(data_evento)`);
+  await db.query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS visivel_para_roles     TEXT[] DEFAULT ARRAY['admin','socio_fundador']`);
+  await db.query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS lembrete_3dias_enviado BOOLEAN DEFAULT false`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS posts_editoriais (
+      id               UUID  DEFAULT gen_random_uuid() PRIMARY KEY,
+      titulo           TEXT  NOT NULL,
+      legenda          TEXT,
+      plataforma       TEXT  CHECK (plataforma IN ('instagram','linkedin','facebook','stories')),
+      status           TEXT  DEFAULT 'rascunho' CHECK (status IN (
+        'rascunho','agendado','publicado','cancelado'
+      )),
+      data_publicacao  TIMESTAMPTZ,
+      hashtags         TEXT[],
+      formato          TEXT,
+      brief_design     TEXT,
+      criado_em        TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
   console.log('Migrações executadas com sucesso');
 }
 
