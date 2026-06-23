@@ -535,7 +535,7 @@ async function listarEditais(req, res) {
         }
         return lista.filter(item => {
           const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
-          if (!encRaw) return false; // sem data = não exibir (evita encerrados sem data)
+          if (!encRaw) return true; // /api/search não retorna data — manter o item (PNCP já filtra por status)
           try {
             const dt = new Date(String(encRaw).substring(0, 19));
             if (dt < agora) return false;
@@ -550,7 +550,9 @@ async function listarEditais(req, res) {
       // Cascata de 3 tentativas no /api/search
       // Qualquer erro de rede (ECONNRESET, timeout, 4xx, 5xx) avança para a próxima
       const tentativas = [
-        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: true },
+        // Tentativa 1: com status=recebendo_proposta → PNCP já filtra no servidor, não filtrar localmente
+        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: false },
+        // Tentativas 2 e 3: sem status → filtrar localmente, mas aceitar itens sem data (campo ausente no /api/search)
         { label: 'sem_status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, false)}`, filtrar: true },
         { label: 'sem_status+primeira_palavra', url: primeiraPalavra !== qSanitizado ? `${PNCP_SEARCH_URL}?${makeSearchParams(primeiraPalavra, false)}` : null, filtrar: true },
       ];
