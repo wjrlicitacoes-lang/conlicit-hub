@@ -1181,6 +1181,12 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
+  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS titulo     TEXT`);
+  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS descricao  TEXT`);
+  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prazo      DATE`);
+  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prioridade TEXT DEFAULT 'normal'`);
+  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS criado_por INTEGER REFERENCES usuarios(id)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

@@ -2085,6 +2085,10 @@
           <span class="nav-icon"><i class="ti ti-target"></i></span>
           <span class="nav-label">Oportunidades</span>
         </button>
+        <button class="nav-item" data-nav="tarefas" onclick="navTo('tarefas')" data-staff-only id="nav-tarefas">
+          <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+          <span class="nav-label">Tarefas</span>
+        </button>
 
         <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>Gestão</div>
         <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
@@ -3562,6 +3566,95 @@
         </div>
       </section>
 
+      <!-- ════════════════════════════════ TAREFAS ════════════════════════════════ -->
+      <section id="section-tarefas" class="section" style="display:none">
+        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+          <div>
+            <h1 class="section-title">Tarefas</h1>
+            <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Gestão e delegação de tarefas da equipe</p>
+          </div>
+          <button class="btn btn-primary" onclick="abrirNovaTarefa()">+ Nova tarefa</button>
+        </div>
+
+        <!-- KPIs por pessoa -->
+        <div id="tarefas-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px"></div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--bg-card);border-radius:12px;border:1px solid var(--border)">
+          <select id="tf-filtro-status" class="form-control" style="width:160px" onchange="carregarTarefas()">
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="concluido">Concluída</option>
+          </select>
+          <select id="tf-filtro-usuario" class="form-control" style="width:180px" onchange="carregarTarefas()">
+            <option value="">Todos os responsáveis</option>
+          </select>
+          <select id="tf-filtro-prioridade" class="form-control" style="width:140px" onchange="carregarTarefas()">
+            <option value="">Todas as prioridades</option>
+            <option value="urgente">🔴 Urgente</option>
+            <option value="alta">🟠 Alta</option>
+            <option value="normal">🟡 Normal</option>
+            <option value="baixa">🟢 Baixa</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="limparFiltrosTarefas()">Limpar filtros</button>
+        </div>
+
+        <!-- Lista de tarefas -->
+        <div id="tarefas-lista"><div class="state-box"><p style="color:var(--text-muted)">Carregando tarefas...</p></div></div>
+      </section>
+
+      <!-- MODAL: Nova Tarefa -->
+      <div class="modal-overlay" id="modal-nova-tarefa" onclick="this.classList.remove('visible')">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width:540px">
+          <div class="modal-header">
+            <h3>Nova tarefa</h3>
+            <button class="modal-close" onclick="document.getElementById('modal-nova-tarefa').classList.remove('visible')">✕</button>
+          </div>
+          <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+            <div class="form-group" style="margin:0">
+              <label>Título *</label>
+              <input type="text" id="nt-titulo" class="form-control" placeholder="Ex: Preparar proposta do cliente X">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Descrição</label>
+              <textarea id="nt-descricao" class="form-control" rows="2" placeholder="Detalhes opcionais..."></textarea>
+            </div>
+            <div class="row2">
+              <div class="form-group" style="margin:0">
+                <label>Responsável *</label>
+                <select id="nt-usuario" class="form-control"></select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label>Prioridade</label>
+                <select id="nt-prioridade" class="form-control">
+                  <option value="normal">🟡 Normal</option>
+                  <option value="alta">🟠 Alta</option>
+                  <option value="urgente">🔴 Urgente</option>
+                  <option value="baixa">🟢 Baixa</option>
+                </select>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="form-group" style="margin:0">
+                <label>Prazo</label>
+                <input type="date" id="nt-prazo" class="form-control">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label>Cliente (opcional)</label>
+                <select id="nt-cliente" class="form-control">
+                  <option value="">Nenhum</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
+              <button class="btn btn-ghost" onclick="document.getElementById('modal-nova-tarefa').classList.remove('visible')">Cancelar</button>
+              <button class="btn btn-primary" onclick="salvarNovaTarefa()">Criar tarefa</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══════════════════ PÓS-VITÓRIA ═══════════════════ -->
       <section id="section-pos-vitoria" class="section">
         <div class="section-header">
@@ -4891,6 +4984,19 @@
     else if (section === 'financeiro')      carregarFinanceiro();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
+    else if (section === 'tarefas') {
+      carregarTarefas();
+      fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } })
+        .then(r => r.json())
+        .then(resp => {
+          const usuarios = Array.isArray(resp) ? resp : (resp.dados || resp.rows || []);
+          const sel = document.getElementById('tf-filtro-usuario');
+          if (sel) {
+            sel.innerHTML = '<option value="">Todos os responsáveis</option>'
+              + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+          }
+        }).catch(() => {});
+    }
     else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'planilha')        propCarregarLista();
@@ -17722,6 +17828,208 @@ function gcNovo() {
   gcAtualizar();
 }
 // ===== FIM GERADOR DE CONTRATOS =====
+
+// ════════════════════════════════════════════════════════════
+// TAREFAS
+// ════════════════════════════════════════════════════════════
+
+const PRIORIDADE_LABEL = { urgente:'🔴 Urgente', alta:'🟠 Alta', normal:'🟡 Normal', baixa:'🟢 Baixa' };
+const STATUS_LABEL     = { pendente:'Pendente', em_andamento:'Em andamento', concluido:'Concluída' };
+const STATUS_COLOR     = { pendente:'#f59e0b', em_andamento:'#4CC5D7', concluido:'#22c55e' };
+
+async function carregarTarefas() {
+  const status     = document.getElementById('tf-filtro-status')?.value     || '';
+  const usuarioId  = document.getElementById('tf-filtro-usuario')?.value    || '';
+  const prioridade = document.getElementById('tf-filtro-prioridade')?.value || '';
+
+  const params = new URLSearchParams();
+  if (status)     params.append('status', status);
+  if (usuarioId)  params.append('usuario_id', usuarioId);
+  if (prioridade) params.append('prioridade', prioridade);
+
+  const lista = document.getElementById('tarefas-lista');
+  lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Carregando...</p></div>';
+
+  try {
+    const [rTarefas, rStats] = await Promise.all([
+      fetch(`${API}/tarefas/todas?${params}`, { headers:{ Authorization:`Bearer ${token}` } }),
+      fetch(`${API}/tarefas/stats`,            { headers:{ Authorization:`Bearer ${token}` } }),
+    ]);
+
+    const { dados: tarefas } = await rTarefas.json();
+    const statsJson = await rStats.json();
+    const stats = statsJson.dados || [];
+
+    renderTarefasStats(stats);
+
+    if (!tarefas?.length) {
+      lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Nenhuma tarefa encontrada.</p></div>';
+      return;
+    }
+
+    const grupos = { pendente:[], em_andamento:[], concluido:[] };
+    tarefas.forEach(t => { if (grupos[t.status]) grupos[t.status].push(t); });
+
+    lista.innerHTML = Object.entries(grupos).map(([st, itens]) => {
+      if (!itens.length && status && status !== st) return '';
+      return `
+        <div style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${STATUS_COLOR[st]};display:inline-block"></span>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${STATUS_LABEL[st]}</span>
+            <span style="font-size:11px;color:var(--text-muted);background:var(--bg-hover);padding:2px 8px;border-radius:99px">${itens.length}</span>
+          </div>
+          ${itens.length === 0
+            ? `<p style="color:var(--text-muted);font-size:13px;padding:8px 0">Nenhuma tarefa neste status.</p>`
+            : itens.map(t => renderTarefaCard(t)).join('')
+          }
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    lista.innerHTML = `<div class="state-box"><p style="color:#f87171">Erro ao carregar tarefas: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderTarefasStats(stats) {
+  const el = document.getElementById('tarefas-stats');
+  if (!el || !stats.length) { if (el) el.innerHTML = ''; return; }
+  el.innerHTML = stats.map(s => `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;min-width:160px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">${esc(s.responsavel)}</div>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--text-muted)">
+        <span title="Pendentes">⏳ ${s.pendentes}</span>
+        <span title="Em andamento">▶ ${s.em_andamento}</span>
+        <span title="Concluídas">✅ ${s.concluidas}</span>
+        ${Number(s.urgentes) > 0 ? `<span style="color:#f87171" title="Urgentes">🔴 ${s.urgentes}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderTarefaCard(t) {
+  const prazoStr = t.prazo
+    ? (() => {
+        const d    = new Date(t.prazo + 'T12:00:00');
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        const diff = Math.ceil((d - hoje) / 86400000);
+        const cor  = diff < 0 ? '#f87171' : diff <= 2 ? '#fb923c' : 'var(--text-muted)';
+        const txt  = diff < 0 ? `Atrasada ${Math.abs(diff)}d` : diff === 0 ? 'Hoje' : diff === 1 ? 'Amanhã' : `${diff}d`;
+        return `<span style="color:${cor};font-size:11px">📅 ${txt}</span>`;
+      })()
+    : '';
+
+  return `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${esc(t.titulo || t.tipo || 'Tarefa')}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,0.06);color:var(--text-muted)">${PRIORIDADE_LABEL[t.prioridade] || t.prioridade || '—'}</span>
+        </div>
+        ${t.descricao ? `<p style="font-size:12px;color:var(--text-muted);margin:0 0 6px">${esc(t.descricao)}</p>` : ''}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-muted)">
+          ${t.responsavel_nome ? `<span>👤 ${esc(t.responsavel_nome)}</span>` : ''}
+          ${t.cliente_nome     ? `<span>🏢 ${esc(t.cliente_nome)}</span>`     : ''}
+          ${prazoStr}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:120px">
+        <select onchange="mudarStatusTarefa('${t.id}', this.value)" style="font-size:11px;padding:4px 6px;border-radius:6px;background:var(--bg-hover);border:1px solid var(--border);color:var(--text);cursor:pointer">
+          ${['pendente','em_andamento','concluido'].map(s =>
+            `<option value="${s}" ${t.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`
+          ).join('')}
+        </select>
+        <button onclick="excluirTarefa('${t.id}')" style="font-size:11px;color:rgba(255,255,255,0.3);background:none;border:none;cursor:pointer;padding:0">🗑 excluir</button>
+      </div>
+    </div>`;
+}
+
+async function mudarStatusTarefa(id, status) {
+  try {
+    const r = await fetch(`${API}/tarefas/${id}/status`, {
+      method:'PATCH',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast(`Status atualizado: ${STATUS_LABEL[status]}`, 'success');
+    carregarTarefas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function excluirTarefa(id) {
+  if (!confirm('Excluir esta tarefa?')) return;
+  try {
+    const r = await fetch(`${API}/tarefas/${id}`, {
+      method:'DELETE', headers:{ Authorization:`Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Tarefa excluída', 'success');
+    carregarTarefas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function abrirNovaTarefa() {
+  const selUser = document.getElementById('nt-usuario');
+  selUser.innerHTML = '<option value="">Carregando...</option>';
+  try {
+    const r = await fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } });
+    const lista = await r.json();
+    const usuarios = Array.isArray(lista) ? lista : (lista.dados || lista.rows || []);
+    selUser.innerHTML = '<option value="">Selecione o responsável...</option>'
+      + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)} · ${esc(u.role || '')}</option>`).join('');
+  } catch { selUser.innerHTML = '<option value="">Erro ao carregar usuários</option>'; }
+
+  const selCliente = document.getElementById('nt-cliente');
+  try {
+    const r = await fetch(`${API}/clientes`, { headers:{ Authorization:`Bearer ${token}` } });
+    const resp = await r.json();
+    const clientes = Array.isArray(resp) ? resp : (resp.dados || []);
+    selCliente.innerHTML = '<option value="">Nenhum</option>'
+      + clientes.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  } catch {}
+
+  ['nt-titulo','nt-descricao','nt-prazo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('nt-prioridade').value = 'normal';
+
+  document.getElementById('modal-nova-tarefa').classList.add('visible');
+}
+
+async function salvarNovaTarefa() {
+  const titulo    = document.getElementById('nt-titulo').value.trim();
+  const usuarioId = document.getElementById('nt-usuario').value;
+  if (!titulo)    { toast('Título é obrigatório', 'error'); return; }
+  if (!usuarioId) { toast('Selecione o responsável', 'error'); return; }
+
+  try {
+    const r = await fetch(`${API}/tarefas`, {
+      method:'POST',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        titulo,
+        descricao:                document.getElementById('nt-descricao').value.trim() || null,
+        prioridade:               document.getElementById('nt-prioridade').value,
+        prazo:                    document.getElementById('nt-prazo').value     || null,
+        cliente_id:               document.getElementById('nt-cliente').value   || null,
+        atribuido_para_usuario_id: usuarioId,
+      }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast('Tarefa criada ✅', 'success');
+    document.getElementById('modal-nova-tarefa').classList.remove('visible');
+    carregarTarefas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function limparFiltrosTarefas() {
+  ['tf-filtro-status','tf-filtro-usuario','tf-filtro-prioridade'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  carregarTarefas();
+}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
