@@ -157,6 +157,7 @@ function formatarEditalSearch(item) {
   let horarioEncerramento = '';
   let labelSessao = '—';
   let diasRestantes = null;
+  let dataEncerramentoFinal = dataEncerramentoRaw || null;
 
   if (dataEncerramentoRaw) {
     try {
@@ -181,6 +182,17 @@ function formatarEditalSearch(item) {
       else if (diasRestantes === 1) labelSessao = 'Encerra amanhã';
       else                          labelSessao = `${diasRestantes}d restantes`;
     } catch (_) { /* mantém valores padrão */ }
+  }
+
+  // Se PNCP informou situação ativa, não marcar como 'Encerrado' com base apenas na data
+  if (labelSessao === 'Encerrado') {
+    const sit = (item.situacaoCompraNome ?? '').toLowerCase();
+    const pncpDizAtivo = sit && !sit.includes('encerrad') && !sit.includes('cancelad') && !sit.includes('anulad') && !sit.includes('revogad') && !sit.includes('fracassad');
+    if (pncpDizAtivo) {
+      labelSessao          = '—';
+      diasRestantes        = null;
+      dataEncerramentoFinal = null; // evita recálculo de 'Encerrado' no frontend
+    }
   }
 
   // ── Número do edital ───────────────────────────────────────────────────────
@@ -247,7 +259,7 @@ function formatarEditalSearch(item) {
     // Não formatar como DD/MM/YYYY — causaria new Date() inválido no frontend
     dataEncerramentoProposta: null,
     // ISO raw para comparação e display via toLocaleString
-    dataEncerramento:         dataEncerramentoRaw || null,
+    dataEncerramento:         dataEncerramentoFinal,
     modalidade:               modalidade || null,
     estado:                   uf || null,
     uf:                       uf || null,
