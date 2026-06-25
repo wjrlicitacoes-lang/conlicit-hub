@@ -2,12 +2,9 @@ const axios = require('axios');
 const db = require('../database/db');
 const { contarCacheAtivo } = require('../services/pncpSyncService');
 
-const PNCP_BASE_URL   = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
-const PNCP_SEARCH_URL = 'https://pncp.gov.br/api/search';
+const PNCP_BASE_URL = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_V1_URL   = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
 const PNCP_PORTAL_URL = 'https://pncp.gov.br/app/editais';
-
-// Cache de municipio_id interno do PNCP: "cidade-uf" → id
-const pncpMunicipioCache = new Map();
 
 const MODALIDADES = {
   'pregao eletronico': 6, 'pregão eletrônico': 6,
@@ -78,33 +75,6 @@ function sanitizarBusca(q) {
     .trim();
 }
 
-// Resolve o municipio_id interno do PNCP a partir do nome da cidade + UF.
-// O PNCP usa IDs próprios (ex: 2310 para BH), diferentes do código IBGE.
-async function getPncpMunicipioId(nomeCidade, uf) {
-  const key = `${semAcento(nomeCidade.trim())}-${(uf || '').toLowerCase()}`;
-  if (pncpMunicipioCache.has(key)) return pncpMunicipioCache.get(key);
-
-  try {
-    const params = new URLSearchParams({ q: nomeCidade.trim(), tipos_documento: 'edital', pagina: '1', tam: '20' });
-    if (uf) params.append('ufs', uf.toUpperCase());
-
-    const resp = await axios.get(`${PNCP_SEARCH_URL}?${params}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' },
-      timeout: 8000,
-    });
-    const items = resp.data?.items || [];
-    const normNome = semAcento(nomeCidade.trim());
-    const found = items.find(item => semAcento(item.municipio_nome || '') === normNome);
-    const id = found?.municipio_id ? String(found.municipio_id) : null;
-    if (id) pncpMunicipioCache.set(key, id);
-    console.log(`[PNCP municipio] ${nomeCidade}/${uf} → id=${id}`);
-    return id;
-  } catch (e) {
-    console.error('[PNCP municipio lookup]', e.message);
-    return null;
-  }
-}
-
 // Converte qualquer formato de data para YYYY-MM-DD
 function normalizarData(dataStr) {
   if (!dataStr) return null;
@@ -119,7 +89,7 @@ function normalizarData(dataStr) {
   return null;
 }
 
-// Formata item do endpoint /api/search para o padrão Hub
+// Formata item do endpoint REST PNCP para o padrão Hub
 function formatarEditalSearch(item) {
   // ── Orçamento sigiloso ─────────────────────────────────────────────────────
   const orcamentoSigiloso = !!(item.orcamentoSigiloso ?? item.orcamento_sigiloso ?? false);
@@ -515,164 +485,135 @@ async function listarEditais(req, res) {
   const filtraLocal = !!(q || uf || cidade || portal || portais.length > 0 || modalidades.length > 0 || vMin != null || vMax != null);
 
   try {
-    // ── Busca por palavra-chave: cascata /api/search → fallback REST ──
+    // ── Busca por palavra-chave: REST /api/pncp/v1/orgaos/compras com filtro local ──
     if (q) {
       const qSanitizado = sanitizarBusca(q);
-      const HEADERS_PNCP = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ConlicitHub/1.0)' };
+      const dataIni     = normalizarData(dataInicial) ?? new Date().toISOString().slice(0, 10);
+      const dataFim     = normalizarData(dataFinalEfetivo) ?? (() => {
+        const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().slice(0, 10);
+      })();
 
-      let municipioId = null;
-      if (cidade) {
-        municipioId = await getPncpMunicipioId(cidade.trim(), uf || null);
-        if (!municipioId) {
-          console.warn(`[Editais] municipio_id não encontrado para "${cidade}" — buscando sem filtro de município`);
-        }
-      }
+      try {
+        // Busca 5 páginas em paralelo (100 itens) — filtro local por palavra-chave
+        const paginas = await Promise.all(
+          Array.from({ length: 5 }, (_, i) =>
+            axios.get(`${PNCP_V1_URL}/orgaos/compras`, {
+              params: {
+                dataInicial:   dataIni,
+                dataFinal:     dataFim,
+                tamanhoPagina: 20,
+                pagina:        i + 1,
+                situacao:      'recebendo_proposta',
+                ...(uf ? { codigoUf: uf.toUpperCase() } : {}),
+              },
+              headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
+              timeout: 15000,
+            })
+            .then(r => { const d = r.data; return Array.isArray(d) ? d : (d?.data ?? d?.items ?? []); })
+            .catch(() => [])
+          )
+        );
 
-      // Monta params para /api/search com ou sem filtro de status
-      const makeSearchParams = (qStr, comStatus) => {
-        const p = new URLSearchParams({ q: qStr, tipos_documento: 'edital', pagina: String(paginaSolicitada), tam: String(tamanhoSolicitado) });
-        if (comStatus) p.append('status', 'recebendo_proposta');
-        if (uf) p.append('ufs', uf.toUpperCase());
-        if (municipioId) p.append('municipios', municipioId);
-        return p;
-      };
+        let dados = paginas.flat();
 
-      // Filtra itens sem status para manter apenas encerramento futuro
-      const filtrarAbertos = (lista) => {
-        const agora = new Date();
-        let dtFimUsuario = null;
-        if (dataFinal) {
-          const s = String(dataFinal).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-          dtFimUsuario = new Date(s + 'T23:59:59');
-        }
-        return lista.filter(item => {
-          const encRaw = item.dataEncerramentoProposta ?? item.dataFimRecebimentoProposta ?? item.dataEncerramento ?? null;
-          if (!encRaw) return true; // /api/search não retorna data — manter o item (PNCP já filtra por status)
-          try {
-            const dt = new Date(String(encRaw).substring(0, 19));
-            if (dt < agora) return false;
-            if (dtFimUsuario && dt > dtFimUsuario) return false;
-            return true;
-          } catch { return true; }
+        // Deduplicar por numeroControlePNCP
+        const vistos = new Set();
+        dados = dados.filter(item => {
+          const key = item.numeroControlePNCP ?? item.numero_controle_pncp;
+          if (!key || vistos.has(key)) return false;
+          vistos.add(key);
+          return true;
         });
-      };
 
-      const primeiraPalavra = qSanitizado.split(' ').filter(p => p.length >= 3)[0] || qSanitizado;
-
-      // Cascata de 3 tentativas no /api/search
-      // Qualquer erro de rede (ECONNRESET, timeout, 4xx, 5xx) avança para a próxima
-      const tentativas = [
-        // Tentativa 1: com status=recebendo_proposta → PNCP já filtra no servidor, não filtrar localmente
-        { label: 'status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, true)}`,  filtrar: false },
-        // Tentativas 2 e 3: sem status → filtrar localmente, mas aceitar itens sem data (campo ausente no /api/search)
-        { label: 'sem_status+query_completa', url: `${PNCP_SEARCH_URL}?${makeSearchParams(qSanitizado, false)}`, filtrar: true },
-        { label: 'sem_status+primeira_palavra', url: primeiraPalavra !== qSanitizado ? `${PNCP_SEARCH_URL}?${makeSearchParams(primeiraPalavra, false)}` : null, filtrar: true },
-      ];
-
-      let items = [];
-      let total = 0;
-      let searchAlcancou = false; // true se pelo menos uma tentativa retornou HTTP 2xx
-
-      for (const t of tentativas) {
-        if (!t.url) continue;
-        console.log(`[Editais] /api/search tentativa [${t.label}]`);
-        try {
-          const r = await axios.get(t.url, { headers: HEADERS_PNCP, timeout: 15000 });
-          searchAlcancou = true;
-          let candidatos = r.data?.items || [];
-          total = r.data?.total ?? candidatos.length;
-          if (t.filtrar) candidatos = filtrarAbertos(candidatos);
-          if (candidatos.length > 0) {
-            items = candidatos;
-            total = items.length;
-            console.log(`[Editais] /api/search [${t.label}]: ${items.length} resultado(s)`);
-            if (items[0]) { console.log('[PNCP ITEM0 TODOS CAMPOS]', JSON.stringify(items[0])); }
-            break;
-          }
-          console.log(`[Editais] [${t.label}]: zero resultados — próxima tentativa`);
-        } catch (err) {
-          console.error(`[Editais] [${t.label}] ERRO: ${err.message} (code=${err.code ?? err.response?.status ?? '?'})`);
-          // continua para próxima tentativa independente do tipo de erro
+        // Filtro por palavra-chave (AND: todos os termos devem aparecer)
+        const termos = semAcento(qSanitizado).split(/\s+/).filter(p => p.length >= 2);
+        if (termos.length > 0) {
+          dados = dados.filter(item => {
+            const texto = semAcento(
+              `${item.descricaoObjeto ?? ''} ${item.objetoCompra ?? ''} ${item.orgaoEntidade?.razaoSocial ?? ''}`
+            );
+            return termos.every(t => texto.includes(t));
+          });
         }
-      }
 
-      // Se /api/search falhou em rede ou retornou zero → fallback para API REST com filtro local
-      if (items.length === 0) {
-        const motivo = searchAlcancou ? 'zero resultados no /api/search' : '/api/search indisponível (erro de rede)';
-        console.log(`[Editais] ${motivo} — fallback para /contratacoes/proposta`);
-        try {
-          const dataIni = dataInicial || (() => {
-            const d = new Date(); d.setDate(d.getDate() - 7);
-            return d.toISOString().slice(0, 10).replace(/-/g, '');
-          })();
-          const paginas = await Promise.all(
-            Array.from({ length: 40 }, (_, i) =>
-              axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
-                params: { dataInicial: dataIni, dataFinal: dataFinalEfetivo, pagina: i + 1, tamanhoPagina: 50 },
-                headers: { 'Accept': 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
-                timeout: 15000,
-              }).then(r => r.data.data ?? []).catch(() => []),
-            ),
+        // Filtro por cidade
+        if (cidade) {
+          const cidadeLow = semAcento(cidade);
+          dados = dados.filter(item =>
+            semAcento(item.unidadeOrgao?.municipioNome ?? '').includes(cidadeLow)
           );
-          let dados = paginas.flat();
-          // Busca por palavras individuais (OR) — basta qualquer palavra da query aparecer
-          const palavrasBusca = semAcento(qSanitizado).split(/\s+/).filter(p => p.length >= 3);
-          dados = dados.filter(item => {
-            const obj  = semAcento(item.objetoCompra ?? '');
-            const orgao = semAcento(item.orgaoEntidade?.razaoSocial ?? '');
-            return palavrasBusca.some(p => obj.includes(p) || orgao.includes(p));
-          });
-          if (uf) {
-            const ufUpper = uf.toUpperCase();
-            dados = dados.filter(item => (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper);
-          }
-          if (cidade) {
-            const cidadeLow = semAcento(cidade);
-            dados = dados.filter(item => semAcento(item.unidadeOrgao?.municipioNome ?? '').includes(cidadeLow));
-          }
-          const vistos = new Set();
-          dados = dados.filter(item => {
-            if (vistos.has(item.numeroControlePNCP)) return false;
-            vistos.add(item.numeroControlePNCP); return true;
-          });
-          dados = filtrarAbertos(dados);
-          if (dados.length === 0) {
-            return res.json({ mensagem: 'Nenhum edital encontrado para a busca informada.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
-          }
-          const inicio = (paginaSolicitada - 1) * tamanhoSolicitado;
-          return res.json({
-            total: dados.length,
-            pagina: paginaSolicitada,
-            tamanhoPagina: tamanhoSolicitado,
-            fonte: 'pncp-rest-fallback',
-            aviso: `Resultado via API REST (${motivo}).`,
-            dados: dados.slice(inicio, inicio + tamanhoSolicitado).map(formatarEdital),
-          });
-        } catch (fallbackErr) {
-          console.error('[Editais] fallback REST também falhou:', fallbackErr.message);
-          return res.json({ mensagem: 'Serviço PNCP temporariamente indisponível. Tente novamente em instantes.', total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [] });
         }
+
+        // Filtro por modalidade (fuzzy local)
+        if (modalidades.length > 0) {
+          dados = dados.filter(item => {
+            const mod = semAcento(item.modalidadeNome ?? item.modalidade ?? '');
+            return modalidades.some(m => mod.includes(semAcento(m)));
+          });
+        } else if (modalidade) {
+          const modLow = semAcento(modalidade);
+          dados = dados.filter(item =>
+            semAcento(item.modalidadeNome ?? item.modalidade ?? '').includes(modLow)
+          );
+        }
+
+        // Filtro por portal (linkSistemaOrigem)
+        if (portais.length > 0) {
+          dados = dados.filter(item => {
+            const link = (item.linkSistemaOrigem ?? '').toLowerCase();
+            return portais.some(p => link.includes(p.toLowerCase()));
+          });
+        } else if (portal) {
+          const portalLow = portal.toLowerCase();
+          dados = dados.filter(item =>
+            (item.linkSistemaOrigem ?? '').toLowerCase().includes(portalLow)
+          );
+        }
+
+        // Filtro por valor
+        if (vMin != null) {
+          dados = dados.filter(item =>
+            Number(item.valorTotalEstimadoDaCompra ?? item.valorTotalEstimado ?? 0) >= vMin
+          );
+        }
+        if (vMax != null) {
+          dados = dados.filter(item =>
+            Number(item.valorTotalEstimadoDaCompra ?? item.valorTotalEstimado ?? 0) <= vMax
+          );
+        }
+
+        if (dados.length === 0) {
+          return res.json({
+            mensagem: 'Nenhum edital encontrado para a busca informada.',
+            total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [],
+          });
+        }
+
+        // Ordenar por encerramento mais próximo
+        dados.sort((a, b) => {
+          const dA = a.dataEncerramentoProposta ?? null;
+          const dB = b.dataEncerramentoProposta ?? null;
+          if (!dA && !dB) return 0;
+          if (!dA) return 1;
+          if (!dB) return -1;
+          return new Date(dA) - new Date(dB);
+        });
+
+        const inicio = (paginaSolicitada - 1) * tamanhoSolicitado;
+        return res.json({
+          total: dados.length,
+          pagina: paginaSolicitada,
+          tamanhoPagina: tamanhoSolicitado,
+          fonte: 'pncp-rest',
+          dados: dados.slice(inicio, inicio + tamanhoSolicitado).map(formatarEditalSearch),
+        });
+      } catch (err) {
+        console.error('[Editais] Erro na busca REST PNCP:', err.message);
+        return res.json({
+          mensagem: 'Serviço PNCP temporariamente indisponível. Tente novamente em instantes.',
+          total: 0, pagina: paginaSolicitada, tamanhoPagina: tamanhoSolicitado, dados: [],
+        });
       }
-
-      // /api/search funcionou com resultados → ordenar e retornar
-      const dadosOrdenados = items.map(formatarEditalSearch).sort((a, b) => {
-        const dA = a.diasRestantes;
-        const dB = b.diasRestantes;
-        if (dA == null && dB == null) return 0;
-        if (dA == null) return 1;
-        if (dB == null) return -1;
-        const nA = dA < 0 ? Number.MAX_SAFE_INTEGER : dA;
-        const nB = dB < 0 ? Number.MAX_SAFE_INTEGER : dB;
-        return nA - nB;
-      });
-
-      return res.json({
-        total,
-        pagina: paginaSolicitada,
-        tamanhoPagina: tamanhoSolicitado,
-        fonte: 'pncp-search',
-        dados: dadosOrdenados,
-      });
     }
 
     // ── Sem filtros locais: delega direto ao PNCP (acesso completo a 28k+ registros) ──
@@ -759,13 +700,6 @@ async function listarEditais(req, res) {
 
     let dados = paginas.flat();
 
-    if (q) {
-      const termo = semAcento(q);
-      dados = dados.filter((item) =>
-        semAcento(item.objetoCompra ?? '').includes(termo) ||
-        semAcento(item.orgaoEntidade?.razaoSocial ?? '').includes(termo),
-      );
-    }
     if (uf) {
       const ufUpper = uf.toUpperCase();
       dados = dados.filter((item) => (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUpper);
@@ -847,10 +781,9 @@ async function buscarEditalPorId(req, res) {
 // GET /editais/:cnpj/:ano/:sequencial/itens
 async function buscarItensPorEdital(req, res) {
   const { cnpj, ano, sequencial } = req.params;
-  const PNCP_V1 = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
   try {
     const resposta = await axios.get(
-      `${PNCP_V1}/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`,
+      `${PNCP_V1_URL}/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`,
       { timeout: 10000 },
     );
     const itens = Array.isArray(resposta.data) ? resposta.data : (resposta.data?.data ?? []);
