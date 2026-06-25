@@ -8,7 +8,7 @@ const zapiSvc = require('../services/zapiService');
 const db      = require('../database/db');
 const { processarOportunidadesParaCliente } = require('../services/oportunidadesHub');
 
-const ALERTA_WPP   = process.env.ADMIN_WHATSAPP || '5531982388210';
+const ALERTA_WPP   = process.env.ADMIN_WHATSAPP || '5531972460237';
 const ALERTA_EMAIL = process.env.ADMIN_EMAIL    || 'wjrlicitacoes@gmail.com';
 
 const LIMITE_SALDO_USD = 3;

@@ -2,7 +2,7 @@ const { Resend } = require('resend');
 const db      = require('../database/db');
 const zapiSvc = require('./zapiService');
 
-const DIRETORA_WPP   = process.env.ADMIN_WHATSAPP || '5531982388210';
+const DIRETORA_WPP   = process.env.ADMIN_WHATSAPP || '5531972460237';
 const DIRETORA_EMAIL = process.env.ADMIN_EMAIL    || 'wjrlicitacoes@gmail.com';
 const HUB_URL        = 'https://web-production-18d79.up.railway.app';
 
