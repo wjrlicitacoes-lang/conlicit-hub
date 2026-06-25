@@ -3476,58 +3476,114 @@
       <!-- ── CALENDÁRIO ── -->
       <section id="section-calendario" class="section">
         <div class="section-header">
-          <h1>Calendário de Pregões</h1>
+          <h1>Calendário</h1>
           <div class="section-header-actions">
             <button class="btn btn-primary btn-sm" onclick="abrirNovoPregaoCalendario()">+ Pregão</button>
             <button class="btn btn-ghost btn-sm" onclick="carregarCalendario()">↻ Atualizar</button>
           </div>
         </div>
-        <div id="form-novo-pregao-cal" class="inline-form" style="margin-bottom:1rem;display:none">
-          <div class="inline-form-grid">
-            <div class="form-group" style="margin:0"><label>Cliente *</label><select id="cal-cliente-id"></select></div>
-            <div class="form-group" style="margin:0"><label>Número do pregão *</label><input id="cal-numero" placeholder="001/2026" /></div>
-            <div class="form-group" style="margin:0"><label>Data e hora de abertura</label><input type="datetime-local" id="cal-data" /></div>
-            <div class="form-group" style="margin:0"><label>Órgão</label><input id="cal-orgao" placeholder="Prefeitura de..." /></div>
+
+        <!-- Tabs principais -->
+        <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--border);margin-bottom:16px">
+          <button id="cal-tab-pregoes"     class="tab-btn active" onclick="calSwitchTab('pregoes')">📅 Pregões</button>
+          <button id="cal-tab-respostas"   class="tab-btn"        onclick="calSwitchTab('respostas')">💬 Respostas de Clientes</button>
+          <button id="cal-tab-alertas"     class="tab-btn"        onclick="calSwitchTab('alertas')">🔔 Alertas Enviados</button>
+        </div>
+
+        <!-- PAINEL: Pregões -->
+        <div id="cal-panel-pregoes">
+          <!-- Filtros de status -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+            <span style="font-size:.77rem;color:var(--text-muted);font-weight:600">Filtrar:</span>
+            <button class="chip-status ativo" onclick="calFiltrarStatus('todos',event)"><span>Todos</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('a_disputar',event)"><span>⚔️ A disputar</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('vencido',event)"><span>🏆 Vencidos</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('perdido',event)"><span>❌ Perdidos</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('cancelado',event)"><span>🚫 Cancelados</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('sem_hora',event)" style="margin-left:auto"><span>⚠️ Sem horário</span></button>
+            <button class="chip-status" onclick="calFiltrarStatus('conflito',event)"><span>🔴 Conflito</span></button>
           </div>
-          <div class="form-row" style="margin-top:.4rem">
-            <div class="form-group" style="margin:0"><label>Portal de disputa</label>
-              <select id="cal-portal">
-                <option value="">Selecione</option>
-                <option>PNCP</option><option>ComprasNet</option><option>BLL</option>
-                <option>Licitações-e</option><option>ComprasBR</option><option>Licitar Digital</option><option>Outro</option>
-              </select>
+
+          <!-- Form novo pregão -->
+          <div id="form-novo-pregao-cal" class="inline-form" style="margin-bottom:1rem;display:none">
+            <div class="inline-form-grid">
+              <div class="form-group" style="margin:0"><label>Cliente *</label><select id="cal-cliente-id"></select></div>
+              <div class="form-group" style="margin:0"><label>Número do pregão *</label><input id="cal-numero" placeholder="001/2026" /></div>
+              <div class="form-group" style="margin:0"><label>Data e hora de abertura</label><input type="datetime-local" id="cal-data" /></div>
+              <div class="form-group" style="margin:0"><label>Órgão</label><input id="cal-orgao" placeholder="Prefeitura de..." /></div>
             </div>
-            <div class="form-group" style="margin:0"><label>Lance mínimo (R$)</label>
-              <input type="number" id="cal-lance-min" placeholder="Definir com cliente" min="0" step="0.01" />
+            <div class="form-row" style="margin-top:.4rem">
+              <div class="form-group" style="margin:0"><label>Portal de disputa</label>
+                <select id="cal-portal">
+                  <option value="">Selecione</option>
+                  <option>PNCP</option><option>ComprasNet</option><option>BLL</option>
+                  <option>Licitações-e</option><option>ComprasBR</option><option>Licitar Digital</option><option>Outro</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0"><label>Lance mínimo (R$)</label>
+                <input type="number" id="cal-lance-min" placeholder="Definir com cliente" min="0" step="0.01" />
+              </div>
+              <div class="form-group" style="margin:0"><label>Objeto</label><input id="cal-objeto" placeholder="Descrição do pregão..." /></div>
             </div>
-            <div class="form-group" style="margin:0"><label>Objeto</label><input id="cal-objeto" placeholder="Descrição do pregão..." /></div>
+            <div style="display:flex;gap:.5rem;margin-top:.5rem">
+              <button class="btn btn-primary btn-sm" onclick="salvarPregaoCalendario()">Salvar pregão</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('form-novo-pregao-cal').style.display='none'">Cancelar</button>
+            </div>
           </div>
-          <div style="display:flex;gap:.5rem;margin-top:.5rem">
-            <button class="btn btn-primary btn-sm" onclick="salvarPregaoCalendario()">Salvar pregão</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('form-novo-pregao-cal').style.display='none'">Cancelar</button>
+
+          <!-- Navegação de mês -->
+          <div class="cal-nav">
+            <button class="btn btn-ghost btn-sm" onclick="calMesAnterior()">‹ Anterior</button>
+            <span class="cal-nav-title" id="cal-mes-titulo">—</span>
+            <button class="btn btn-ghost btn-sm" onclick="calProximoMes()">Próximo ›</button>
+          </div>
+
+          <!-- Grade do calendário -->
+          <div class="cal-grid-wrap">
+            <div class="cal-weekdays">
+              <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div>
+              <div class="cal-weekday">Ter</div><div class="cal-weekday">Qua</div>
+              <div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div>
+              <div class="cal-weekday">Sáb</div>
+            </div>
+            <div class="cal-grid" id="cal-grade"></div>
+          </div>
+
+          <!-- KPIs rápidos -->
+          <div id="cal-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:16px 0 12px"></div>
+
+          <!-- Lista de pregões -->
+          <div id="cal-lista">
+            <div class="state-box"><div class="spinner spinner-lg"></div></div>
           </div>
         </div>
 
-        <div class="cal-nav">
-          <button class="btn btn-ghost btn-sm" onclick="calMesAnterior()">‹ Anterior</button>
-          <span class="cal-nav-title" id="cal-mes-titulo">—</span>
-          <button class="btn btn-ghost btn-sm" onclick="calProximoMes()">Próximo ›</button>
-        </div>
-
-        <div class="cal-grid-wrap">
-          <div class="cal-weekdays">
-            <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div>
-            <div class="cal-weekday">Ter</div><div class="cal-weekday">Qua</div>
-            <div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div>
-            <div class="cal-weekday">Sáb</div>
+        <!-- PAINEL: Respostas de Clientes -->
+        <div id="cal-panel-respostas" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+            <span style="font-size:.77rem;color:var(--text-muted);font-weight:600">Filtrar:</span>
+            <button class="chip-status ativo" onclick="calFiltrarRespostas('todos',event)"><span>Todas</span></button>
+            <button class="chip-status" onclick="calFiltrarRespostas('aguardando_resposta',event)"><span>⏳ Aguardando</span></button>
+            <button class="chip-status" onclick="calFiltrarRespostas('interesse_confirmado',event)"><span>✅ Interesse</span></button>
+            <button class="chip-status" onclick="calFiltrarRespostas('sem_interesse',event)"><span>❌ Sem interesse</span></button>
+            <button class="chip-status" onclick="calFiltrarRespostas('expirado',event)"><span>🕐 Expirados</span></button>
           </div>
-          <div class="cal-grid" id="cal-grade"></div>
+          <div id="cal-respostas-lista">
+            <div class="state-box"><div class="spinner spinner-lg"></div></div>
+          </div>
         </div>
 
-        <div id="cal-lista">
-          <div class="state-box"><div class="spinner spinner-lg"></div></div>
+        <!-- PAINEL: Alertas Enviados -->
+        <div id="cal-panel-alertas" style="display:none">
+          <div style="background:rgba(76,197,215,.06);border:1px solid rgba(76,197,215,.15);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:.82rem;color:var(--text-muted)">
+            🔔 Alertas são enviados automaticamente por WhatsApp e e-mail nos momentos: <strong>48h antes · 24h antes · véspera · 2h antes · 1h antes</strong> da abertura do pregão.
+          </div>
+          <div id="cal-alertas-lista">
+            <div class="state-box"><div class="spinner spinner-lg"></div></div>
+          </div>
         </div>
       </section>
+
 
       <!-- SEÇÃO ROBÔ DE PREGÃO -->
       <section id="section-robo" class="section">
@@ -9412,6 +9468,44 @@
   let calAno = new Date().getFullYear();
   let calDados = [];
   let calOperadores = [];
+  let calFiltroStatus = 'todos';
+  let calFiltroRespostas = 'todos';
+  let calTabAtiva = 'pregoes';
+
+  function calSwitchTab(tab) {
+    calTabAtiva = tab;
+    ['pregoes','respostas','alertas'].forEach(t => {
+      document.getElementById('cal-tab-'+t).classList.toggle('active', t === tab);
+      document.getElementById('cal-panel-'+t).style.display = t === tab ? '' : 'none';
+    });
+    if (tab === 'pregoes') carregarCalendario();
+    else if (tab === 'respostas') carregarRespostasCalendario();
+    else if (tab === 'alertas') carregarAlertasCalendario();
+  }
+
+  function calFiltrarStatus(status, ev) {
+    calFiltroStatus = status;
+    ev.currentTarget.closest('div').querySelectorAll('.chip-status').forEach(b => b.classList.remove('ativo'));
+    ev.currentTarget.classList.add('ativo');
+    const filtrados = calFiltrarDados(calDados);
+    renderGradeCalendario(filtrados);
+    renderListaCalendario(filtrados);
+    renderCalKpis(calDados);
+  }
+
+  function calFiltrarDados(dados) {
+    if (calFiltroStatus === 'todos') return dados;
+    if (calFiltroStatus === 'sem_hora') return dados.filter(p => !p.data_hora_abertura);
+    if (calFiltroStatus === 'conflito') return dados.filter(p => parseInt(p.conflitos) > 0);
+    return dados.filter(p => p.status === calFiltroStatus);
+  }
+
+  function calFiltrarRespostas(status, ev) {
+    calFiltroRespostas = status;
+    ev.currentTarget.closest('div').querySelectorAll('.chip-status').forEach(b => b.classList.remove('ativo'));
+    ev.currentTarget.classList.add('ativo');
+    carregarRespostasCalendario();
+  }
 
   function calMesAnterior() {
     calMes--; if (calMes < 1) { calMes = 12; calAno--; }
@@ -9497,16 +9591,136 @@
       const calJson = await rCal.json();
       const dados = calJson.dados ?? [];
       calDados = dados;
-      console.log('[Cal] dados retornados:', dados.map(p => ({ id: p.id, numero: p.numero, data_hora_abertura: p.data_hora_abertura, data_abertura: p.data_abertura })));
       if (rUsr.ok) {
         const { dados: usrs = [] } = await rUsr.json();
         calOperadores = usrs;
       }
-      renderGradeCalendario(dados);
-      renderListaCalendario(dados);
+      const filtrados = calFiltrarDados(dados);
+      renderGradeCalendario(filtrados);
+      renderListaCalendario(filtrados);
+      renderCalKpis(dados);
     } catch (e) {
       document.getElementById('cal-lista').innerHTML =
         '<p style="color:var(--text-muted)">Erro ao carregar calendário.</p>';
+    }
+  }
+
+  function renderCalKpis(dados) {
+    const el = document.getElementById('cal-kpis');
+    if (!el) return;
+    const total = dados.length;
+    const aDisputar = dados.filter(p => p.status === 'a_disputar').length;
+    const semHora = dados.filter(p => !p.data_hora_abertura).length;
+    const comConflito = dados.filter(p => parseInt(p.conflitos) > 0).length;
+    const vencidos = dados.filter(p => p.status === 'vencido').length;
+    const kpis = [
+      { label: 'Total no mês', valor: total, cor: 'var(--primary)' },
+      { label: 'A disputar', valor: aDisputar, cor: '#4ade80' },
+      { label: 'Sem horário', valor: semHora, cor: 'var(--warning)' },
+      { label: 'Com conflito', valor: comConflito, cor: 'var(--danger)' },
+      { label: 'Vencidos', valor: vencidos, cor: '#a78bfa' },
+    ];
+    el.innerHTML = kpis.map(k =>
+      `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+        <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px">${k.label}</div>
+        <div style="font-size:1.5rem;font-weight:700;color:${k.cor}">${k.valor}</div>
+      </div>`
+    ).join('');
+  }
+
+  async function carregarRespostasCalendario() {
+    const el = document.getElementById('cal-respostas-lista');
+    el.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const priDia = new Date(calAno, calMes - 1, 1).toISOString().split('T')[0];
+      const ultDia  = new Date(calAno, calMes, 0).toISOString().split('T')[0];
+      const params = new URLSearchParams({ data_inicio: priDia, data_fim: ultDia });
+      if (calFiltroRespostas !== 'todos') params.set('status', calFiltroRespostas);
+      const r = await fetch(`${API}/oportunidades?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error('Erro');
+      const { dados = [] } = await r.json();
+      if (!dados.length) {
+        el.innerHTML = '<div class="state-box"><p>Nenhuma resposta de cliente neste período.</p></div>';
+        return;
+      }
+      const STATUS_MAP = {
+        aguardando_resposta: { icon: '⏳', label: 'Aguardando', cor: 'var(--warning)' },
+        interesse_confirmado: { icon: '✅', label: 'Interesse confirmado', cor: '#4ade80' },
+        sem_interesse:        { icon: '❌', label: 'Sem interesse',        cor: 'var(--danger)' },
+        expirado:             { icon: '🕐', label: 'Expirado',            cor: 'var(--text-muted)' },
+        interesse:            { icon: '✅', label: 'Interesse',            cor: '#4ade80' },
+        alerta_urgente_enviado: { icon: '⚠️', label: 'Alerta enviado',   cor: 'var(--warning)' },
+      };
+      el.innerHTML = '<div class="cal-list">' + dados.map(op => {
+        const sm = STATUS_MAP[op.status] || { icon: '❓', label: op.status, cor: 'var(--text-muted)' };
+        const dtEnvio = op.data_envio ? new Date(op.data_envio).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) : '—';
+        const dtResposta = op.data_resposta ? new Date(op.data_resposta).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) : null;
+        const dtEnc = op.data_encerramento ? new Date(op.data_encerramento + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+        return `<div class="cal-card" style="border-left:3px solid ${sm.cor}">
+          <div class="cal-card-time">
+            <div class="cal-time-date">${dtEnvio.split(' ')[0]}</div>
+            <div style="font-size:.68rem;color:${sm.cor};font-weight:600">${sm.icon} ${sm.label}</div>
+          </div>
+          <div class="cal-card-body">
+            <h4>${esc((op.objeto || '').slice(0, 80) || '—')}</h4>
+            <div class="cal-card-meta">${esc(op.cliente_nome || '—')} · Prazo: ${dtEnc}</div>
+            ${op.valor_estimado ? `<div style="font-size:.77rem;color:var(--text-muted)">💰 R$ ${Number(op.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>` : ''}
+            ${dtResposta ? `<div style="font-size:.72rem;color:${sm.cor};margin-top:4px">Respondido em: ${dtResposta}</div>` : ''}
+            <div class="cal-card-actions">
+              <button class="btn btn-ghost btn-sm" onclick="navTo('oportunidades')">Ver oportunidades</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+    } catch (e) {
+      el.innerHTML = '<p style="color:var(--text-muted)">Erro ao carregar respostas.</p>';
+    }
+  }
+
+  async function carregarAlertasCalendario() {
+    const el = document.getElementById('cal-alertas-lista');
+    el.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/calendario?mes=${calMes}&ano=${calAno}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error('Erro');
+      const { dados = [] } = await r.json();
+      const comAlertas = dados.filter(p =>
+        p.alerta_vespera_enviado || p.alerta_2h_enviado || p.alerta_1h_enviado ||
+        p.alerta_48h_enviado || p.alerta_24h_enviado
+      );
+      if (!comAlertas.length) {
+        el.innerHTML = '<div class="state-box"><p>Nenhum alerta registrado neste mês.</p></div>';
+        return;
+      }
+      const ALERTAS = [
+        { campo: 'alerta_48h_enviado', label: '48h', cor: '#a78bfa' },
+        { campo: 'alerta_24h_enviado', label: '24h', cor: '#60a5fa' },
+        { campo: 'alerta_vespera_enviado', label: 'Véspera', cor: '#fbbf24' },
+        { campo: 'alerta_2h_enviado', label: '2h', cor: '#f97316' },
+        { campo: 'alerta_1h_enviado', label: '1h', cor: '#ef4444' },
+      ];
+      el.innerHTML = '<div class="cal-list">' + dados.map(p => {
+        const badges = ALERTAS
+          .filter(a => p[a.campo])
+          .map(a => `<span style="font-size:.7rem;padding:2px 8px;border-radius:6px;background:${a.cor}22;color:${a.cor};border:1px solid ${a.cor}44;font-weight:600">✓ ${a.label}</span>`)
+          .join('');
+        if (!badges) return '';
+        const dt = p.data_hora_abertura ? new Date(p.data_hora_abertura).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) : '—';
+        return `<div class="cal-card">
+          <div class="cal-card-time">
+            <div class="cal-time-date">${dt.split(' ')[0]}</div>
+            <div class="cal-time-hour" style="font-size:.9rem">${dt.split(' ')[1] || ''}</div>
+          </div>
+          <div class="cal-card-body">
+            <h4>${esc(p.numero || '—')} · ${esc(p.cliente_nome || '—')}</h4>
+            <div class="cal-card-meta">${esc((p.orgao || '').slice(0, 60)) || '—'}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${badges}</div>
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:6px">Alertas enviados via WhatsApp + e-mail</div>
+          </div>
+        </div>`;
+      }).filter(Boolean).join('') + '</div>';
+    } catch (e) {
+      el.innerHTML = '<p style="color:var(--text-muted)">Erro ao carregar alertas.</p>';
     }
   }
 
@@ -9666,6 +9880,15 @@
         </div>
         ${p.objeto ? `<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.35rem">${esc(p.objeto.slice(0, 120))}</div>` : ''}
         <div style="font-size:.77rem;color:var(--text-muted)">👤 ${operadorStr}</div>
+        ${(() => {
+          const alertas = [];
+          if (p.alerta_48h_enviado) alertas.push('<span style="font-size:.65rem;padding:1px 6px;border-radius:5px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa44">✓ 48h</span>');
+          if (p.alerta_24h_enviado) alertas.push('<span style="font-size:.65rem;padding:1px 6px;border-radius:5px;background:#60a5fa22;color:#60a5fa;border:1px solid #60a5fa44">✓ 24h</span>');
+          if (p.alerta_vespera_enviado) alertas.push('<span style="font-size:.65rem;padding:1px 6px;border-radius:5px;background:#fbbf2422;color:#fbbf24;border:1px solid #fbbf2444">✓ Véspera</span>');
+          if (p.alerta_2h_enviado) alertas.push('<span style="font-size:.65rem;padding:1px 6px;border-radius:5px;background:#f9731622;color:#f97316;border:1px solid #f9731644">✓ 2h</span>');
+          if (p.alerta_1h_enviado) alertas.push('<span style="font-size:.65rem;padding:1px 6px;border-radius:5px;background:#ef444422;color:#ef4444;border:1px solid #ef444444">✓ 1h</span>');
+          return alertas.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px" title="Alertas enviados">🔔 ${alertas.join('')}</div>` : '';
+        })()}
         <div class="cal-card-actions">
           <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('horario-${p.id}')">
             📅 ${temHora ? 'Alterar horário' : 'Definir horário'}
