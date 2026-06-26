@@ -1,10 +1,14 @@
-﻿const axios = require('axios');
+﻿const https = require('https');
+const axios = require('axios');
 const db = require('../database/db');
 const { contarCacheAtivo } = require('../services/pncpSyncService');
 
-const PNCP_BASE_URL = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
-const PNCP_V1_URL   = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
+const PNCP_BASE_URL   = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_V1_URL     = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
 const PNCP_PORTAL_URL = 'https://pncp.gov.br/app/editais';
+
+// O PNCP usa certificado ICP-Brasil não reconhecido pelo bundle padrão do Node.js
+const pncpAgent = new https.Agent({ rejectUnauthorized: false });
 
 const MODALIDADES = {
   'pregao eletronico': 6, 'pregão eletrônico': 6,
@@ -438,28 +442,31 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
 async function listarEditais(req, res) {
   const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10 } = req.query;
 
-  const hoje    = new Date().toISOString().slice(0, 10);
+  // Datas em YYYYMMDD — formato exigido pela API /consulta/v1
+  const hoje    = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const dataIni = hoje;
-  const dataFim = dataFinal ?? (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); })();
+  const dataFim = dataFinal
+    ? String(dataFinal).replace(/-/g, '')
+    : (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10).replace(/-/g, ''); })();
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
   try {
     const paginas = await Promise.all(
       Array.from({ length: 10 }, (_, i) =>
-        axios.get('https://pncp.gov.br/api/pncp/v1/orgaos/compras', {
+        axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
           params: {
             dataInicial:   dataIni,
             dataFinal:     dataFim,
-            situacao:      'recebendo_proposta',
             tamanhoPagina: 20,
             pagina:        i + 1,
-            ...(uf && uf !== 'todos' ? { codigoUf: uf.toUpperCase() } : {}),
+            ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
           },
           headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
+          httpsAgent: pncpAgent,
           timeout: 15000,
         })
-        .then(r => Array.isArray(r.data) ? r.data : (r.data?.data ?? []))
+        .then(r => r.data?.data ?? [])
         .catch(() => [])
       )
     );
@@ -507,7 +514,7 @@ async function listarEditais(req, res) {
 
     const inicio = (pg - 1) * tam;
     return res.json({
-      total: dados.length, pagina: pg, tamanhoPagina: tam, fonte: 'pncp-v1',
+      total: dados.length, pagina: pg, tamanhoPagina: tam, fonte: 'pncp-consulta',
       dados: dados.slice(inicio, inicio + tam).map(formatarEditalSearch),
     });
   } catch (err) {
