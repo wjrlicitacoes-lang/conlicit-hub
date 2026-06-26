@@ -485,31 +485,29 @@ async function listarEditais(req, res) {
   const filtraLocal = !!(q || uf || cidade || portal || portais.length > 0 || modalidades.length > 0 || vMin != null || vMax != null);
 
   try {
-    // ── Busca por palavra-chave: REST /api/pncp/v1/orgaos/compras com filtro local ──
+    // ── Busca por palavra-chave: REST /api/consulta/v1/contratacoes/proposta com filtro local ──
     if (q) {
       const qSanitizado = sanitizarBusca(q);
-      const dataIni     = normalizarData(dataInicial) ?? new Date().toISOString().slice(0, 10);
-      const dataFim     = normalizarData(dataFinalEfetivo) ?? (() => {
-        const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().slice(0, 10);
-      })();
+      // Consulta API exige datas em YYYYMMDD (sem traços)
+      const dataIni = (dataInicial || new Date().toISOString().slice(0, 10).replace(/-/g, ''));
+      const dataFim = dataFinalEfetivo;
 
       try {
         // Busca 10 páginas em paralelo (200 itens) — filtro local por palavra-chave
         const paginas = await Promise.all(
           Array.from({ length: 10 }, (_, i) =>
-            axios.get(`${PNCP_V1_URL}/orgaos/compras`, {
+            axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
               params: {
                 dataInicial:   dataIni,
                 dataFinal:     dataFim,
                 tamanhoPagina: 20,
                 pagina:        i + 1,
-                situacao:      'recebendo_proposta',
-                ...(uf ? { codigoUf: uf.toUpperCase() } : {}),
+                ...(codigoModalidade ? { codigoModalidadeContratacao: codigoModalidade } : {}),
               },
               headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
               timeout: 15000,
             })
-            .then(r => { const d = r.data; return Array.isArray(d) ? d : (d?.data ?? d?.items ?? []); })
+            .then(r => r.data?.data ?? [])
             .catch(() => [])
           )
         );
@@ -524,6 +522,14 @@ async function listarEditais(req, res) {
           vistos.add(key);
           return true;
         });
+
+        // Filtro por UF (local — consulta API não suporta codigoUf)
+        if (uf) {
+          const ufUp = uf.toUpperCase();
+          dados = dados.filter(item =>
+            (item.unidadeOrgao?.ufSigla ?? '').toUpperCase() === ufUp
+          );
+        }
 
         // Filtro por palavra-chave: cada termo deve aparecer em pelo menos um dos campos
         const termos = semAcento(qSanitizado).split(/\s+/).filter(p => p.length >= 2);
