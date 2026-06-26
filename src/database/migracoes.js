@@ -1187,6 +1187,49 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prioridade TEXT DEFAULT 'normal'`);
   await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS criado_por INTEGER REFERENCES usuarios(id)`);
 
+  // Contratações Diretas — pipeline de emails Make.com
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS contratacoes_diretas (
+      id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      created_at       TIMESTAMPTZ DEFAULT NOW(),
+      data_recebimento DATE DEFAULT CURRENT_DATE,
+      email_conta      VARCHAR(255),
+      email_assunto    TEXT,
+      objeto           TEXT,
+      orgao            VARCHAR(500),
+      valor_estimado   NUMERIC(15,2),
+      prazo_resposta   DATE,
+      score_geral      NUMERIC(4,1),
+      status           VARCHAR(50) DEFAULT 'novo',
+      email_corpo_raw  TEXT,
+      link_original    TEXT,
+      pdf_url          TEXT
+    )
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS contratacoes_matches (
+      id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      contratacao_id  UUID REFERENCES contratacoes_diretas(id) ON DELETE CASCADE,
+      empresa_id      INTEGER,
+      empresa_nome    VARCHAR(255),
+      score_fit       NUMERIC(5,1),
+      motivo          TEXT,
+      notificado_em   TIMESTAMPTZ,
+      notificado_via  VARCHAR(50)
+    )
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cnpj_cnae_cache (
+      cnpj         VARCHAR(14) PRIMARY KEY,
+      cnaes        JSONB,
+      razao_social VARCHAR(500),
+      atualizado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_data      ON contratacoes_diretas(created_at DESC)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_status    ON contratacoes_diretas(status)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_matches_contratacao_id ON contratacoes_matches(contratacao_id)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

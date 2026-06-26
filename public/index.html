@@ -2163,6 +2163,10 @@
           <span class="nav-icon"><i class="ti ti-key"></i></span>
           <span class="nav-label">Usuários</span>
         </button>
+        <button class="nav-item" data-nav="contratacoes-diretas" onclick="navTo('contratacoes-diretas')" id="nav-contratacoes-diretas" hidden>
+          <span class="nav-icon"><i class="ti ti-mail-bolt"></i></span>
+          <span class="nav-label">Contratações Diretas</span>
+        </button>
       </nav>
     </aside>
 
@@ -2172,6 +2176,42 @@
       <!-- ── DASHBOARD ── -->
       <section id="section-dashboard" class="section active">
         <div style="padding:2rem;text-align:center"><div class="spinner spinner-lg"></div></div>
+      </section>
+
+      <!-- ── CONTRATAÇÕES DIRETAS ── -->
+      <section id="section-contratacoes-diretas" class="section">
+        <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem">
+          <h2 style="margin:0;font-size:1.1rem;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:8px">
+            <i class="ti ti-mail-bolt" style="color:#4CC5D7"></i> Contratações Diretas
+          </h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="cd-filtro-dias" onchange="cdCarregar()" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:#0f1e2a;color:#fff">
+              <option value="1">Hoje</option>
+              <option value="3">Últimos 3 dias</option>
+              <option value="7">Últimos 7 dias</option>
+            </select>
+            <label style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:5px;cursor:pointer">
+              <input type="checkbox" id="cd-filtro-match" onchange="cdCarregar()"> Só com clientes
+            </label>
+            <button onclick="cdCarregar()" class="btn btn-ghost btn-sm"><i class="ti ti-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+
+        <!-- Métricas -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem">
+          <div class="cd-stat"><div class="cd-stat-label">Recebidas</div><div class="cd-stat-val" id="cd-stat-total">—</div></div>
+          <div class="cd-stat"><div class="cd-stat-label">Com cliente indicado</div><div class="cd-stat-val" id="cd-stat-match" style="color:#4CC5D7">—</div></div>
+          <div class="cd-stat"><div class="cd-stat-label">Prazo crítico (≤3d)</div><div class="cd-stat-val" id="cd-stat-critico" style="color:#e74c3c">—</div></div>
+          <div class="cd-stat"><div class="cd-stat-label">Valor total</div><div class="cd-stat-val" id="cd-stat-valor">—</div></div>
+        </div>
+
+        <!-- Lista -->
+        <div id="cd-lista">
+          <div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3)">
+            <i class="ti ti-mail-bolt" style="font-size:32px"></i>
+            <p style="margin-top:12px">Clique em Atualizar para carregar as oportunidades</p>
+          </div>
+        </div>
       </section>
 
       <!-- ── EDITAIS ── -->
@@ -5057,6 +5097,7 @@
     else if (section === 'planilha')        propCarregarLista();
     else if (section === 'meus-pregoes')    carregarMinhaArea();
     else if (section === 'gerador-contrato') { gcListaAtualizar(); gcAtualizar(); }
+    else if (section === 'contratacoes-diretas') cdCarregar();
   }
 
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
@@ -18251,6 +18292,139 @@ function limparFiltrosTarefas() {
     if (el) el.value = '';
   });
   carregarTarefas();
+}
+
+// ══════════════════════════════════════════════════════
+// CONTRATAÇÕES DIRETAS
+// ══════════════════════════════════════════════════════
+
+(function injetarEstilosCD() {
+  const s = document.createElement('style');
+  s.textContent = `
+    .cd-stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:.75rem 1rem}
+    .cd-stat-label{font-size:11px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+    .cd-stat-val{font-size:22px;font-weight:500;color:#fff}
+    .cd-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:1rem 1.25rem;margin-bottom:10px;transition:border-color .15s}
+    .cd-card:hover{border-color:rgba(76,197,215,.25)}
+    .cd-card-top{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:start}
+    .cd-score{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+    .cd-score-alto{background:rgba(26,188,156,.15);color:#1abc9c}
+    .cd-score-medio{background:rgba(241,196,15,.15);color:#f1c40f}
+    .cd-score-baixo{background:rgba(231,76,60,.15);color:#e74c3c}
+    .cd-obj{font-size:13px;font-weight:500;color:#fff;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cd-meta{display:flex;gap:10px;flex-wrap:wrap}
+    .cd-meta span{font-size:11px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:3px}
+    .cd-meta span.valor{color:#4CC5D7;font-weight:500;font-size:12px}
+    .cd-prazo{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+    .cd-prazo-ok{background:rgba(26,188,156,.15);color:#1abc9c}
+    .cd-prazo-urgente{background:rgba(231,76,60,.15);color:#e74c3c}
+    .cd-matches{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+    .cd-matches-label{font-size:11px;color:rgba(255,255,255,.35);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+    .cd-chips{display:flex;gap:6px;flex-wrap:wrap}
+    .cd-chip{display:flex;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:5px 10px;gap:6px}
+    .cd-chip-nome{font-size:12px;font-weight:500;color:#fff}
+    .cd-chip-motivo{font-size:10px;color:rgba(255,255,255,.35)}
+    .cd-chip-score{font-size:11px;color:#4CC5D7;font-weight:600;margin-left:4px;white-space:nowrap}
+    .cd-fit-badge{font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(76,197,215,.12);color:#4CC5D7;border:1px solid rgba(76,197,215,.3);font-weight:500}
+    .cd-actions{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}
+  `;
+  document.head.appendChild(s);
+})();
+
+async function cdCarregar() {
+  const dias     = document.getElementById('cd-filtro-dias')?.value || 1;
+  const comMatch = document.getElementById('cd-filtro-match')?.checked ? 'true' : 'false';
+  const lista    = document.getElementById('cd-lista');
+  if (lista) lista.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.4)"><i class="ti ti-loader ti-spin"></i> Carregando…</div>';
+
+  try {
+    const r = await fetch(`${API}/api/contratacoes/listar?dias=${dias}&com_match=${comMatch}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+
+    const fmtVal = v => v >= 1e6 ? `R$ ${(v/1e6).toFixed(1)}M` : v >= 1000 ? `R$ ${Math.round(v/1000)}k` : `R$ ${(v||0).toFixed(0)}`;
+    document.getElementById('cd-stat-total').textContent   = data.stats?.total   ?? 0;
+    document.getElementById('cd-stat-match').textContent   = data.stats?.com_match ?? 0;
+    document.getElementById('cd-stat-critico').textContent = data.stats?.prazo_critico ?? 0;
+    document.getElementById('cd-stat-valor').textContent   = fmtVal(data.stats?.valor_total ?? 0);
+
+    if (!data.oportunidades?.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.3)"><i class="ti ti-inbox" style="font-size:32px"></i><p style="margin-top:8px">Nenhuma oportunidade encontrada</p></div>';
+      return;
+    }
+
+    lista.innerHTML = data.oportunidades.map(op => {
+      const matches = op.contratacoes_matches || [];
+      const prazo   = op.prazo_resposta ? new Date(op.prazo_resposta) : null;
+      const diasR   = prazo ? Math.ceil((prazo - new Date()) / 864e5) : null;
+      const scoreClass = op.score_geral >= 8 ? 'cd-score-alto' : op.score_geral >= 5 ? 'cd-score-medio' : 'cd-score-baixo';
+
+      const chipsHtml = matches.length
+        ? matches.map(m => `
+          <div class="cd-chip">
+            <div>
+              <div style="display:flex;align-items:center;gap:4px">
+                <span class="cd-chip-nome">${esc(m.empresa_nome || '')}</span>
+                ${m.score_fit >= 80 ? '<span class="cd-fit-badge">fit alto</span>' : ''}
+              </div>
+              <div class="cd-chip-motivo">${esc(m.motivo || '')}</div>
+            </div>
+            <span class="cd-chip-score">${m.score_fit}%</span>
+          </div>`).join('')
+        : '<span style="font-size:11px;color:rgba(255,255,255,.3);font-style:italic">Nenhum cliente compatível identificado</span>';
+
+      return `
+      <div class="cd-card">
+        <div class="cd-card-top">
+          <div class="cd-score ${scoreClass}">${op.score_geral != null ? Number(op.score_geral).toFixed(1) : '?'}</div>
+          <div style="min-width:0">
+            <div class="cd-obj" title="${esc(op.objeto || op.email_assunto || '')}">${esc(op.objeto || op.email_assunto || 'Sem descrição')}</div>
+            <div class="cd-meta">
+              ${op.valor_estimado ? `<span class="valor"><i class="ti ti-currency-real"></i> R$ ${Number(op.valor_estimado).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>` : ''}
+              ${prazo ? `<span><i class="ti ti-calendar"></i> ${prazo.toLocaleDateString('pt-BR')}</span>` : ''}
+              ${op.orgao ? `<span><i class="ti ti-building"></i> ${esc(op.orgao)}</span>` : ''}
+              ${op.email_conta ? `<span><i class="ti ti-mail"></i> ${esc(op.email_conta)}</span>` : ''}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            ${diasR != null ? `<span class="cd-prazo ${diasR <= 3 ? 'cd-prazo-urgente' : 'cd-prazo-ok'}">${diasR}d</span>` : ''}
+            <div style="margin-top:5px">
+              <select onchange="cdAtualizarStatus('${op.id}',this.value)" style="font-size:10px;padding:2px 6px;border-radius:4px;background:#0f1e2a;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)">
+                <option value="novo"       ${op.status==='novo'       ?'selected':''}>Novo</option>
+                <option value="em_analise" ${op.status==='em_analise' ?'selected':''}>Em análise</option>
+                <option value="notificado" ${op.status==='notificado' ?'selected':''}>Notificado</option>
+                <option value="descartado" ${op.status==='descartado' ?'selected':''}>Descartado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="cd-matches">
+          ${matches.length ? '<div class="cd-matches-label"><i class="ti ti-users" style="color:#4CC5D7;font-size:12px"></i> Clientes com fit</div>' : ''}
+          <div class="cd-chips">${chipsHtml}</div>
+        </div>
+        <div class="cd-actions">
+          ${op.link_original ? `<a href="${esc(op.link_original)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><i class="ti ti-external-link"></i> Ver original</a>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('[cd] Erro ao carregar:', err);
+    if (lista) lista.innerHTML = `<div style="text-align:center;padding:30px;color:rgba(255,100,100,.7)">Erro: ${esc(err.message)}</div>`;
+  }
+}
+
+async function cdAtualizarStatus(id, status) {
+  try {
+    await fetch(`${API}/api/contratacoes/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+  } catch (err) {
+    console.error('[cd] Erro ao atualizar status:', err);
+  }
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
