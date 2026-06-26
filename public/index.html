@@ -7333,6 +7333,9 @@
   function fecharModalCliente(e) {
     if (e && e.target !== document.getElementById('modal-cliente')) return;
     document.getElementById('modal-cliente').classList.remove('visible');
+    ['cliente-cnpj', 'cliente-cpf-responsavel'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
   }
 
   async function buscarGruposZapi() {
