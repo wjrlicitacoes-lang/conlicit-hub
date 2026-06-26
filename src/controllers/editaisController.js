@@ -494,9 +494,9 @@ async function listarEditais(req, res) {
       })();
 
       try {
-        // Busca 5 páginas em paralelo (100 itens) — filtro local por palavra-chave
+        // Busca 10 páginas em paralelo (200 itens) — filtro local por palavra-chave
         const paginas = await Promise.all(
-          Array.from({ length: 5 }, (_, i) =>
+          Array.from({ length: 10 }, (_, i) =>
             axios.get(`${PNCP_V1_URL}/orgaos/compras`, {
               params: {
                 dataInicial:   dataIni,
@@ -525,14 +525,18 @@ async function listarEditais(req, res) {
           return true;
         });
 
-        // Filtro por palavra-chave (AND: todos os termos devem aparecer)
+        // Filtro por palavra-chave: cada termo deve aparecer em pelo menos um dos campos
         const termos = semAcento(qSanitizado).split(/\s+/).filter(p => p.length >= 2);
         if (termos.length > 0) {
           dados = dados.filter(item => {
-            const texto = semAcento(
-              `${item.descricaoObjeto ?? ''} ${item.objetoCompra ?? ''} ${item.orgaoEntidade?.razaoSocial ?? ''}`
-            );
-            return termos.every(t => texto.includes(t));
+            const campos = [
+              item.descricaoObjeto,
+              item.objetoCompra,
+              item.orgaoEntidade?.razaoSocial,
+              item.unidadeOrgao?.nomeUnidade,
+              item.nomeUnidade,
+            ].map(c => semAcento(c ?? ''));
+            return termos.every(t => campos.some(c => c.includes(t)));
           });
         }
 
