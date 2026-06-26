@@ -7307,6 +7307,8 @@
     document.getElementById('cliente-contato-nome').value = cliente ? (cliente.contato_nome || '') : '';
     document.getElementById('cliente-contato-cargo').value = cliente ? (cliente.contato_cargo || '') : '';
     document.getElementById('cliente-contato-whatsapp').value = cliente ? (cliente.contato_whatsapp || '') : '';
+    document.getElementById('cliente-cnpj').value = cliente ? (cliente.cnpj || '') : '';
+    document.getElementById('cliente-cpf-responsavel').value = cliente ? (cliente.cpf_responsavel || '') : '';
     const _grupoSel = document.getElementById('cliente-whatsapp-grupo');
     if (cliente?.whatsapp_grupo) {
       _grupoSel.innerHTML = `<option value="${esc(cliente.whatsapp_grupo)}">${esc(cliente.whatsapp_grupo)}</option>`;
@@ -12663,7 +12665,7 @@ ${nomes}${dados.length > 5 ? `
     }).catch(() => {});
     navTo('clientes');
     setTimeout(() => {
-      abrirModalCliente();
+      abrirFormCliente();
       setTimeout(() => {
         const setV = (fid, v) => { const el = document.getElementById(fid); if (el && v) el.value = v; };
         setV('cliente-nome', empresa || nome);
