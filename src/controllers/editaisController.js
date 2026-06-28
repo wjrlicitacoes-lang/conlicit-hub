@@ -452,24 +452,36 @@ async function listarEditais(req, res) {
   const tam = Math.max(Number(tamanhoPagina), 10);
 
   const pncpUrl = `${PNCP_BASE_URL}/contratacoes/proposta`;
-  const pncpParams = { dataInicial: dataIni, dataFinal: dataFim, tamanhoPagina: 20, pagina: 1, ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}) };
-  console.log('[PNCP busca] URL:', pncpUrl, '| params p1:', JSON.stringify(pncpParams));
+  const baseParams = {
+    dataInicial:   dataIni,
+    dataFinal:     dataFim,
+    tamanhoPagina: 20,
+    ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
+  };
 
   try {
-    const paginas = await Promise.all(
-      Array.from({ length: 10 }, (_, i) =>
-        axios.get(pncpUrl, {
-          params: { ...pncpParams, pagina: i + 1 },
-          headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
-          httpsAgent: pncpAgent,
-          timeout: 15000,
-        })
-        .then(r => r.data?.data ?? [])
-        .catch(e => { console.error('[PNCP página]', i + 1, e.response?.status, e.response?.data, e.message); return []; })
-      )
-    );
+    // Busca sequencial com 300 ms entre páginas para não estourar o rate limit do PNCP
+    const resultados = [];
+    for (let i = 0; i < 5; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 300));
+      const items = await axios.get(pncpUrl, {
+        params: { ...baseParams, pagina: i + 1 },
+        headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
+        httpsAgent: pncpAgent,
+        timeout: 15000,
+      })
+      .then(r => r.data?.data ?? [])
+      .catch(e => {
+        console.error('[PNCP página]', i + 1, e.response?.status, e.message);
+        return [];
+      });
+      resultados.push(...items);
+      // Para cedo se a página veio vazia (não há mais dados)
+      if (items.length === 0) break;
+    }
+    const paginas = resultados;
 
-    let dados = paginas.flat();
+    let dados = paginas;
 
     const vistos = new Set();
     dados = dados.filter(item => {
