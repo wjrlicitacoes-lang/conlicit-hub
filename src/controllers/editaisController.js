@@ -441,29 +441,48 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
 // GET /editais
 async function listarEditais(req, res) {
   const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10 } = req.query;
-
-  // Datas em YYYYMMDD — formato exigido pela API /consulta/v1
-  const hoje    = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const dataIni = hoje;
-  const dataFim = dataFinal
-    ? String(dataFinal).replace(/-/g, '')
-    : (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10).replace(/-/g, ''); })();
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
-  const pncpUrl = `${PNCP_BASE_URL}/contratacoes/proposta`;
-  const baseParams = {
-    dataInicial:   dataIni,
-    dataFinal:     dataFim,
-    tamanhoPagina: 20,
-    ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
-  };
-
   try {
-    // Busca sequencial com 300 ms entre páginas para não estourar o rate limit do PNCP
+    // ── 1. Cache-first: consulta o banco local populado pelo sync diário ──────
+    const { total: totalCache, dados: dadosCache } = await buscarNaCache({
+      q,
+      uf:           uf && uf !== 'todos' ? uf : undefined,
+      modalidade,
+      portal,
+      valorMin:     valorMin !== '' ? valorMin : undefined,
+      valorMax:     valorMax !== '' ? valorMax : undefined,
+      pagina:       pg,
+      tamanhoPagina: tam,
+    });
+
+    if (totalCache > 0) {
+      return res.json({
+        total: totalCache, pagina: pg, tamanhoPagina: tam, fonte: 'cache',
+        dados: dadosCache.map(row => formatarEdital(row.raw ?? row)),
+      });
+    }
+
+    // ── 2. Fallback live PNCP (cache vazio — ex: primeiro deploy sem sync) ────
+    const hoje    = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const dataIni = hoje;
+    const dataFim = dataFinal
+      ? String(dataFinal).replace(/-/g, '')
+      : (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10).replace(/-/g, ''); })();
+
+    const pncpUrl  = `${PNCP_BASE_URL}/contratacoes/proposta`;
+    const baseParams = {
+      dataInicial:   dataIni,
+      dataFinal:     dataFim,
+      tamanhoPagina: 20,
+      ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
+    };
+
+    // Sequencial com 500 ms de intervalo para respeitar o rate limit do PNCP
     const resultados = [];
     for (let i = 0; i < 5; i++) {
-      if (i > 0) await new Promise(r => setTimeout(r, 300));
+      if (i > 0) await new Promise(r => setTimeout(r, 500));
       const items = await axios.get(pncpUrl, {
         params: { ...baseParams, pagina: i + 1 },
         headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
@@ -472,19 +491,16 @@ async function listarEditais(req, res) {
       })
       .then(r => r.data?.data ?? [])
       .catch(e => {
-        console.error('[PNCP página]', i + 1, e.response?.status, e.message);
+        console.error('[PNCP fallback página]', i + 1, e.response?.status, e.message);
         return [];
       });
       resultados.push(...items);
-      // Para cedo se a página veio vazia (não há mais dados)
       if (items.length === 0) break;
     }
-    const paginas = resultados;
 
-    let dados = paginas;
-
+    // Deduplicar
     const vistos = new Set();
-    dados = dados.filter(item => {
+    let dados = resultados.filter(item => {
       const key = item.numeroControlePNCP;
       if (!key || vistos.has(key)) return false;
       vistos.add(key);
@@ -497,7 +513,6 @@ async function listarEditais(req, res) {
         (item.descricaoObjeto ?? item.objetoCompra ?? '').toLowerCase().includes(qLow)
       );
     }
-
     if (modalidade) {
       const modLow = modalidade.toLowerCase();
       dados = dados.filter(item => (item.modalidadeNome ?? '').toLowerCase().includes(modLow));
@@ -524,11 +539,11 @@ async function listarEditais(req, res) {
 
     const inicio = (pg - 1) * tam;
     return res.json({
-      total: dados.length, pagina: pg, tamanhoPagina: tam, fonte: 'pncp-consulta',
+      total: dados.length, pagina: pg, tamanhoPagina: tam, fonte: 'pncp-live',
       dados: dados.slice(inicio, inicio + tam).map(formatarEditalSearch),
     });
   } catch (err) {
-    return res.status(502).json({ erro: 'Erro ao consultar o PNCP: ' + err.message });
+    return res.status(502).json({ erro: 'Erro ao consultar editais: ' + err.message });
   }
 }
 
