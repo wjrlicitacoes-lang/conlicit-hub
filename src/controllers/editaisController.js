@@ -451,23 +451,21 @@ async function listarEditais(req, res) {
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
+  const pncpUrl = `${PNCP_BASE_URL}/contratacoes/proposta`;
+  const pncpParams = { dataInicial: dataIni, dataFinal: dataFim, tamanhoPagina: 20, pagina: 1, ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}) };
+  console.log('[PNCP busca] URL:', pncpUrl, '| params p1:', JSON.stringify(pncpParams));
+
   try {
     const paginas = await Promise.all(
       Array.from({ length: 10 }, (_, i) =>
-        axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
-          params: {
-            dataInicial:   dataIni,
-            dataFinal:     dataFim,
-            tamanhoPagina: 20,
-            pagina:        i + 1,
-            ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
-          },
+        axios.get(pncpUrl, {
+          params: { ...pncpParams, pagina: i + 1 },
           headers: { Accept: 'application/json', 'User-Agent': 'ConlicitHub/1.0' },
           httpsAgent: pncpAgent,
           timeout: 15000,
         })
         .then(r => r.data?.data ?? [])
-        .catch(() => [])
+        .catch(e => { console.error('[PNCP página]', i + 1, e.response?.status, e.response?.data, e.message); return []; })
       )
     );
 
