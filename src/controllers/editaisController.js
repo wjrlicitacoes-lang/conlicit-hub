@@ -539,7 +539,7 @@ async function buscarEditalPorId(req, res) {
   try {
     const resposta = await axios.get(
       `${PNCP_BASE_URL}/orgaos/${cnpj}/compras/${ano}/${sequencial}`,
-      { timeout: 10000 },
+      { httpsAgent: pncpAgent, timeout: 10000 },
     );
     return res.json(formatarEdital(resposta.data));
   } catch (erro) {
@@ -556,7 +556,7 @@ async function buscarItensPorEdital(req, res) {
   try {
     const resposta = await axios.get(
       `${PNCP_V1_URL}/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`,
-      { timeout: 10000 },
+      { httpsAgent: pncpAgent, timeout: 10000 },
     );
     const itens = Array.isArray(resposta.data) ? resposta.data : (resposta.data?.data ?? []);
     return res.json({ itens, total: itens.length, fonte: 'PNCP' });
