@@ -1,5 +1,6 @@
 const axios = require('axios');
 const db = require('../database/db');
+const pncpAgent = require('../lib/pncpAgent');
 
 const PNCP_BASE_URL = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
 
@@ -56,8 +57,12 @@ async function buscarEditaisParaCliente(cliente) {
       PAGINAS.map((p) =>
         axios.get(`${PNCP_BASE_URL}/contratacoes/proposta`, {
           params: { dataInicial, dataFinal, pagina: p, tamanhoPagina: 50 },
+          httpsAgent: pncpAgent,
           timeout: 15000,
-        }).then((r) => r.data.data ?? []).catch(() => []),
+        }).then((r) => r.data.data ?? []).catch(e => {
+          console.error('[PNCP Boletim]', e.code || e.message, e.response?.status);
+          return [];
+        }),
       ),
     );
     pool = paginas.flat();

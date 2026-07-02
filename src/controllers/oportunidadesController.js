@@ -1,5 +1,6 @@
 const db      = require('../database/db');
 const zapiSvc = require('../services/zapiService');
+const pncpAgent = require('../lib/pncpAgent');
 
 // ── Listar fila (sócio/admin vê tudo; assistente vê só aguardando_disparo) ──
 async function listar(req, res) {
@@ -135,7 +136,7 @@ async function gerarResumo(req, res) {
         const [seqStr, ano] = ultimo.split('/');
         const seq = parseInt(seqStr, 10);
         const url = `${process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1'}/orgaos/${cnpj}/compras/${ano}/${seq}`;
-        const { data: pncp } = await axios.get(url, { timeout: 8000 });
+        const { data: pncp } = await axios.get(url, { httpsAgent: pncpAgent, timeout: 8000 });
 
         if (pncp.dataAberturaProposta) dataSessao = pncp.dataAberturaProposta;
         if (pncp.linkSistemaOrigem)    linkDisputa = pncp.linkSistemaOrigem;

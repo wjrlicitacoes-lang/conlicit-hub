@@ -3907,7 +3907,7 @@
             <input type="file" id="prop-file-input" accept=".pdf,image/*" style="display:none" onchange="propArquivoSelecionado(this)">
             <div class="prop-pages-row">
               <label>Páginas com os itens: <span style="font-weight:400;color:rgba(255,255,255,0.35)">(opcional)</span></label>
-              <input class="prop-pages-input" id="prop-paginas" placeholder="ex: 12-15 — ou deixe em branco para auto-detecção" />
+              <input class="prop-pages-input" id="prop-paginas" placeholder="ex: 12-15 — ou deixe em branco para detecção automática" />
               <button class="prop-btn-primary" id="prop-btn-extrair" onclick="propExtrairItens()">
                 <i class="ti ti-cpu"></i> Extrair com IA
               </button>
@@ -7944,35 +7944,42 @@
   function renderMonitor() {
     const list = monitorGetAll();
     const area = document.getElementById('monitor-area');
-    // Buscar pregões de hoje/amanhã do banco para enriquecer a lista
+    // Buscar pregões ativos do banco para enriquecer a lista
     fetch(`${API}/clientes/pregoes?status=a_disputar`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : { dados: [] })
+      .then(r => {
+        if (!r.ok) console.error('[Monitor] /clientes/pregoes falhou:', r.status);
+        return r.ok ? r.json() : { dados: [] };
+      })
       .then(({ dados = [] }) => {
         const agora = new Date();
         const em48h = new Date(agora.getTime() + 48 * 3600000);
+        // Inclui pregões ao vivo (abertura até 8h atrás) além dos próximos 48h
+        const oitoHorasAtras = new Date(agora.getTime() - 8 * 3600000);
         const pregoesAtivos = dados.filter(p => {
           if (!p.data_hora_abertura) return false;
           const d = new Date(p.data_hora_abertura);
-          return d >= agora && d <= em48h;
+          return d >= oitoHorasAtras && d <= em48h;
         }).sort((a,b) => new Date(a.data_hora_abertura) - new Date(b.data_hora_abertura));
 
         let html = '';
 
         if (pregoesAtivos.length > 0) {
           html += `<div style="margin-bottom:1rem">
-            <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);margin-bottom:.5rem">Pregões nas próximas 48h</div>
+            <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);margin-bottom:.5rem">Pregões ativos e próximas 48h</div>
             <div class="monitor-list">${pregoesAtivos.map(p => {
               const dt = new Date(p.data_hora_abertura);
               const diff = Math.round((dt - agora) / 3600000);
+              const aoVivo = diff <= 0;
               const urgente = diff < 2;
               const dtStr = dt.toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
               const minLance = p.valor_minimo_lance ? `<span style="color:var(--primary);font-size:.72rem;font-weight:700"> · Lance mín: ${fmtBRL(p.valor_minimo_lance)}</span>` : '';
+              const statusLabel = aoVivo ? 'Ao vivo agora' : (diff + 'h restantes');
               return `<div class="monitor-item" style="${urgente ? 'border:1px solid rgba(76,197,215,.4);background:rgba(76,197,215,.05);' : ''}">
-                <div class="monitor-status-dot ${diff < 1 ? 'dot-active' : 'dot-paused'}" title="${diff < 1 ? 'Ao vivo agora' : diff + 'h restantes'}"></div>
+                <div class="monitor-status-dot ${aoVivo ? 'dot-active' : 'dot-paused'}" title="${statusLabel}"></div>
                 <div class="monitor-info">
                   <div class="monitor-pregao">${esc(p.numero || '—')} · ${esc(p.cliente_nome || '—')}</div>
                   <div class="monitor-portal">${esc(p.portal_disputa || 'Portal não informado')} · ${dtStr}${minLance}</div>
-                  <div class="monitor-since" style="${urgente ? 'color:var(--primary)' : ''}">${diff < 1 ? '🔴 Ao vivo agora' : diff === 1 ? '⏰ 1h restante' : `⏳ ${diff}h restantes`}</div>
+                  <div class="monitor-since" style="${urgente ? 'color:var(--primary)' : ''}">${aoVivo ? '🔴 Ao vivo agora' : diff === 1 ? '⏰ 1h restante' : `⏳ ${diff}h restantes`}</div>
                 </div>
                 <div class="monitor-actions">
                   ${p.link_pncp ? `<a class="btn btn-ghost btn-sm" href="${p.link_pncp}" target="_blank" rel="noopener">Abrir portal</a>` : ''}

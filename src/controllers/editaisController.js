@@ -1,14 +1,11 @@
-﻿const https = require('https');
-const axios = require('axios');
+﻿const axios = require('axios');
 const db = require('../database/db');
 const { contarCacheAtivo } = require('../services/pncpSyncService');
+const pncpAgent = require('../lib/pncpAgent');
 
 const PNCP_BASE_URL   = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
 const PNCP_V1_URL     = process.env.PNCP_BASE_URL_V1 || 'https://pncp.gov.br/api/pncp/v1';
 const PNCP_PORTAL_URL = 'https://pncp.gov.br/app/editais';
-
-// O PNCP usa certificado ICP-Brasil não reconhecido pelo bundle padrão do Node.js
-const pncpAgent = new https.Agent({ rejectUnauthorized: false });
 
 const MODALIDADES = {
   'pregao eletronico': 6, 'pregão eletrônico': 6,

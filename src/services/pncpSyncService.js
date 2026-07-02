@@ -1,11 +1,12 @@
 const axios = require('axios');
 const db = require('../database/db');
+const pncpAgent = require('../lib/pncpAgent');
 
 const BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
 const TAMANHO_PAGINA = 50;
-const CONCORRENCIA   = 5;   // páginas paralelas por lote (respeitoso ao PNCP e ao Supabase)
+const CONCORRENCIA   = 5;
 const TIMEOUT_MS     = 12000;
-const MAX_TENTATIVAS = 2;   // 1 retry — evita esperar 25s×3 por página lenta
+const MAX_TENTATIVAS = 2;
 
 function dStr(d) {
   return d.toISOString().slice(0, 10).replace(/-/g, '');
@@ -16,10 +17,12 @@ async function buscarPagina(dataIni, dataFim, pagina) {
     try {
       const r = await axios.get(`${BASE}/contratacoes/proposta`, {
         params: { dataInicial: dataIni, dataFinal: dataFim, pagina, tamanhoPagina: TAMANHO_PAGINA },
+        httpsAgent: pncpAgent,
         timeout: TIMEOUT_MS,
       });
       return { data: r.data.data ?? [], total: r.data.totalRegistros ?? 0 };
-    } catch {
+    } catch (e) {
+      console.error('[PNCP Sync] página', pagina, 'tentativa', t + 1, e.code || e.message);
       if (t < MAX_TENTATIVAS - 1) await new Promise((r) => setTimeout(r, 2000 * (t + 1)));
     }
   }

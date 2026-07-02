@@ -5,6 +5,7 @@
 
 const axios = require('axios');
 const db    = require('../database/db');
+const pncpAgent = require('../lib/pncpAgent');
 
 const PNCP_CONSULTA = 'https://pncp.gov.br/api/consulta/v1';
 const PNCP_BASE     = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/pncp/v1';
@@ -61,10 +62,11 @@ async function buscarContratosVencedores({ palavraChave, uf, cidade, tipo, diasA
           tamanhoPagina: TAMANHO_PAGINA,
           ...(uf ? { uf: uf.toUpperCase() } : {}),
         },
+        httpsAgent: pncpAgent,
         timeout: 15000,
       });
     } catch (e) {
-      console.warn('[Prospecção] Falha ao buscar contratos PNCP página', pagina, ':', e.message);
+      console.error('[PNCP Prospecção] página', pagina, e.code || e.message, e.response?.status);
       break;
     }
 
