@@ -1230,6 +1230,48 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_status    ON contratacoes_diretas(status)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_matches_contratacao_id ON contratacoes_matches(contratacao_id)`);
 
+  // Feature: Calculadora de Lance
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS pregao_estrategia (
+      id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      cliente_id       INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      pregao_id        TEXT NOT NULL UNIQUE,
+      numero_pregao    TEXT,
+      orgao            TEXT,
+      valor_estimado   NUMERIC(12,2),
+      valor_minimo     NUMERIC(12,2),
+      margem_seguranca NUMERIC(5,2) DEFAULT 5.0,
+      created_at       TIMESTAMPTZ DEFAULT now(),
+      updated_at       TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
+  // Feature: Histórico de Certames
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS historico_certames (
+      id                   UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      cliente_id           INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      data_pregao          DATE NOT NULL,
+      numero_pregao        TEXT NOT NULL,
+      objeto               TEXT,
+      orgao                TEXT,
+      uf                   CHAR(2),
+      plataforma           TEXT,
+      resultado            TEXT CHECK (resultado IN ('vitoria','derrota','desclassificado','suspenso','adiado','em_andamento')) DEFAULT 'em_andamento',
+      motivo               TEXT,
+      valor_estimado       NUMERIC(12,2),
+      nosso_lance          NUMERIC(12,2),
+      lance_vencedor       NUMERIC(12,2),
+      concorrente_vencedor TEXT,
+      num_concorrentes     INTEGER,
+      taxa_sucesso         BOOLEAN DEFAULT false,
+      responsavel          TEXT,
+      created_at           TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_cliente ON historico_certames(cliente_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_data    ON historico_certames(data_pregao DESC)`);
+
   console.log('Migrações executadas com sucesso');
 }
 
