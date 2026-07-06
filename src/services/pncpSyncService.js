@@ -3,6 +3,41 @@ const db = require('../database/db');
 const pncpAgent = require('../lib/pncpAgent');
 
 const BASE = process.env.PNCP_BASE_URL || 'https://pncp.gov.br/api/consulta/v1';
+
+const CATEGORIAS_SEG = ['Engenharia civil','TI e redes','Saúde e material hospitalar','Serviços administrativos','Alimentação e nutrição','Limpeza e conservação','Outros'];
+
+async function classificarSegmentacao(objeto) {
+  try {
+    const r = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: process.env.CLAUDE_MODEL_EDSON || 'claude-haiku-4-5',
+        max_tokens: 20,
+        messages: [{ role: 'user', content: `Classifique em UMA das categorias: ${CATEGORIAS_SEG.join(', ')}. Responda APENAS o nome exato da categoria, sem explicação.\n\nObjeto: ${(objeto || '').slice(0, 300)}` }],
+      },
+      {
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        timeout: 8000,
+      },
+    );
+    const cat = r.data?.content?.[0]?.text?.trim();
+    return CATEGORIAS_SEG.includes(cat) ? cat : 'Outros';
+  } catch {
+    return 'Outros';
+  }
+}
+
+async function classificarEditaisNovos() {
+  if (!process.env.ANTHROPIC_API_KEY) return;
+  const { rows } = await db.query(
+    `SELECT numero_controle_pncp, objeto FROM editais_cache WHERE segmentacao IS NULL AND objeto IS NOT NULL LIMIT 50`,
+  ).catch(() => ({ rows: [] }));
+  for (const row of rows) {
+    const seg = await classificarSegmentacao(row.objeto);
+    await db.query(`UPDATE editais_cache SET segmentacao = $1 WHERE numero_controle_pncp = $2`, [seg, row.numero_controle_pncp]).catch(() => {});
+  }
+  if (rows.length > 0) console.log(`[Sync] Segmentação: ${rows.length} editais classificados`);
+}
 const TAMANHO_PAGINA = 50;
 const CONCORRENCIA   = 5;
 const TIMEOUT_MS     = 12000;
@@ -130,6 +165,10 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
   const duracaoSegundos = Math.round((Date.now() - inicio.getTime()) / 1000);
   const resultado = { total, inseridos, erros, duracaoSegundos };
   console.log('[Sync] Concluído:', JSON.stringify(resultado));
+
+  // Classifica segmentação dos editais sem categoria (roda em background, sem bloquear)
+  classificarEditaisNovos().catch(e => console.error('[Sync] Erro classificação segmentação:', e.message));
+
   return resultado;
 }
 
@@ -140,4 +179,4 @@ async function contarCacheAtivo() {
   return Number(rows[0].n);
 }
 
-module.exports = { sincronizarPNCP, contarCacheAtivo };
+module.exports = { sincronizarPNCP, contarCacheAtivo, classificarEditaisNovos };

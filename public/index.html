@@ -624,6 +624,46 @@
     .btn-buscar-principal:hover { background: #5ed3e4; }
     .btn-buscar-principal:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    /* ── SITUAÇÃO + SEGMENTAÇÃO FILTER BAR ── */
+    .filtros-situacao-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 12px 0 4px;
+    }
+    .filtros-situacao-bar .sit-btn {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12); background: transparent;
+      color: rgba(255,255,255,0.55); cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .filtros-situacao-bar .sit-btn.ativo,
+    .filtros-situacao-bar .sit-btn:hover { border-color: #4CC5D7; color: #4CC5D7; background: rgba(76,197,215,0.08); }
+    .filtros-situacao-bar select#filtro-segmentacao {
+      background: var(--bg-secondary, #1a2f3f); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7); padding: 5px 10px; border-radius: 8px;
+      font-size: 12px; font-family: inherit; cursor: pointer; margin-left: auto;
+    }
+
+    /* ── MODAL DETALHE EDITAL ── */
+    .modal-detalhe-ed { max-width: 780px; width: 95%; border-radius: 14px; overflow: hidden; background: #fff; }
+    .modal-detalhe-ed .mdh {
+      background: #182A39; color: #fff; padding: 18px 22px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    .modal-detalhe-ed .mdh-title { font-size: 15px; font-weight: 700; margin-bottom: 3px; color: #fff; }
+    .modal-detalhe-ed .mdh-sub { font-size: 12px; color: rgba(255,255,255,0.6); }
+    .modal-detalhe-ed .mdh-badge {
+      background: #4CC5D7; color: #04342C; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+    }
+    .modal-detalhe-ed .mdb { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 22px; background: #F7F9FA; }
+    @media(max-width:600px) { .modal-detalhe-ed .mdb { grid-template-columns: 1fr; } }
+    .mdb-card { background: #fff; border: 1px solid #C4DAE9; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #182A39; }
+    .mdb-card h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7a9bb5; margin: 0 0 10px; letter-spacing: .5px; }
+    .mdb-card p { margin: 4px 0; line-height: 1.5; }
+    .mdb-card a { color: #4CC5D7; text-decoration: none; }
+    .mdb-card a:hover { text-decoration: underline; }
+    .mdb-edson-empty { color: #7a9bb5; font-style: italic; font-size: 13px; }
+    .mdb-score { display: inline-block; background: #182A39; color: #4CC5D7; font-weight: 700; font-size: 14px; padding: 3px 10px; border-radius: 6px; margin-top: 8px; }
+
     /* ── RESULTS ── */
     .results-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -2403,8 +2443,44 @@
           </div>
         </div>
 
+        <!-- FILTROS RÁPIDOS: SITUAÇÃO + SEGMENTAÇÃO -->
+        <div class="filtros-situacao-bar">
+          <button class="sit-btn ativo" data-sit="a_vencer" onclick="setSituacao(this)">A vencer</button>
+          <button class="sit-btn" data-sit="vencida" onclick="setSituacao(this)">Vencidas</button>
+          <button class="sit-btn" data-sit="todas" onclick="setSituacao(this)">Todas</button>
+          <select id="filtro-segmentacao" onchange="buscar(1)">
+            <option value="todas">Segmentação: todas</option>
+            <option value="Engenharia civil">Engenharia civil</option>
+            <option value="TI e redes">TI e redes</option>
+            <option value="Saúde e material hospitalar">Saúde e material hospitalar</option>
+            <option value="Serviços administrativos">Serviços administrativos</option>
+            <option value="Alimentação e nutrição">Alimentação e nutrição</option>
+            <option value="Limpeza e conservação">Limpeza e conservação</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+
         <!-- RESULTADOS -->
         <div id="results-area"></div>
+
+        <!-- MODAL DETALHE DO EDITAL -->
+        <div class="modal-overlay" id="modal-detalhe-edital" onclick="fecharDetalheEdital(event)">
+          <div class="modal modal-detalhe-ed" onclick="event.stopPropagation()">
+            <div class="mdh">
+              <div>
+                <div class="mdh-sub" id="mde-sub"></div>
+                <div class="mdh-title" id="mde-title"></div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center">
+                <span class="mdh-badge" id="mde-badge"></span>
+                <button class="modal-close" onclick="document.getElementById('modal-detalhe-edital').classList.remove('visible')" style="color:#fff">✕</button>
+              </div>
+            </div>
+            <div class="mdb" id="mde-body">
+              <div class="state-box"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
 
         <!-- MODAL ITENS DO PREGÃO -->
         <div class="modal-overlay" id="modal-itens-pregao" onclick="this.classList.remove('visible')">
@@ -8420,6 +8496,12 @@
     }
   });
 
+  function setSituacao(btn) {
+    document.querySelectorAll('.sit-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    buscar(1);
+  }
+
   function limparBusca() {
     document.getElementById('q').value = '';
     selecionarTodosUF(false);
@@ -8432,6 +8514,9 @@
     if (vMinEl) vMinEl.value = '';
     if (vMaxEl) vMaxEl.value = '';
     document.querySelectorAll('#filtro-modalidades input, #filtro-portais input').forEach(el => { el.checked = false; });
+    const segEl = document.getElementById('filtro-segmentacao');
+    if (segEl) segEl.value = 'todas';
+    document.querySelectorAll('.sit-btn').forEach((b, i) => b.classList.toggle('ativo', i === 0));
     setDefaultDates();
     document.getElementById('results-area').innerHTML = '';
     lastParams = null;
@@ -8444,6 +8529,82 @@
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
     } catch { /* fire and forget */ }
+  }
+
+  function fecharDetalheEdital(evt) {
+    if (evt && evt.target !== document.getElementById('modal-detalhe-edital')) return;
+    document.getElementById('modal-detalhe-edital').classList.remove('visible');
+  }
+
+  async function abrirDetalheEdital(e) {
+    const modal = document.getElementById('modal-detalhe-edital');
+    const body  = document.getElementById('mde-body');
+    body.innerHTML = '<div style="grid-column:1/-1;display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
+    modal.classList.add('visible');
+
+    // Extrair cnpj/ano/sequencial do numeroEdital ou link
+    const nPNCP = e.numero_controle_pncp || e.numeroEdital || e.numero || '';
+    const m = nPNCP.match(/^(\d{14})-(\d+)-0*(\d+)\/(\d{4})$/) || nPNCP.match(/^(\d{14}|\d+)-\d+-0*(\d+)\/(\d{4})$/);
+
+    let cnpj, ano, seq;
+    if (m && m.length >= 4) {
+      cnpj = m[1]; seq = m[m.length - 2]; ano = m[m.length - 1];
+    } else {
+      // Tentar extrair do link
+      const linkM = (e.link || e.linkSistemaOrigem || '').match(/orgaos\/(\d+)\/compras\/(\d+)\/(\d+)/);
+      if (linkM) { cnpj = linkM[1]; ano = linkM[2]; seq = linkM[3]; }
+    }
+
+    // Preencher cabeçalho com dados já disponíveis
+    document.getElementById('mde-title').textContent = e.orgao || '—';
+    document.getElementById('mde-sub').textContent = [e.modalidade, e.numeroEdital || nPNCP].filter(Boolean).join(' · ');
+    document.getElementById('mde-badge').textContent = e.labelSessao || e.status || '—';
+
+    if (!cnpj || !ano || !seq) {
+      body.innerHTML = `<div style="grid-column:1/-1;padding:24px;color:#7a9bb5">Não foi possível carregar os detalhes — identificador PNCP ausente.</div>`;
+      return;
+    }
+
+    try {
+      const r = await fetch(`${API}/editais/${cnpj}/${ano}/${seq}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      const ed   = data.edital || data; // compatibilidade
+      const edson = data.edson || null;
+
+      const local = [ed.municipio, ed.estado || ed.uf].filter(Boolean).join(' / ') || '—';
+      const enc   = ed.dataEncerramentoProposta || ed.dataEncerramento || '—';
+      const seg   = e.segmentacao || ed.segmentacao || '—';
+      const linkPNCP = ed.link || e.link || '#';
+
+      body.innerHTML = `
+        <div class="mdb-card">
+          <h4>Dados do edital</h4>
+          <p><strong>Modalidade:</strong> ${esc(ed.modalidade || '—')}</p>
+          <p><strong>Local:</strong> ${esc(local)}</p>
+          <p><strong>Segmentação:</strong> ${esc(seg)}</p>
+          <p><strong>Encerramento:</strong> ${esc(enc)}</p>
+          <p><strong>Valor estimado:</strong> ${esc(ed.valor_str || (ed.valorEstimado ? String(ed.valorEstimado) : '—'))}</p>
+          <p style="margin-top:10px"><a href="${esc(linkPNCP)}" target="_blank" rel="noopener">Ver no PNCP ↗</a></p>
+        </div>
+        <div class="mdb-card">
+          <h4>Análise Edson IA</h4>
+          ${edson
+            ? `<p>${esc(edson.resumo_executivo || 'Resumo não disponível.')}</p>
+               <div class="mdb-score">Score: ${esc(String(edson.score ?? '—'))}/100</div>`
+            : `<p class="mdb-edson-empty">Este edital ainda não foi analisado pelo Edson.</p>
+               <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="analisarComEdsonDetalhe('${esc(nPNCP)}')">🤖 Analisar agora</button>`
+          }
+        </div>`;
+    } catch (err) {
+      body.innerHTML = `<div style="grid-column:1/-1;padding:20px;color:#c0392b">Erro ao carregar detalhes: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function analisarComEdsonDetalhe(nPNCP) {
+    // Fecha o detalhe e abre o fluxo normal de análise Edson
+    document.getElementById('modal-detalhe-edital').classList.remove('visible');
+    const idx = editaisResultados.findIndex(e => (e.numero_controle_pncp || e.numeroEdital || e.numero) === nPNCP);
+    if (idx >= 0) analisarComEdson(idx);
   }
 
   async function abrirModalOferecer(idx) {
@@ -8587,7 +8748,10 @@
     const area = document.getElementById('results-area');
     area.innerHTML = `<div class="state-box"><div class="spinner spinner-lg"></div><p>Consultando o PNCP…</p></div>`;
 
-    const params = new URLSearchParams({ dataInicial, dataFinal, pagina, tamanhoPagina: 12 });
+    const situacao = document.querySelector('.sit-btn.ativo')?.dataset?.sit || 'a_vencer';
+    const segmentacao = document.getElementById('filtro-segmentacao')?.value || 'todas';
+
+    const params = new URLSearchParams({ dataInicial, dataFinal, pagina, tamanhoPagina: 12, situacao });
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
     const raioNum = parseInt(raio) || 0;
@@ -8596,6 +8760,7 @@
     if (modalidades.length > 0) params.set('modalidades', modalidades.join(','));
     if (valorMin) params.set('valorMin', valorMin);
     if (valorMax) params.set('valorMax', valorMax);
+    if (segmentacao && segmentacao !== 'todas') params.set('segmentacao', segmentacao);
 
     try {
       const r = await fetch(`${API}/editais?${params}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -8748,6 +8913,7 @@
           <span class="edital-numero">${esc(e.numeroEdital || nPNCP.slice(0,20) || '—')}</span>
           ${e.modalidade ? `<span class="edital-badge-modal">${esc(e.modalidade)}</span>` : ''}
           ${portal ? `<span class="edital-badge-modal" style="color:#4CC5D7">${esc(portal)}</span>` : ''}
+          ${e.segmentacao ? `<span class="edital-badge-modal" style="color:#a0c8a0;font-size:10px">${esc(e.segmentacao)}</span>` : ''}
         </div>
         ${urgBadge}
       </div>
@@ -8768,6 +8934,7 @@
         </div>
       </div>
       <div class="edital-acoes">
+        <button class="btn-edson" style="background:rgba(24,42,57,0.8);color:#4CC5D7;border:1px solid rgba(76,197,215,0.3)" onclick="abrirDetalheEdital(editaisResultados[${idx}])">🔍 Detalhes</button>
         ${link ? `<a class="btn-ver-pncp" href="${link}" target="_blank" rel="noopener">
           PNCP <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>` : ''}

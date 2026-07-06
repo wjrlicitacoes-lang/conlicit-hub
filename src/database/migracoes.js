@@ -1272,6 +1272,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_cliente ON historico_certames(cliente_id)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_data    ON historico_certames(data_pregao DESC)`);
 
+  // Segmentação automática de editais (classificada por IA)
+  await db.query(`ALTER TABLE editais_cache ADD COLUMN IF NOT EXISTS segmentacao TEXT`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_seg ON editais_cache(segmentacao)`);
+
   console.log('Migrações executadas com sucesso');
 }
 

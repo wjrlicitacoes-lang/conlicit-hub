@@ -297,8 +297,18 @@ function formatarEdital(item) {
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais, valorMin, valorMax, pagina, tamanhoPagina }) {
-  const condicoes = [`data_encerramento >= NOW()`];
+async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais, valorMin, valorMax, pagina, tamanhoPagina, situacao, segmentacao }) {
+  // situacao: 'a_vencer' (default) | 'vencida' | 'todas'
+  let dataCondicao;
+  if (!situacao || situacao === 'a_vencer') {
+    dataCondicao = `data_encerramento >= CURRENT_DATE`;
+  } else if (situacao === 'vencida') {
+    dataCondicao = `data_encerramento < CURRENT_DATE`;
+  } else {
+    dataCondicao = null; // 'todas' — sem restrição de data
+  }
+
+  const condicoes = dataCondicao ? [dataCondicao] : [];
   const params = [];
   let idx = 1;
 
@@ -415,7 +425,12 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
     }
   }
 
-  const where = condicoes.join(' AND ');
+  if (segmentacao && segmentacao !== 'todas') {
+    condicoes.push(`segmentacao = $${idx++}`);
+    params.push(segmentacao);
+  }
+
+  const where = condicoes.length > 0 ? condicoes.join(' AND ') : 'TRUE';
 
   const { rows: [{ n }] } = await db.query(
     `SELECT COUNT(*) AS n FROM editais_cache WHERE ${where}`, params,
@@ -437,7 +452,7 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
 
 // GET /editais
 async function listarEditais(req, res) {
-  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10 } = req.query;
+  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10, situacao, segmentacao } = req.query;
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
@@ -452,12 +467,19 @@ async function listarEditais(req, res) {
       valorMax:     valorMax !== '' ? valorMax : undefined,
       pagina:       pg,
       tamanhoPagina: tam,
+      situacao:     situacao || 'a_vencer',
+      segmentacao:  segmentacao && segmentacao !== 'todas' ? segmentacao : undefined,
     });
 
     if (totalCache > 0) {
       return res.json({
         total: totalCache, pagina: pg, tamanhoPagina: tam, fonte: 'cache',
-        dados: dadosCache.map(row => formatarEdital(row.raw ?? row)),
+        dados: dadosCache.map(row => {
+          const d = formatarEdital(row.raw ?? row);
+          d.segmentacao = row.segmentacao || null;
+          d.numero_controle_pncp = row.numero_controle_pncp;
+          return d;
+        }),
       });
     }
 
@@ -555,7 +577,18 @@ async function buscarEditalPorId(req, res) {
   ).catch(() => ({ rows: [] }));
 
   if (rows.length > 0) {
-    return res.json(formatarEdital(rows[0].raw ?? rows[0]));
+    const row = rows[0];
+    const edital = formatarEdital(row.raw ?? row);
+    edital.segmentacao = row.segmentacao || null;
+    edital.numero_controle_pncp = row.numero_controle_pncp;
+
+    // Busca análise Edson via referencia = numero_controle_pncp
+    const { rows: edsonRows } = await db.query(
+      `SELECT resumo_executivo, score FROM analises_edson WHERE referencia = $1 ORDER BY id DESC LIMIT 1`,
+      [row.numero_controle_pncp],
+    ).catch(() => ({ rows: [] }));
+
+    return res.json({ edital, edson: edsonRows[0] || null });
   }
 
   try {
@@ -563,7 +596,7 @@ async function buscarEditalPorId(req, res) {
       `${PNCP_BASE_URL}/orgaos/${cnpj}/compras/${ano}/${sequencial}`,
       { httpsAgent: pncpAgent, timeout: 10000 },
     );
-    return res.json(formatarEdital(resposta.data));
+    return res.json({ edital: formatarEdital(resposta.data), edson: null });
   } catch (erro) {
     if (erro.response?.status === 404) {
       return res.status(404).json({ mensagem: `Edital não encontrado: CNPJ ${cnpj}, ano ${ano}, sequencial ${sequencial}.` });
