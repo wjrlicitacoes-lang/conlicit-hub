@@ -6,6 +6,7 @@ const { PERMISSOES_ROLE, TODOS_MODULOS } = require('../middleware/autenticar');
 const ROLES_VALIDOS = [
   'admin','assistente','assistente_junior','cliente','socio_fundador',
   'diretor_comercial','operador','sdr','social_media',
+  'operacional','comercial',
 ];
 const ROLES_GESTORES      = ['admin','socio_fundador'];
 const ROLES_ADMIN_APENAS  = ['admin'];

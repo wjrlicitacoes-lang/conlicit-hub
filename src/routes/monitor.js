@@ -2,6 +2,7 @@ const express    = require('express');
 const axios      = require('axios');
 const autenticar = require('../middleware/autenticar');
 const pncpAgent  = require('../lib/pncpAgent');
+const db         = require('../database/db');
 
 const router = express.Router();
 router.use(autenticar);
@@ -13,6 +14,33 @@ const PALAVRAS_CRITICAS = [
   'HABILITAÇÃO','HABILITADO','DESCLASSIFICADO','SUSPENS',
   'NEGOCIAR','VENCEDOR','ADJUDICADO',
 ];
+
+const PALAVRAS_VITORIA = ['VENCEDOR', 'ADJUDICADO'];
+
+async function criarTarefaPosVitoria(numero_pregao, pregao_id) {
+  try {
+    const { rows } = await db.query(
+      `SELECT id FROM usuarios WHERE email = 'werbert@conlicit.com' LIMIT 1`,
+    );
+    const responsavel_id = rows[0]?.id || null;
+    const data_prazo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    await db.query(`
+      INSERT INTO tarefas
+        (titulo, descricao, status, prioridade, responsavel_id, categoria, pregao_id, data_prazo)
+      VALUES ($1,$2,'a_fazer','urgente',$3,'pos_pregao',$4,$5)
+      ON CONFLICT DO NOTHING
+    `, [
+      `Pós-vitória — Pregão ${numero_pregao || pregao_id || '?'}`,
+      'Adjudicação detectada. Executar SOP 01: proposta readequada + catálogo + contrato.',
+      responsavel_id,
+      pregao_id || null,
+      data_prazo,
+    ]);
+    console.log('[tarefas] tarefa pós-vitória criada para pregão', numero_pregao);
+  } catch (e) {
+    console.error('[tarefas] erro ao criar tarefa pós-vitória:', e.message);
+  }
+}
 
 // Controle de duplicatas em memória (por processo)
 const alertasEnviados = new Set();
@@ -74,6 +102,10 @@ router.post('/chat', async (req, res) => {
         const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
         const alerta = `🚨 *CONLICIT HUB — ALERTA DE PREGÃO*\n\nPalavra detectada: *${palavra}*\nPregão: ${numero_pregao || pregao_id || '—'}\nÓrgão: ${orgao || '—'}\nHorário: ${hora}\n\nAcesse: hub.conlicit.com`;
         await alertarWhatsApp(numero, alerta);
+      }
+
+      if (PALAVRAS_VITORIA.includes(palavra)) {
+        criarTarefaPosVitoria(numero_pregao, pregao_id);
       }
     }
   }

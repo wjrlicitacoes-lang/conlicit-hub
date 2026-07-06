@@ -1,4 +1,5 @@
-const db = require('./db');
+const db     = require('./db');
+const bcrypt = require('bcryptjs');
 
 async function executarMigracoes() {
   await db.query(`
@@ -1275,6 +1276,84 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   // Segmentação automática de editais (classificada por IA)
   await db.query(`ALTER TABLE editais_cache ADD COLUMN IF NOT EXISTS segmentacao TEXT`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_seg ON editais_cache(segmentacao)`);
+
+  // ── Novos papéis da equipe interna ──────────────────────────────────────────
+  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await db.query(`
+    ALTER TABLE usuarios
+      ADD CONSTRAINT usuarios_role_check CHECK (role IN (
+        'admin','socio_fundador','assistente','assistente_junior',
+        'diretor_comercial','operador','sdr','social_media','cliente',
+        'operacional','comercial'
+      ))
+  `);
+
+  // ── Sistema de Tarefas da Equipe ────────────────────────────────────────────
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS tarefas (
+      id            UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+      titulo        TEXT        NOT NULL,
+      descricao     TEXT,
+      status        TEXT        NOT NULL DEFAULT 'a_fazer'
+                                CHECK (status IN ('a_fazer','em_andamento','aguardando','concluida','cancelada')),
+      prioridade    TEXT        NOT NULL DEFAULT 'media'
+                                CHECK (prioridade IN ('baixa','media','alta','urgente')),
+      criado_por    INTEGER     REFERENCES usuarios(id) ON DELETE SET NULL,
+      responsavel_id INTEGER    REFERENCES usuarios(id) ON DELETE SET NULL,
+      cliente_id    INTEGER     REFERENCES clientes(id) ON DELETE SET NULL,
+      pregao_id     TEXT,
+      data_prazo    DATE,
+      data_conclusao TIMESTAMPTZ,
+      categoria     TEXT        CHECK (categoria IN (
+        'operacional','comercial','pos_pregao','habilitacao',
+        'proposta','administrativo','desenvolvimento','outro'
+      )),
+      created_at    TIMESTAMPTZ DEFAULT now(),
+      updated_at    TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_responsavel ON tarefas(responsavel_id, status)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_status      ON tarefas(status, data_prazo)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS tarefa_comentarios (
+      id         UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+      tarefa_id  UUID        REFERENCES tarefas(id) ON DELETE CASCADE NOT NULL,
+      usuario_id INTEGER     REFERENCES usuarios(id) ON DELETE SET NULL,
+      texto      TEXT        NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS tarefa_historico (
+      id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+      tarefa_id       UUID        REFERENCES tarefas(id) ON DELETE CASCADE NOT NULL,
+      usuario_id      INTEGER     REFERENCES usuarios(id) ON DELETE SET NULL,
+      campo_alterado  TEXT,
+      valor_anterior  TEXT,
+      valor_novo      TEXT,
+      created_at      TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
+  // ── Seed de usuários iniciais da equipe ──────────────────────────────────────
+  const equipeInicial = [
+    { nome: 'Sabrine', email: 'sabrine@conlicit.com', role: 'admin' },
+    { nome: 'Werbert', email: 'werbert@conlicit.com', role: 'operacional' },
+    { nome: 'Gabriel', email: 'gabriel@conlicit.com', role: 'comercial' },
+    { nome: 'Caio',    email: 'caio@conlicit.com',    role: 'assistente' },
+    { nome: 'Bryan',   email: 'bryan@conlicit.com',   role: 'assistente' },
+  ];
+  const senhaHash = await bcrypt.hash('trocar123', 10);
+  for (const u of equipeInicial) {
+    await db.query(
+      `INSERT INTO usuarios (email, senha_hash, nome, role)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO NOTHING`,
+      [u.email, senhaHash, u.nome, u.role],
+    );
+  }
 
   console.log('Migrações executadas com sucesso');
 }

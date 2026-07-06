@@ -642,6 +642,43 @@
       font-size: 12px; font-family: inherit; cursor: pointer; margin-left: auto;
     }
 
+    /* ── TAREFAS V2 KANBAN ── */
+    #tv2-kanban { display:grid; }
+    .tv2-col { background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;min-height:120px; }
+    .tv2-col-header { font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px; }
+    .tv2-col-count { background:var(--bg-hover);padding:2px 8px;border-radius:99px;font-size:11px;color:var(--text-muted); }
+    .tarefa-card { background:var(--surface,#1e3347);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s; }
+    .tarefa-card:hover { border-color:rgba(76,197,215,0.35); }
+    .tarefa-card.p-urgente { border-left:4px solid #C0392B; }
+    .tarefa-card.p-alta    { border-left:4px solid #BA7517; }
+    .tarefa-card.p-media   { border-left:4px solid #4CC5D7; }
+    .tarefa-card.p-baixa   { border-left:4px solid #888; }
+    .prio-badge { display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;margin-bottom:5px; }
+    .prio-urgente { background:#fcebeb;color:#791F1F; }
+    .prio-alta    { background:#faeeda;color:#633806; }
+    .prio-media   { background:#eaf6fb;color:#0c447c; }
+    .prio-baixa   { background:#f4f4f4;color:#555; }
+    .tarefa-card-titulo { font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.4; }
+    .tarefa-card-meta { display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text-muted); }
+    .tarefa-card-foot { display:flex;justify-content:space-between;align-items:center;margin-top:8px; }
+    .tv2-avatar { width:22px;height:22px;border-radius:50%;background:#4CC5D7;color:#182A39;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center; }
+    .tv2-kpi-card { background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center; }
+    .tv2-kpi-num { font-size:24px;font-weight:800;color:#fff; }
+    .tv2-kpi-label { font-size:11px;color:var(--text-muted);margin-top:2px; }
+    /* Lista membro */
+    .tv2-lista-item { display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s; }
+    .tv2-lista-item:hover { border-color:rgba(76,197,215,0.35); }
+    /* Equipe */
+    .equipe-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .equipe-table th { text-align:left;padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border); }
+    .equipe-table td { padding:12px;border-bottom:1px solid var(--border);color:var(--text); }
+    .equipe-table tr:last-child td { border-bottom:none; }
+    .role-badge { padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600; }
+    .role-admin { background:rgba(76,197,215,0.15);color:#4CC5D7; }
+    .role-operacional { background:rgba(186,117,23,0.15);color:#BA7517; }
+    .role-comercial { background:rgba(100,200,150,0.15);color:#3a9e6a; }
+    .role-assistente { background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6); }
+
     /* ── MODAL DETALHE EDITAL ── */
     .modal-detalhe-ed { max-width: 780px; width: 95%; border-radius: 14px; overflow: hidden; background: #fff; }
     .modal-detalhe-ed .mdh {
@@ -2251,6 +2288,10 @@
             <button class="nav-item" data-nav="financeiro" onclick="navTo('financeiro')" id="nav-financeiro" hidden>
               <span class="nav-icon"><i class="ti ti-report-money"></i></span>
               <span class="nav-label">Financeiro</span>
+            </button>
+            <button class="nav-item" data-nav="equipe" onclick="navTo('equipe')" id="nav-equipe" hidden>
+              <span class="nav-icon"><i class="ti ti-users-group"></i></span>
+              <span class="nav-label">Equipe</span>
             </button>
             <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
               <span class="nav-icon"><i class="ti ti-key"></i></span>
@@ -3865,90 +3906,213 @@
 
       <!-- ════════════════════════════════ TAREFAS ════════════════════════════════ -->
       <section id="section-tarefas" class="section" style="display:none">
-        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
-          <div>
-            <h1 class="section-title">Tarefas</h1>
-            <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Gestão e delegação de tarefas da equipe</p>
+        <div class="section-header">
+          <h1>Tarefas</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="tarefasV2Carregar()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="tarefasV2AbrirNova()">+ Nova tarefa</button>
           </div>
-          <button class="btn btn-primary" onclick="abrirNovaTarefa()">+ Nova tarefa</button>
         </div>
 
-        <!-- KPIs por pessoa -->
-        <div id="tarefas-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px"></div>
+        <!-- KPIs admin -->
+        <div id="tv2-kpis" style="display:none;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+
+        <!-- Por membro (admin) -->
+        <div id="tv2-membros" style="display:none;margin-bottom:20px"></div>
 
         <!-- Filtros -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--bg-card);border-radius:12px;border:1px solid var(--border)">
-          <select id="tf-filtro-status" class="form-control" style="width:160px" onchange="carregarTarefas()">
-            <option value="">Todos os status</option>
-            <option value="pendente">Pendente</option>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--bg-card);border-radius:10px;border:1px solid var(--border);margin-bottom:16px">
+          <select id="tv2-f-status" class="form-control" style="width:150px" onchange="tarefasV2Carregar()">
+            <option value="">Todos status</option>
+            <option value="a_fazer">A fazer</option>
             <option value="em_andamento">Em andamento</option>
-            <option value="concluido">Concluída</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="concluida">Concluída</option>
           </select>
-          <select id="tf-filtro-usuario" class="form-control" style="width:180px" onchange="carregarTarefas()">
-            <option value="">Todos os responsáveis</option>
-          </select>
-          <select id="tf-filtro-prioridade" class="form-control" style="width:140px" onchange="carregarTarefas()">
-            <option value="">Todas as prioridades</option>
+          <select id="tv2-f-prioridade" class="form-control" style="width:140px" onchange="tarefasV2Carregar()">
+            <option value="">Todas prioridades</option>
             <option value="urgente">🔴 Urgente</option>
             <option value="alta">🟠 Alta</option>
-            <option value="normal">🟡 Normal</option>
+            <option value="media">🟡 Média</option>
             <option value="baixa">🟢 Baixa</option>
           </select>
-          <button class="btn btn-ghost btn-sm" onclick="limparFiltrosTarefas()">Limpar filtros</button>
+          <select id="tv2-f-responsavel" class="form-control" style="width:170px;display:none" onchange="tarefasV2Carregar()">
+            <option value="">Todos responsáveis</option>
+          </select>
+          <select id="tv2-f-categoria" class="form-control" style="width:160px" onchange="tarefasV2Carregar()">
+            <option value="">Todas categorias</option>
+            <option value="operacional">Operacional</option>
+            <option value="comercial">Comercial</option>
+            <option value="pos_pregao">Pós-pregão</option>
+            <option value="habilitacao">Habilitação</option>
+            <option value="proposta">Proposta</option>
+            <option value="administrativo">Administrativo</option>
+            <option value="desenvolvimento">Desenvolvimento</option>
+            <option value="outro">Outro</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="tv2LimparFiltros()">Limpar</button>
         </div>
 
-        <!-- Lista de tarefas -->
-        <div id="tarefas-lista"><div class="state-box"><p style="color:var(--text-muted)">Carregando tarefas...</p></div></div>
+        <!-- Kanban (admin) -->
+        <div id="tv2-kanban" style="display:none;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+
+        <!-- Lista (membro) -->
+        <div id="tv2-lista"></div>
       </section>
 
-      <!-- MODAL: Nova Tarefa -->
-      <div class="modal-overlay" id="modal-nova-tarefa" onclick="this.classList.remove('visible')">
-        <div class="modal" onclick="event.stopPropagation()" style="max-width:540px">
+      <!-- ═══ SEÇÃO EQUIPE ═══ -->
+      <section id="section-equipe" class="section" style="display:none">
+        <div class="section-header">
+          <h1>Equipe</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="equipeCarregar()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="equipeAbrirNovo()">+ Novo membro</button>
+          </div>
+        </div>
+        <div id="equipe-lista"></div>
+      </section>
+
+      <!-- MODAL: Nova/Editar Tarefa v2 -->
+      <div class="modal-overlay" id="modal-tv2-nova" onclick="this.classList.remove('visible')">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width:560px">
           <div class="modal-header">
-            <h3>Nova tarefa</h3>
-            <button class="modal-close" onclick="document.getElementById('modal-nova-tarefa').classList.remove('visible')">✕</button>
+            <h3 id="tv2-modal-titulo">Nova tarefa</h3>
+            <button class="modal-close" onclick="document.getElementById('modal-tv2-nova').classList.remove('visible')">✕</button>
           </div>
           <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" id="tv2-nt-id">
             <div class="form-group" style="margin:0">
               <label>Título *</label>
-              <input type="text" id="nt-titulo" class="form-control" placeholder="Ex: Preparar proposta do cliente X">
+              <input type="text" id="tv2-nt-titulo" class="form-control" placeholder="Ex: Enviar habilitação Pregão 012">
             </div>
             <div class="form-group" style="margin:0">
               <label>Descrição</label>
-              <textarea id="nt-descricao" class="form-control" rows="2" placeholder="Detalhes opcionais..."></textarea>
+              <textarea id="tv2-nt-descricao" class="form-control" rows="2" placeholder="Detalhes opcionais..."></textarea>
             </div>
             <div class="row2">
               <div class="form-group" style="margin:0">
                 <label>Responsável *</label>
-                <select id="nt-usuario" class="form-control"></select>
+                <select id="tv2-nt-responsavel" class="form-control"></select>
               </div>
               <div class="form-group" style="margin:0">
-                <label>Prioridade</label>
-                <select id="nt-prioridade" class="form-control">
-                  <option value="normal">🟡 Normal</option>
-                  <option value="alta">🟠 Alta</option>
-                  <option value="urgente">🔴 Urgente</option>
-                  <option value="baixa">🟢 Baixa</option>
+                <label>Categoria *</label>
+                <select id="tv2-nt-categoria" class="form-control">
+                  <option value="operacional">Operacional</option>
+                  <option value="comercial">Comercial</option>
+                  <option value="pos_pregao">Pós-pregão</option>
+                  <option value="habilitacao">Habilitação</option>
+                  <option value="proposta">Proposta</option>
+                  <option value="administrativo">Administrativo</option>
+                  <option value="desenvolvimento">Desenvolvimento</option>
+                  <option value="outro">Outro</option>
                 </select>
               </div>
             </div>
             <div class="row2">
               <div class="form-group" style="margin:0">
-                <label>Prazo</label>
-                <input type="date" id="nt-prazo" class="form-control">
+                <label>Prioridade</label>
+                <select id="tv2-nt-prioridade" class="form-control">
+                  <option value="baixa">🟢 Baixa</option>
+                  <option value="media" selected>🟡 Média</option>
+                  <option value="alta">🟠 Alta</option>
+                  <option value="urgente">🔴 Urgente</option>
+                </select>
               </div>
               <div class="form-group" style="margin:0">
+                <label>Prazo</label>
+                <input type="date" id="tv2-nt-prazo" class="form-control">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="form-group" style="margin:0">
                 <label>Cliente (opcional)</label>
-                <select id="nt-cliente" class="form-control">
-                  <option value="">Nenhum</option>
-                </select>
+                <select id="tv2-nt-cliente" class="form-control"><option value="">Nenhum</option></select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label>Nº Pregão (opcional)</label>
+                <input type="text" id="tv2-nt-pregao" class="form-control" placeholder="Ex: 012/2025">
               </div>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
-              <button class="btn btn-ghost" onclick="document.getElementById('modal-nova-tarefa').classList.remove('visible')">Cancelar</button>
-              <button class="btn btn-primary" onclick="salvarNovaTarefa()">Criar tarefa</button>
+              <button class="btn btn-ghost" onclick="document.getElementById('modal-tv2-nova').classList.remove('visible')">Cancelar</button>
+              <button class="btn btn-primary" onclick="tarefasV2Salvar()">Salvar tarefa</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- MODAL: Detalhe da Tarefa v2 -->
+      <div class="modal-overlay" id="modal-tv2-detalhe" onclick="this.classList.remove('visible')">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width:620px">
+          <div class="modal-header" style="background:#182A39;border-radius:12px 12px 0 0" id="tv2-det-header">
+            <div style="flex:1">
+              <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:2px" id="tv2-det-badge"></div>
+              <h3 style="color:#fff;margin:0" id="tv2-det-titulo"></h3>
+            </div>
+            <button class="modal-close" style="color:#fff" onclick="document.getElementById('modal-tv2-detalhe').classList.remove('visible')">✕</button>
+          </div>
+          <div class="modal-body" id="tv2-det-body" style="padding:0">
+            <div class="state-box"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: Novo/Editar Membro Equipe -->
+      <div class="modal-overlay" id="modal-equipe-membro" onclick="this.classList.remove('visible')">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width:440px">
+          <div class="modal-header">
+            <h3 id="equipe-modal-titulo">Novo membro</h3>
+            <button class="modal-close" onclick="document.getElementById('modal-equipe-membro').classList.remove('visible')">✕</button>
+          </div>
+          <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" id="equipe-m-id">
+            <div class="form-group" style="margin:0">
+              <label>Nome *</label>
+              <input type="text" id="equipe-m-nome" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Email *</label>
+              <input type="email" id="equipe-m-email" class="form-control">
+            </div>
+            <div class="row2">
+              <div class="form-group" style="margin:0">
+                <label>Cargo *</label>
+                <select id="equipe-m-role" class="form-control">
+                  <option value="admin">Admin</option>
+                  <option value="operacional">Operacional</option>
+                  <option value="comercial">Comercial</option>
+                  <option value="assistente">Assistente</option>
+                  <option value="assistente_junior">Assist. Junior</option>
+                  <option value="diretor_comercial">Dir. Comercial</option>
+                  <option value="operador">Operador</option>
+                  <option value="sdr">SDR</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label>Status</label>
+                <select id="equipe-m-ativo" class="form-control">
+                  <option value="true">✅ Ativo</option>
+                  <option value="false">⛔ Inativo</option>
+                </select>
+              </div>
+            </div>
+            <div id="equipe-m-nova-senha" style="display:none">
+              <div class="form-group" style="margin:0">
+                <label>Nova senha (deixe em branco para manter)</label>
+                <input type="password" id="equipe-m-senha" class="form-control" placeholder="Mínimo 8 caracteres">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">
+              <button class="btn btn-ghost" onclick="document.getElementById('modal-equipe-membro').classList.remove('visible')">Cancelar</button>
+              <button class="btn btn-primary" onclick="equipeSalvar()">Salvar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: Nova Tarefa (legado — mantido para compatibilidade) -->
+      <div class="modal-overlay" id="modal-nova-tarefa" onclick="this.classList.remove('visible')">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width:540px;display:none">
         </div>
       </div>
 
@@ -5281,6 +5445,7 @@
     document.getElementById('nav-marketing').hidden     = !permiteModulo('marketing') || cliente;
     document.getElementById('nav-planilha').hidden          = !admin || cliente;
     document.getElementById('nav-gerador-contrato').hidden  = !admin || cliente;
+    document.getElementById('nav-equipe').hidden             = !admin || cliente;
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = false;   // visível para todos os roles
@@ -5370,19 +5535,8 @@
     else if (section === 'financeiro')      carregarFinanceiro();
     else if (section === 'proposta')        propostaCarregarHistorico();
     else if (section === 'oportunidades')   carregarOportunidades();
-    else if (section === 'tarefas') {
-      carregarTarefas();
-      fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } })
-        .then(r => r.json())
-        .then(resp => {
-          const usuarios = Array.isArray(resp) ? resp : (resp.dados || resp.rows || []);
-          const sel = document.getElementById('tf-filtro-usuario');
-          if (sel) {
-            sel.innerHTML = '<option value="">Todos os responsáveis</option>'
-              + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
-          }
-        }).catch(() => {});
-    }
+    else if (section === 'tarefas') { tarefasV2Carregar(); }
+    else if (section === 'equipe')  { equipeCarregar(); }
     else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
     else if (section === 'planilha')        propCarregarLista();
@@ -18621,6 +18775,478 @@ function gcNovo() {
 const PRIORIDADE_LABEL = { urgente:'🔴 Urgente', alta:'🟠 Alta', normal:'🟡 Normal', baixa:'🟢 Baixa' };
 const STATUS_LABEL     = { pendente:'Pendente', em_andamento:'Em andamento', concluido:'Concluída' };
 const STATUS_COLOR     = { pendente:'#f59e0b', em_andamento:'#4CC5D7', concluido:'#22c55e' };
+
+// ════════════════════════════════════════════════════
+// TAREFAS V2
+// ════════════════════════════════════════════════════
+const TV2_STATUS_LABEL = { a_fazer:'A fazer', em_andamento:'Em andamento', aguardando:'Aguardando', concluida:'Concluída', cancelada:'Cancelada' };
+const TV2_PRIO_LABEL   = { urgente:'🔴 URGENTE', alta:'🟠 ALTA', media:'🟡 MÉDIA', baixa:'🟢 BAIXA' };
+const TV2_CAT_LABEL    = { operacional:'Operacional', comercial:'Comercial', pos_pregao:'Pós-pregão', habilitacao:'Habilitação', proposta:'Proposta', administrativo:'Administrativo', desenvolvimento:'Desenvolvimento', outro:'Outro' };
+const TV2_ROLE_LABEL   = { admin:'Admin', operacional:'Operacional', comercial:'Comercial', assistente:'Assistente', assistente_junior:'Assist. Jr', diretor_comercial:'Dir. Comercial', operador:'Operador', sdr:'SDR', socio_fundador:'Sócio' };
+// isAdmin() is already defined globally in the first script block
+
+async function tarefasV2Carregar() {
+  const status     = document.getElementById('tv2-f-status')?.value     || '';
+  const prioridade = document.getElementById('tv2-f-prioridade')?.value || '';
+  const responsavel = document.getElementById('tv2-f-responsavel')?.value || '';
+  const categoria  = document.getElementById('tv2-f-categoria')?.value  || '';
+
+  const params = new URLSearchParams();
+  if (status)     params.set('status', status);
+  if (prioridade) params.set('prioridade', prioridade);
+  if (responsavel)params.set('responsavel_id', responsavel);
+  if (categoria)  params.set('categoria', categoria);
+
+  if (isAdmin()) {
+    document.getElementById('tv2-kanban').style.display = 'grid';
+    document.getElementById('tv2-lista').style.display  = 'none';
+    // Show admin-only filter
+    const selR = document.getElementById('tv2-f-responsavel');
+    if (selR) selR.style.display = '';
+
+    // Load KPIs
+    fetch(`${API}/api/tarefas/kpis`, { headers:{ Authorization:`Bearer ${token}` } })
+      .then(r => r.json())
+      .then(kpis => {
+        const kDiv = document.getElementById('tv2-kpis');
+        if (!kDiv) return;
+        kDiv.style.display = 'grid';
+        kDiv.innerHTML = [
+          { n: kpis.total,           l:'Total' },
+          { n: kpis.urgentes,        l:'Urgentes', cor:'#f87171' },
+          { n: kpis.atrasadas,       l:'Atrasadas', cor:'#fb923c' },
+          { n: kpis.concluidas_hoje, l:'Concl. hoje', cor:'#4CC5D7' },
+        ].map(k => `<div class="tv2-kpi-card"><div class="tv2-kpi-num" style="color:${k.cor||'#fff'}">${k.n}</div><div class="tv2-kpi-label">${k.l}</div></div>`).join('');
+
+        // Por membro
+        const mDiv = document.getElementById('tv2-membros');
+        if (mDiv && kpis.por_membro?.length) {
+          mDiv.style.display = '';
+          mDiv.innerHTML = `<div style="padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px">Por membro</div>
+            ${kpis.por_membro.map(m => `
+              <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+                <div class="tv2-avatar">${(m.nome||'?').slice(0,1)}</div>
+                <div style="flex:1">
+                  <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(m.nome||'—')}</span>
+                  <span style="font-size:11px;color:var(--text-muted);margin-left:6px">${TV2_ROLE_LABEL[m.role]||m.role}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px">
+                  <span title="A fazer">⏳ ${m.total - m.concluidas}</span>
+                  <span title="Em andamento">▶ ${m.em_andamento}</span>
+                  <span title="Concluídas">✅ ${m.concluidas}</span>
+                  ${Number(m.atrasadas)>0?`<span style="color:#f87171" title="Atrasadas">⚠️ ${m.atrasadas}</span>`:''}
+                </div>
+              </div>`).join('')}
+          </div>`;
+        }
+      }).catch(() => {});
+
+    // Populate responsavel filter
+    fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } })
+      .then(r => r.json())
+      .then(resp => {
+        const uList = Array.isArray(resp) ? resp : (resp.dados || resp.rows || []);
+        const sel = document.getElementById('tv2-f-responsavel');
+        if (sel) sel.innerHTML = '<option value="">Todos responsáveis</option>'
+          + uList.filter(u => u.role !== 'cliente').map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+      }).catch(() => {});
+
+  } else {
+    document.getElementById('tv2-kanban').style.display = 'none';
+    document.getElementById('tv2-lista').style.display  = '';
+    const selR = document.getElementById('tv2-f-responsavel');
+    if (selR) selR.style.display = 'none';
+    document.getElementById('tv2-kpis').style.display   = 'none';
+    document.getElementById('tv2-membros').style.display = 'none';
+  }
+
+  const kanban = document.getElementById('tv2-kanban');
+  const lista  = document.getElementById('tv2-lista');
+  kanban.innerHTML = '';
+  lista.innerHTML  = '<div class="state-box"><div class="spinner"></div></div>';
+
+  try {
+    const r = await fetch(`${API}/api/tarefas?${params}`, { headers:{ Authorization:`Bearer ${token}` } });
+    const { dados: tarefas = [] } = await r.json();
+
+    if (isAdmin()) {
+      // Kanban 4 colunas
+      const cols = { a_fazer:[], em_andamento:[], aguardando:[], concluida:[] };
+      tarefas.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+      kanban.innerHTML = Object.entries(cols).map(([st, itens]) => `
+        <div class="tv2-col">
+          <div class="tv2-col-header">
+            ${TV2_STATUS_LABEL[st]}
+            <span class="tv2-col-count">${itens.length}</span>
+          </div>
+          ${itens.length === 0
+            ? '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px 0">Nenhuma</p>'
+            : itens.map(t => tv2RenderCard(t)).join('')}
+        </div>`).join('');
+    } else {
+      // Lista priorizada para membro
+      if (!tarefas.length) {
+        lista.innerHTML = '<div class="state-box"><p style="color:var(--text-muted)">Nenhuma tarefa atribuída a você.</p></div>';
+        return;
+      }
+      lista.innerHTML = tarefas.map(t => {
+        const prazo = tv2PrazoDisplay(t.data_prazo);
+        return `
+          <div class="tv2-lista-item" onclick="tarefasV2AbrirDetalhe('${t.id}')">
+            <span class="prio-badge prio-${t.prioridade||'media'}" style="min-width:60px;text-align:center">${TV2_PRIO_LABEL[t.prioridade]||t.prioridade}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(t.titulo)}</div>
+              ${t.categoria ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${TV2_CAT_LABEL[t.categoria]||t.categoria}${t.cliente_nome?` · ${esc(t.cliente_nome)}`:''}</div>` : ''}
+            </div>
+            ${prazo}
+            <span style="font-size:12px;color:var(--text-muted)">${TV2_STATUS_LABEL[t.status]||t.status}</span>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();tarefasV2AbrirDetalhe('${t.id}')">Abrir</button>
+          </div>`;
+      }).join('');
+    }
+  } catch (e) {
+    lista.innerHTML = `<div class="state-box"><p style="color:#f87171">Erro: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function tv2PrazoDisplay(data_prazo) {
+  if (!data_prazo) return '';
+  const d    = new Date(data_prazo + 'T12:00:00');
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diff = Math.ceil((d - hoje) / 86400000);
+  const cor  = diff < 0 ? '#f87171' : diff <= 2 ? '#fb923c' : 'var(--text-muted)';
+  const txt  = diff < 0 ? `⚠️ ${Math.abs(diff)}d atrasada` : diff === 0 ? '📅 Hoje' : diff === 1 ? '📅 Amanhã' : `📅 ${diff}d`;
+  return `<span style="font-size:11px;color:${cor};white-space:nowrap">${txt}</span>`;
+}
+
+function tv2Iniciais(nome) {
+  if (!nome) return '?';
+  return nome.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
+}
+
+function tv2RenderCard(t) {
+  const prazo = tv2PrazoDisplay(t.data_prazo);
+  return `<div class="tarefa-card p-${t.prioridade||'media'}" onclick="tarefasV2AbrirDetalhe('${t.id}')">
+    <span class="prio-badge prio-${t.prioridade||'media'}">${TV2_PRIO_LABEL[t.prioridade]||t.prioridade}</span>
+    <div class="tarefa-card-titulo">${esc(t.titulo)}</div>
+    <div class="tarefa-card-meta">
+      ${t.categoria ? `<span>${TV2_CAT_LABEL[t.categoria]||t.categoria}</span>` : ''}
+      ${prazo}
+    </div>
+    <div class="tarefa-card-foot">
+      <div class="tv2-avatar" title="${esc(t.responsavel_nome||'—')}">${tv2Iniciais(t.responsavel_nome)}</div>
+      <span style="font-size:11px;color:var(--text-muted)">${esc(t.cliente_nome||'')}</span>
+    </div>
+  </div>`;
+}
+
+function tv2LimparFiltros() {
+  ['tv2-f-status','tv2-f-prioridade','tv2-f-responsavel','tv2-f-categoria'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  tarefasV2Carregar();
+}
+
+let tv2UsuariosCache = [];
+let tv2ClientesCache = [];
+
+async function tarefasV2AbrirNova() {
+  document.getElementById('tv2-modal-titulo').textContent = 'Nova tarefa';
+  document.getElementById('tv2-nt-id').value       = '';
+  document.getElementById('tv2-nt-titulo').value   = '';
+  document.getElementById('tv2-nt-descricao').value= '';
+  document.getElementById('tv2-nt-prazo').value    = '';
+  document.getElementById('tv2-nt-pregao').value   = '';
+  document.getElementById('tv2-nt-prioridade').value = 'media';
+  document.getElementById('tv2-nt-categoria').value  = 'operacional';
+
+  await tv2CarregarSelects();
+  document.getElementById('modal-tv2-nova').classList.add('visible');
+}
+
+async function tv2CarregarSelects() {
+  // Usuários
+  const selU = document.getElementById('tv2-nt-responsavel');
+  if (!tv2UsuariosCache.length) {
+    try {
+      const r = await fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } });
+      const resp = await r.json();
+      tv2UsuariosCache = Array.isArray(resp) ? resp : (resp.dados || resp.rows || []);
+    } catch {}
+  }
+  selU.innerHTML = '<option value="">Selecione o responsável *</option>'
+    + tv2UsuariosCache.filter(u => u.role !== 'cliente').map(u =>
+      `<option value="${u.id}">${esc(u.nome)} · ${esc(TV2_ROLE_LABEL[u.role]||u.role)}</option>`
+    ).join('');
+
+  // Clientes
+  const selC = document.getElementById('tv2-nt-cliente');
+  if (!tv2ClientesCache.length) {
+    try {
+      const r = await fetch(`${API}/clientes`, { headers:{ Authorization:`Bearer ${token}` } });
+      const resp = await r.json();
+      tv2ClientesCache = Array.isArray(resp) ? resp : (resp.dados || []);
+    } catch {}
+  }
+  selC.innerHTML = '<option value="">Nenhum</option>'
+    + tv2ClientesCache.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+}
+
+async function tarefasV2Salvar() {
+  const id           = document.getElementById('tv2-nt-id').value;
+  const titulo       = document.getElementById('tv2-nt-titulo').value.trim();
+  const responsavel_id = document.getElementById('tv2-nt-responsavel').value;
+  if (!titulo)         { toast('Título é obrigatório', 'error'); return; }
+  if (!responsavel_id) { toast('Selecione o responsável', 'error'); return; }
+
+  const body = {
+    titulo,
+    descricao:     document.getElementById('tv2-nt-descricao').value.trim() || null,
+    responsavel_id: Number(responsavel_id),
+    categoria:     document.getElementById('tv2-nt-categoria').value,
+    prioridade:    document.getElementById('tv2-nt-prioridade').value,
+    data_prazo:    document.getElementById('tv2-nt-prazo').value    || null,
+    cliente_id:    document.getElementById('tv2-nt-cliente').value  || null,
+    pregao_id:     document.getElementById('tv2-nt-pregao').value.trim() || null,
+  };
+
+  try {
+    const url    = id ? `${API}/api/tarefas/${id}` : `${API}/api/tarefas`;
+    const method = id ? 'PUT' : 'POST';
+    const r = await fetch(url, {
+      method, headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+    toast(id ? 'Tarefa atualizada ✅' : 'Tarefa criada ✅', 'success');
+    document.getElementById('modal-tv2-nova').classList.remove('visible');
+    tarefasV2Carregar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function tarefasV2AbrirDetalhe(id) {
+  const modal = document.getElementById('modal-tv2-detalhe');
+  const body  = document.getElementById('tv2-det-body');
+  const titulo = document.getElementById('tv2-det-titulo');
+  const badge  = document.getElementById('tv2-det-badge');
+  body.innerHTML = '<div class="state-box" style="padding:24px"><div class="spinner"></div></div>';
+  titulo.textContent = '…';
+  badge.textContent  = '';
+  modal.classList.add('visible');
+
+  try {
+    const r = await fetch(`${API}/api/tarefas/${id}`, { headers:{ Authorization:`Bearer ${token}` } });
+    const t = await r.json();
+
+    titulo.textContent = t.titulo || '—';
+    badge.textContent  = `${TV2_PRIO_LABEL[t.prioridade]||t.prioridade} · ${TV2_STATUS_LABEL[t.status]||t.status}`;
+
+    const prazo = t.data_prazo
+      ? new Date(t.data_prazo + 'T12:00:00').toLocaleDateString('pt-BR')
+      : '—';
+
+    body.innerHTML = `
+      <div style="padding:18px 22px;display:flex;gap:24px;flex-wrap:wrap;border-bottom:1px solid #eee">
+        <div style="min-width:180px">
+          <div style="font-size:11px;color:#7a9bb5;font-weight:700;margin-bottom:2px">RESPONSÁVEL</div>
+          <div style="font-size:13px;color:#182A39">${esc(t.responsavel_nome||'—')} <span style="color:#7a9bb5">(${esc(TV2_ROLE_LABEL[t.responsavel_role]||'')})</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#7a9bb5;font-weight:700;margin-bottom:2px">PRAZO</div>
+          <div style="font-size:13px;color:#182A39">${prazo}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#7a9bb5;font-weight:700;margin-bottom:2px">CATEGORIA</div>
+          <div style="font-size:13px;color:#182A39">${TV2_CAT_LABEL[t.categoria]||t.categoria||'—'}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#7a9bb5;font-weight:700;margin-bottom:2px">CLIENTE</div>
+          <div style="font-size:13px;color:#182A39">${esc(t.cliente_nome||'—')}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#7a9bb5;font-weight:700;margin-bottom:2px">STATUS</div>
+          <select onchange="tv2MudarStatus('${t.id}',this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #C4DAE9;background:#fff;color:#182A39">
+            ${['a_fazer','em_andamento','aguardando','concluida','cancelada'].map(s=>
+              `<option value="${s}" ${t.status===s?'selected':''}>${TV2_STATUS_LABEL[s]}</option>`
+            ).join('')}
+          </select>
+        </div>
+        ${isAdmin() ? `<button class="btn btn-ghost btn-sm" onclick="tv2Cancelar('${t.id}')" style="margin-left:auto;color:#f87171">🗑 Cancelar</button>` : ''}
+      </div>
+      ${t.descricao ? `<div style="padding:16px 22px;border-bottom:1px solid #eee;font-size:13px;color:#182A39;line-height:1.6">${esc(t.descricao)}</div>` : ''}
+      <div style="padding:16px 22px;border-bottom:1px solid #eee">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#7a9bb5;margin-bottom:10px">Comentários</div>
+        <div id="tv2-comentarios-lista">
+          ${(t.comentarios||[]).map(c => `
+            <div style="margin-bottom:10px">
+              <span style="font-size:11px;font-weight:700;color:#182A39">${esc(c.autor_nome||'—')}</span>
+              <span style="font-size:11px;color:#7a9bb5"> · ${new Date(c.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</span>
+              <p style="font-size:13px;color:#182A39;margin:4px 0 0">${esc(c.texto)}</p>
+            </div>`).join('') || '<p style="font-size:12px;color:#7a9bb5">Nenhum comentário ainda.</p>'}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input type="text" id="tv2-novo-com" class="form-control" style="flex:1;font-size:13px;background:#fff;border:1px solid #C4DAE9;color:#182A39" placeholder="Adicionar comentário…">
+          <button class="btn btn-primary btn-sm" onclick="tv2EnviarComentario('${t.id}')">Enviar</button>
+        </div>
+      </div>
+      <div style="padding:16px 22px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#7a9bb5;margin-bottom:8px">Histórico</div>
+        ${(t.historico||[]).map(h => `
+          <div style="font-size:12px;color:#7a9bb5;margin-bottom:4px">
+            <strong style="color:#182A39">${esc(h.autor_nome||'Sistema')}</strong> alterou
+            <em>${h.campo_alterado}</em>:
+            ${esc(h.valor_anterior||'—')} → ${esc(h.valor_novo||'—')}
+            · <span>${new Date(h.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>`).join('') || '<p style="font-size:12px;color:#7a9bb5">Sem histórico.</p>'}
+      </div>`;
+  } catch (e) {
+    body.innerHTML = `<div style="padding:24px;color:#c0392b">Erro ao carregar: ${esc(e.message)}</div>`;
+  }
+}
+
+async function tv2MudarStatus(id, status) {
+  try {
+    const r = await fetch(`${API}/api/tarefas/${id}/status`, {
+      method:'PATCH',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    toast(`Status: ${TV2_STATUS_LABEL[status]}`, 'success');
+    tarefasV2Carregar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function tv2Cancelar(id) {
+  if (!confirm('Cancelar esta tarefa?')) return;
+  try {
+    await fetch(`${API}/api/tarefas/${id}`, {
+      method:'DELETE', headers:{ Authorization:`Bearer ${token}` },
+    });
+    toast('Tarefa cancelada', 'success');
+    document.getElementById('modal-tv2-detalhe').classList.remove('visible');
+    tarefasV2Carregar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function tv2EnviarComentario(id) {
+  const texto = document.getElementById('tv2-novo-com')?.value.trim();
+  if (!texto) return;
+  try {
+    await fetch(`${API}/api/tarefas/${id}/comentarios`, {
+      method:'POST',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ texto }),
+    });
+    toast('Comentário adicionado', 'success');
+    tarefasV2AbrirDetalhe(id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════
+// EQUIPE
+// ════════════════════════════════════════════════════
+async function equipeCarregar() {
+  const area = document.getElementById('equipe-lista');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
+
+  try {
+    const r = await fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } });
+    const resp = await r.json();
+    const users = (Array.isArray(resp) ? resp : (resp.dados || resp.rows || []))
+      .filter(u => u.role !== 'cliente');
+
+    const ROLE_CLASS = { admin:'role-admin', operacional:'role-operacional', comercial:'role-comercial' };
+
+    area.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="equipe-table">
+        <thead><tr>
+          <th>Nome</th><th>Email</th><th>Cargo</th><th>Status</th><th>Ações</th>
+        </tr></thead>
+        <tbody>
+          ${users.map(u => `<tr>
+            <td><strong>${esc(u.nome||'—')}</strong></td>
+            <td style="color:var(--text-muted)">${esc(u.email)}</td>
+            <td><span class="role-badge ${ROLE_CLASS[u.role]||'role-assistente'}">${esc(TV2_ROLE_LABEL[u.role]||u.role)}</span></td>
+            <td>${u.ativo === false ? '⛔ Inativo' : '✅ Ativo'}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="equipeAbrirEditar(${u.id})">Editar</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  } catch(e) {
+    area.innerHTML = `<div class="state-box"><p style="color:#f87171">${esc(e.message)}</p></div>`;
+  }
+}
+
+function equipeAbrirNovo() {
+  document.getElementById('equipe-modal-titulo').textContent = 'Novo membro';
+  document.getElementById('equipe-m-id').value    = '';
+  document.getElementById('equipe-m-nome').value  = '';
+  document.getElementById('equipe-m-email').value = '';
+  document.getElementById('equipe-m-role').value  = 'assistente';
+  document.getElementById('equipe-m-ativo').value = 'true';
+  document.getElementById('equipe-m-nova-senha').style.display = '';
+  document.getElementById('equipe-m-senha').value = '';
+  document.getElementById('modal-equipe-membro').classList.add('visible');
+}
+
+async function equipeAbrirEditar(id) {
+  try {
+    const r = await fetch(`${API}/auth/usuarios`, { headers:{ Authorization:`Bearer ${token}` } });
+    const resp = await r.json();
+    const users = Array.isArray(resp) ? resp : (resp.dados || resp.rows || []);
+    const u = users.find(x => String(x.id) === String(id));
+    if (!u) { toast('Usuário não encontrado', 'error'); return; }
+
+    document.getElementById('equipe-modal-titulo').textContent = 'Editar membro';
+    document.getElementById('equipe-m-id').value    = u.id;
+    document.getElementById('equipe-m-nome').value  = u.nome || '';
+    document.getElementById('equipe-m-email').value = u.email;
+    document.getElementById('equipe-m-role').value  = u.role;
+    document.getElementById('equipe-m-ativo').value = String(u.ativo !== false);
+    document.getElementById('equipe-m-nova-senha').style.display = '';
+    document.getElementById('equipe-m-senha').value = '';
+    document.getElementById('modal-equipe-membro').classList.add('visible');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function equipeSalvar() {
+  const id    = document.getElementById('equipe-m-id').value;
+  const nome  = document.getElementById('equipe-m-nome').value.trim();
+  const email = document.getElementById('equipe-m-email').value.trim();
+  const role  = document.getElementById('equipe-m-role').value;
+  const ativo = document.getElementById('equipe-m-ativo').value === 'true';
+  const senha = document.getElementById('equipe-m-senha')?.value.trim();
+
+  if (!nome || !email) { toast('Nome e email são obrigatórios', 'error'); return; }
+
+  try {
+    let r;
+    if (id) {
+      const body = { nome, email, role, ativo };
+      if (senha) body.senha = senha;
+      r = await fetch(`${API}/auth/usuarios/${id}`, {
+        method:'PATCH',
+        headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify(body),
+      });
+    } else {
+      if (!senha || senha.length < 8) { toast('Senha deve ter mínimo 8 caracteres', 'error'); return; }
+      r = await fetch(`${API}/auth/usuarios`, {
+        method:'POST',
+        headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({ nome, email, role, senha }),
+      });
+    }
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+    toast(id ? 'Membro atualizado ✅' : 'Membro criado ✅', 'success');
+    document.getElementById('modal-equipe-membro').classList.remove('visible');
+    equipeCarregar();
+  } catch(e) { toast(e.message, 'error'); }
+}
 
 async function carregarTarefas() {
   const status     = document.getElementById('tf-filtro-status')?.value     || '';

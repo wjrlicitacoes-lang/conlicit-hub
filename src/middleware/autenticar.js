@@ -37,6 +37,15 @@ const PERMISSOES_ROLE = {
   ],
   social_media:      ['dashboard','documentacao','marketing','minha_area'],
   cliente:           ['minha_area','pregoes','edson','edson_ia'],
+  operacional:       [
+    'dashboard','clientes','editais','boletins','edson','monitor','calendario',
+    'buscar_editais','edson_ia','robo_pregao','oportunidades','minha_area','pregoes',
+  ],
+  comercial:         [
+    'dashboard','editais','calendario','prospects','edson','gerador_proposta',
+    'buscar_editais','edson_ia','proposta_comercial','oportunidades','prospects',
+    'clientes','minha_area','pregoes',
+  ],
 };
 
 function verificarPermissao(modulo) {

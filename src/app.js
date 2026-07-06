@@ -44,6 +44,7 @@ const contratacoesDiretasRoutes = require('./routes/contratacoesDiretas');
 const monitorRoutes             = require('./routes/monitor');
 const pregaoEstrategiaRoutes    = require('./routes/pregaoEstrategia');
 const historicoRoutes           = require('./routes/historico');
+const apiTarefasRoutes          = require('./routes/apiTarefas');
 const { receber: receberFormulario } = require('./controllers/formularioController');
 const { receberLanding, webhookBrevo } = require('./controllers/prospectsController');
 
@@ -135,6 +136,7 @@ app.use('/api/contratacoes',        contratacoesDiretasRoutes);
 app.use('/api/monitor',             autenticar, monitorRoutes);
 app.use('/api/pregao',              autenticar, pregaoEstrategiaRoutes);
 app.use('/api/historico',           autenticar, historicoRoutes);
+app.use('/api/tarefas',             autenticar, apiTarefasRoutes);
 app.post('/pos-confirmacao/teste',  autenticar, async (req, res) => {
   if (!['admin','socio_fundador'].includes(req.usuario.role))
     return res.status(403).json({ erro: 'Acesso negado' });
