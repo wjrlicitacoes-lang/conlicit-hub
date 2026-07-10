@@ -38,30 +38,34 @@ async function classificarEditaisNovos() {
   }
   if (rows.length > 0) console.log(`[Sync] Segmentação: ${rows.length} editais classificados`);
 }
-const TAMANHO_PAGINA = 50;
-const CONCORRENCIA   = 5;
-const TIMEOUT_MS     = 12000;
-const MAX_TENTATIVAS = 2;
+const TAMANHO_PAGINA       = 50;
+const CONCORRENCIA         = 3;      // era 5 — menos pressão simultânea sobre a API do PNCP
+const TIMEOUT_MS           = 20000;  // era 12000 — o PNCP costuma ser lento sob concorrência
+const MAX_TENTATIVAS       = 2;
+const TIMEOUT_MS_RETRY     = 30000;  // timeout maior na fila de retentativa final
+const MAX_TENTATIVAS_RETRY = 3;
 
 function dStr(d) {
   return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
-async function buscarPagina(dataIni, dataFim, pagina) {
-  for (let t = 0; t < MAX_TENTATIVAS; t++) {
+// tentativas: quantas vezes tentar, timeoutMs: timeout por tentativa
+async function buscarPagina(dataIni, dataFim, pagina, tentativas = MAX_TENTATIVAS, timeoutMs = TIMEOUT_MS) {
+  for (let t = 0; t < tentativas; t++) {
     try {
       const r = await axios.get(`${BASE}/contratacoes/proposta`, {
         params: { dataInicial: dataIni, dataFinal: dataFim, pagina, tamanhoPagina: TAMANHO_PAGINA },
         httpsAgent: pncpAgent,
-        timeout: TIMEOUT_MS,
+        timeout: timeoutMs,
       });
-      return { data: r.data.data ?? [], total: r.data.totalRegistros ?? 0 };
+      return { data: r.data.data ?? [], total: r.data.totalRegistros ?? 0, falhou: false };
     } catch (e) {
       console.error('[PNCP Sync] página', pagina, 'tentativa', t + 1, e.code || e.message);
-      if (t < MAX_TENTATIVAS - 1) await new Promise((r) => setTimeout(r, 2000 * (t + 1)));
+      if (t < tentativas - 1) await new Promise((r) => setTimeout(r, 2000 * (t + 1)));
     }
   }
-  return { data: [], total: 0 };
+  // Marca explicitamente como falha (diferente de "página vazia porque não tem mais dados")
+  return { data: [], total: 0, falhou: true };
 }
 
 // Upsert de uma página inteira numa única query (1 round-trip ao banco por página de 50)
@@ -132,6 +136,7 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
 
   let inseridos = 0;
   let erros     = 0;
+  const paginasFalhadas = [];
 
   for (let pInicio = 1; pInicio <= totalPaginas; pInicio += CONCORRENCIA) {
     const lote = Array.from(
@@ -142,28 +147,62 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
     // 1. Busca as páginas do PNCP em paralelo
     const resultados = await Promise.all(lote.map((p) => buscarPagina(dataIni, dataFim, p)));
 
-    // 2. Upsert de cada página no banco (1 query por página)
-    for (const { data } of resultados) {
+    // 2. Upsert de cada página no banco (1 query por página), aguardando antes do próximo lote
+    for (let i = 0; i < resultados.length; i++) {
+      const { data, falhou } = resultados[i];
+      const pagina = lote[i];
+      if (falhou) {
+        paginasFalhadas.push(pagina); // ← não descarta: guarda pra reprocessar depois
+        continue;
+      }
       if (data.length === 0) continue;
       try {
         await upsertPagina(data);
         inseridos += data.length;
       } catch (e) {
         erros += data.length;
-        console.error('[Sync] Erro upsert batch:', e.message);
+        console.error('[Sync] Erro upsert batch (página', pagina, '):', e.message);
       }
     }
 
     if ((pInicio - 1) % 50 === 0) {
       const progresso = Math.min(pInicio + CONCORRENCIA - 1, totalPaginas);
-      console.log(`[Sync] ${progresso}/${totalPaginas} págs | ${inseridos} inseridos | ${erros} erros`);
+      console.log(`[Sync] ${progresso}/${totalPaginas} págs | ${inseridos} inseridos | ${erros} erros | ${paginasFalhadas.length} p/ retentar`);
+    }
+  }
+
+  // 3. Fila de retentativa: reprocessa sequencialmente (sem concorrência) as páginas que falharam,
+  //    com timeout maior e mais tentativas — em vez de simplesmente perder esses editais.
+  if (paginasFalhadas.length > 0) {
+    console.log(`[Sync] Reprocessando ${paginasFalhadas.length} página(s) que falharam:`, paginasFalhadas.join(', '));
+    const aindaFalharam = [];
+    for (const pagina of paginasFalhadas) {
+      const { data, falhou } = await buscarPagina(dataIni, dataFim, pagina, MAX_TENTATIVAS_RETRY, TIMEOUT_MS_RETRY);
+      if (falhou) {
+        aindaFalharam.push(pagina);
+        continue;
+      }
+      if (data.length > 0) {
+        try {
+          await upsertPagina(data);
+          inseridos += data.length;
+        } catch (e) {
+          erros += data.length;
+          console.error('[Sync] Erro upsert retentativa (página', pagina, '):', e.message);
+        }
+      }
+    }
+    if (aindaFalharam.length > 0) {
+      console.error(`[Sync] ATENÇÃO: ${aindaFalharam.length} página(s) continuam falhando após retentativa:`, aindaFalharam.join(', '));
+    } else {
+      console.log('[Sync] Todas as páginas pendentes foram recuperadas na retentativa.');
     }
   }
 
   await db.query(`DELETE FROM editais_cache WHERE data_encerramento < NOW() - INTERVAL '7 days'`);
 
   const duracaoSegundos = Math.round((Date.now() - inicio.getTime()) / 1000);
-  const resultado = { total, inseridos, erros, duracaoSegundos };
+  const resultado = { total, inseridos, erros, paginasFalhadasFinal: paginasFalhadas.length, duracaoSegundos };
   console.log('[Sync] Concluído:', JSON.stringify(resultado));
 
   // Classifica segmentação dos editais sem categoria (roda em background, sem bloquear)
