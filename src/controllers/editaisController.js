@@ -343,7 +343,11 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
     params.push(`%${modalidade}%`);
   }
 
-  if (dataInicial) {
+  // O piso de "dataInicial = hoje" só faz sentido para a aba "a vencer".
+  // Nas abas "vencida" e "todas" ele contradiz o propósito do filtro
+  // (mostrar o que já encerrou ou tudo, incluindo o passado).
+  const situacaoEfetiva = situacao || 'a_vencer';
+  if (dataInicial && situacaoEfetiva === 'a_vencer') {
     condicoes.push(`data_encerramento >= $${idx++}`);
     params.push(dataInicial.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
   }
@@ -437,12 +441,17 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
   );
   const total = Number(n);
 
+  // "a_vencer": mostra o que encerra mais cedo primeiro (mais urgente).
+  // "vencida": mostra o que encerrou mais recentemente primeiro (mais acionável).
+  // "todas": mesma lógica de "vencida" — prioriza o que está mais perto de agora.
+  const ordenacao = situacaoEfetiva === 'a_vencer' ? 'ASC' : 'DESC';
+
   const offset = (pagina - 1) * tamanhoPagina;
   const { rows } = await db.query(
     `SELECT *, raw
      FROM editais_cache
      WHERE ${where}
-     ORDER BY data_encerramento ASC
+     ORDER BY data_encerramento ${ordenacao}
      LIMIT $${idx++} OFFSET $${idx++}`,
     [...params, tamanhoPagina, offset],
   );

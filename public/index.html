@@ -8905,7 +8905,11 @@
     const situacao = document.querySelector('.sit-btn.ativo')?.dataset?.sit || 'a_vencer';
     const segmentacao = document.getElementById('filtro-segmentacao')?.value || 'todas';
 
-    const params = new URLSearchParams({ dataInicial, dataFinal, pagina, tamanhoPagina: 12, situacao });
+    // dataInicial só é enviado na aba "a vencer" — nas outras abas ele não faz
+    // sentido (o back-end já ignora, mas evitamos mandar um parâmetro confuso).
+    const paramsObj = { dataFinal, pagina, tamanhoPagina: 12, situacao };
+    if (situacao === 'a_vencer') paramsObj.dataInicial = dataInicial;
+    const params = new URLSearchParams(paramsObj);
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
     const raioNum = parseInt(raio) || 0;
