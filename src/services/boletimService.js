@@ -8,13 +8,15 @@ function semAcento(texto) {
   return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function dataHoje() {
-  return new Date().toISOString().slice(0, 10).replace(/-/g, '');
+function dataMais4() {
+  const d = new Date();
+  d.setDate(d.getDate() + 4);
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
-function dataMais30() {
+function dataMais15() {
   const d = new Date();
-  d.setDate(d.getDate() + 30);
+  d.setDate(d.getDate() + 15);
   return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
@@ -46,8 +48,8 @@ function criarRegex(termo) {
 
 // Returns [{item, termosMatchados}] — one entry per unique edital
 async function buscarEditaisParaCliente(cliente) {
-  const dataInicial = dataHoje();
-  const dataFinal = dataMais30();
+  const dataInicial = dataMais4();
+  const dataFinal = dataMais15();
 
   const PAGINAS = Array.from({ length: 20 }, (_, i) => i + 1);
 
