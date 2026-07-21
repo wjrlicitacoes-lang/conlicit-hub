@@ -1337,6 +1337,9 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
+  // Itens/lotes vencidos — registrado no calendário após o resultado do pregão
+  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS itens_lotes JSONB DEFAULT '[]'`);
+
   // ── Seed de usuários iniciais da equipe ──────────────────────────────────────
   const equipeInicial = [
     { nome: 'Sabrine', email: 'sabrine@conlicit.com', role: 'admin' },
