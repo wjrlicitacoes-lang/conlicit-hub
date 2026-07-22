@@ -2484,11 +2484,8 @@
           </div>
         </div>
 
-        <!-- FILTROS RÁPIDOS: SITUAÇÃO + SEGMENTAÇÃO -->
+        <!-- FILTRO RÁPIDO: SEGMENTAÇÃO -->
         <div class="filtros-situacao-bar">
-          <button class="sit-btn ativo" data-sit="a_vencer" onclick="setSituacao(this)">A vencer</button>
-          <button class="sit-btn" data-sit="vencida" onclick="setSituacao(this)">Vencidas</button>
-          <button class="sit-btn" data-sit="todas" onclick="setSituacao(this)">Todas</button>
           <select id="filtro-segmentacao" onchange="buscar(1)">
             <option value="todas">Segmentação: todas</option>
             <option value="Engenharia civil">Engenharia civil</option>
@@ -8650,12 +8647,6 @@
     }
   });
 
-  function setSituacao(btn) {
-    document.querySelectorAll('.sit-btn').forEach(b => b.classList.remove('ativo'));
-    btn.classList.add('ativo');
-    buscar(1);
-  }
-
   function limparBusca() {
     document.getElementById('q').value = '';
     selecionarTodosUF(false);
@@ -8670,7 +8661,6 @@
     document.querySelectorAll('#filtro-modalidades input, #filtro-portais input').forEach(el => { el.checked = false; });
     const segEl = document.getElementById('filtro-segmentacao');
     if (segEl) segEl.value = 'todas';
-    document.querySelectorAll('.sit-btn').forEach((b, i) => b.classList.toggle('ativo', i === 0));
     setDefaultDates();
     document.getElementById('results-area').innerHTML = '';
     lastParams = null;
@@ -8902,14 +8892,11 @@
     const area = document.getElementById('results-area');
     area.innerHTML = `<div class="state-box"><div class="spinner spinner-lg"></div><p>Consultando o PNCP…</p></div>`;
 
-    const situacao = document.querySelector('.sit-btn.ativo')?.dataset?.sit || 'a_vencer';
     const segmentacao = document.getElementById('filtro-segmentacao')?.value || 'todas';
 
-    // dataInicial só é enviado na aba "a vencer" — nas outras abas ele não faz
-    // sentido (o back-end já ignora, mas evitamos mandar um parâmetro confuso).
-    const paramsObj = { dataFinal, pagina, tamanhoPagina: 12, situacao };
-    if (situacao === 'a_vencer') paramsObj.dataInicial = dataInicial;
-    const params = new URLSearchParams(paramsObj);
+    // Janela de 4-15 dias é aplicada no back-end — não precisa mandar
+    // dataInicial/dataFinal/situacao, o filtro é sempre o mesmo.
+    const params = new URLSearchParams({ pagina, tamanhoPagina: 12 });
     if (q) params.set('q', q);
     if (uf) params.set('uf', uf);
     const raioNum = parseInt(raio) || 0;
@@ -8948,20 +8935,8 @@
       </div>`;
       return;
     }
-    // Filtra por encerramento até dataFinal se informado
-    let dadosFiltrados = d.dados;
-    const dfVal = document.getElementById('dataFinal')?.value;
-    if (dfVal) {
-      const dtFim = new Date(dfVal + 'T23:59:59');
-      dadosFiltrados = d.dados.filter(e => {
-        // Usa dataEncerramento (ISO) primeiro — mais confiável para comparação
-        const enc = e.dataEncerramento || e.dataEncerramentoProposta || e.data_encerramento_proposta || null;
-        if (!enc) return true;
-        const dtEnc = new Date(enc);
-        if (isNaN(dtEnc.getTime())) return true;
-        return dtEnc <= dtFim;
-      });
-    }
+    // O back-end já garante a janela de 4-15 dias, não precisa refiltrar no navegador.
+    const dadosFiltrados = d.dados;
     const total = dadosFiltrados.length;
     const totalPages = Math.ceil(total / 12);
     const fonteLabel = d.fonte ? `<span class="fonte-badge">${esc(String(d.fonte))}</span>` : '';
