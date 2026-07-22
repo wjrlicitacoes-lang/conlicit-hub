@@ -10590,6 +10590,7 @@
             📅 ${temHora ? 'Alterar horário' : 'Definir horário'}
           </button>
           ${btnOp}
+          <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('editar-${p.id}')">✏️ Editar</button>
           ${gerarLinkGoogleCalendar(p) ? `<a href="${gerarLinkGoogleCalendar(p)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Cal</a>` : ''}
           ${isAdmin() ? `<button class="btn btn-sm" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)" onclick="excluirCalendarioPregao(${p.id},'${esc(p.numero||'')}')">🗑 Excluir</button>` : ''}
         </div>
@@ -10614,6 +10615,47 @@
           <div style="display:flex;gap:.4rem">
             <button class="btn btn-primary btn-sm" onclick="salvarCalOperador(${p.id})">Salvar</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('operador-${p.id}')">Cancelar</button>
+          </div>
+        </div>
+        <div class="cal-inline-form" id="cal-form-editar-${p.id}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem;margin-bottom:.5rem">
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Número *</label>
+              <input id="ce-numero-${p.id}" value="${esc(p.numero||'')}" style="width:100%;${inputSty()}" /></div>
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Órgão</label>
+              <input id="ce-orgao-${p.id}" value="${esc(p.orgao||'')}" style="width:100%;${inputSty()}" /></div>
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Valor estimado (R$)</label>
+              <input type="number" id="ce-valor-${p.id}" value="${p.valor_estimado||''}" min="0" step="0.01" style="width:100%;${inputSty()}" /></div>
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Status</label>
+              <select id="ce-status-${p.id}" style="width:100%;${inputSty()}">
+                <option value="a_disputar" ${p.status==='a_disputar'?'selected':''}>A disputar</option>
+                <option value="vencido"    ${p.status==='vencido'?'selected':''}>Vencido</option>
+                <option value="perdido"    ${p.status==='perdido'?'selected':''}>Perdido</option>
+                <option value="cancelado"  ${p.status==='cancelado'?'selected':''}>Cancelado</option>
+              </select></div>
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Portal de disputa</label>
+              <select id="ce-portal-${p.id}" style="width:100%;${inputSty()}">
+                <option value="">Nenhum</option>
+                ${['PNCP','ComprasNet','BEC/SP','Licitações-e','ComprasBR','BBMNet','Banrisul','Caixa']
+                  .map(v => `<option value="${v}" ${p.portal_disputa===v?'selected':''}>${v}</option>`).join('')}
+              </select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Objeto</label>
+              <input id="ce-objeto-${p.id}" value="${esc(p.objeto||'')}" style="width:100%;${inputSty()}" /></div>
+            <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Link PNCP</label>
+              <input id="ce-link-${p.id}" value="${esc(p.link_pncp||'')}" style="width:100%;${inputSty()}" /></div>
+          </div>
+          <div style="margin-bottom:.5rem">
+            <label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Notas internas</label>
+            <textarea id="ce-obs-${p.id}" rows="2" placeholder="Observações, lembretes, informações importantes…" style="width:100%;resize:vertical;${inputSty()}">${esc(p.operador_obs||'')}</textarea>
+          </div>
+          <div style="margin-bottom:.5rem">
+            <label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Itens/lotes vencidos (separados por vírgula)</label>
+            <input id="ce-itens-${p.id}" value="${esc((p.itens_lotes||[]).map(i => i.numero ?? i).join(', '))}" placeholder="ex: 1, 3, 5" style="width:100%;${inputSty()}" />
+          </div>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-primary btn-sm" onclick="salvarCalEdicao(${p.id})">Salvar</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleCalForm('editar-${p.id}')">Cancelar</button>
           </div>
         </div>
       </div>
@@ -10662,6 +10704,33 @@
       if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
       await carregarCalendario();
     } catch { alert('Erro ao salvar operador'); }
+  }
+
+  async function salvarCalEdicao(pid) {
+    const p = calDados.find(x => x.id === pid);
+    if (!p) return;
+    const body = {
+      numero:         document.getElementById(`ce-numero-${pid}`)?.value.trim() || null,
+      orgao:          document.getElementById(`ce-orgao-${pid}`)?.value.trim() || null,
+      objeto:         document.getElementById(`ce-objeto-${pid}`)?.value.trim() || null,
+      valor_estimado: parseFloat(document.getElementById(`ce-valor-${pid}`)?.value) || null,
+      status:         document.getElementById(`ce-status-${pid}`)?.value || null,
+      link_pncp:      document.getElementById(`ce-link-${pid}`)?.value.trim() || null,
+      portal_disputa: document.getElementById(`ce-portal-${pid}`)?.value || null,
+      operador_obs:   document.getElementById(`ce-obs-${pid}`)?.value.trim() || null,
+      itens_lotes:    (document.getElementById(`ce-itens-${pid}`)?.value.trim() || '')
+                        .split(',').map(s => s.trim()).filter(Boolean).map(numero => ({ numero })),
+    };
+    try {
+      const r = await fetch(`${API}/clientes/${p.cliente_id}/pregoes/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
+      toast('Pregão atualizado!', 'success');
+      await carregarCalendario();
+    } catch (err) { alert(err.message || 'Erro ao salvar'); }
   }
 
   // ─────────────────────────────────────────
@@ -11677,9 +11746,11 @@
         area.innerHTML = '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão encontrado</h3></div>';
         return;
       }
+      pregoesTodosMap = {};
+      dados.forEach(p => { pregoesTodosMap[p.id] = p; });
       area.innerHTML = `<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Número</th><th>Cliente</th><th>Órgão</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th></tr></thead>
-        <tbody>${dados.map(p => `<tr>
+        <tbody>${dados.map(p => `<tr data-pid-admin="${p.id}">
           <td style="font-weight:600"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
           <td class="td-muted">${esc(p.cliente_nome||'—')}</td>
           <td class="td-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((p.orgao||'').slice(0,50))}</td>
@@ -11687,12 +11758,95 @@
           <td class="td-muted">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
           <td><span class="s-badge s-${p.status}">${(p.status||'').replace('_',' ')}</span></td>
           <td><div class="td-actions">
+            <button class="btn-icon" title="Editar" onclick="abrirEditarPregaoAdmin(${p.id})">✏️</button>
             <button class="btn-icon btn-edson" title="Edson IA" onclick="verEdson(${p.id})">🤖</button>
             <button class="btn-icon btn-danger" title="Excluir" onclick="excluirPregaoAdmin(${p.id},${p.cliente_id},'${esc(p.numero||'')}',this)">🗑️</button>
           </div></td>
         </tr>`).join('')}</tbody>
       </table></div>`;
     } catch (e) { area.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  let pregoesTodosMap = {};
+
+  function abrirEditarPregaoAdmin(pid) {
+    const p = pregoesTodosMap[pid];
+    if (!p) return;
+    const existing = document.getElementById(`edit-form-admin-${pid}`);
+    if (existing) { existing.remove(); return; }
+    document.querySelectorAll('[id^="edit-form-admin-"]').forEach(el => el.remove());
+
+    const tr = document.querySelector(`[data-pid-admin="${pid}"]`);
+    if (!tr) return;
+
+    const dtLocal = p.data_hora_abertura ? toLocalInput(p.data_hora_abertura) : '';
+    const row = document.createElement('tr');
+    row.id = `edit-form-admin-${pid}`;
+    const epPortalOpts = ['PNCP','ComprasNet','BEC/SP','Licitações-e','ComprasBR','BBMNet','Banrisul','Caixa']
+      .map(v => `<option value="${v}" ${p.portal_disputa===v?'selected':''}>${v}</option>`).join('');
+    row.innerHTML = `<td colspan="7" style="padding:.75rem .65rem;background:rgba(76,197,215,.06);border-left:3px solid var(--primary)">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-bottom:.5rem">
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Número *</label>
+          <input id="epa-numero-${pid}" value="${esc(p.numero||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Órgão</label>
+          <input id="epa-orgao-${pid}" value="${esc(p.orgao||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Data/hora abertura</label>
+          <input type="datetime-local" id="epa-dha-${pid}" value="${dtLocal}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Valor estimado (R$)</label>
+          <input type="number" id="epa-valor-${pid}" value="${p.valor_estimado||''}" min="0" step="0.01" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Status</label>
+          <select id="epa-status-${pid}" style="width:100%;${inputSty()}">
+            <option value="a_disputar" ${p.status==='a_disputar'?'selected':''}>A disputar</option>
+            <option value="vencido"    ${p.status==='vencido'?'selected':''}>Vencido</option>
+            <option value="perdido"    ${p.status==='perdido'?'selected':''}>Perdido</option>
+            <option value="cancelado"  ${p.status==='cancelado'?'selected':''}>Cancelado</option>
+          </select></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Portal de disputa</label>
+          <select id="epa-portal-${pid}" style="width:100%;${inputSty()}">
+            <option value="">Nenhum</option>${epPortalOpts}
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Objeto</label>
+          <input id="epa-objeto-${pid}" value="${esc(p.objeto||'')}" style="width:100%;${inputSty()}" /></div>
+        <div><label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Link PNCP</label>
+          <input id="epa-link-${pid}" value="${esc(p.link_pncp||'')}" style="width:100%;${inputSty()}" /></div>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <label style="font-size:.72rem;color:var(--text-muted);display:block;margin-bottom:.2rem">Notas internas</label>
+        <textarea id="epa-obs-${pid}" rows="2" placeholder="Observações, lembretes, informações importantes…" style="width:100%;resize:vertical;${inputSty()}">${esc(p.operador_obs||'')}</textarea>
+      </div>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn btn-primary btn-sm" onclick="salvarEdicaoPregaoAdmin(${pid})">Salvar</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-form-admin-${pid}').remove()">Cancelar</button>
+      </div>
+    </td>`;
+    tr.insertAdjacentElement('afterend', row);
+  }
+
+  async function salvarEdicaoPregaoAdmin(pid) {
+    const p = pregoesTodosMap[pid];
+    if (!p) return;
+    const body = {
+      numero:             document.getElementById(`epa-numero-${pid}`)?.value.trim() || null,
+      orgao:              document.getElementById(`epa-orgao-${pid}`)?.value.trim() || null,
+      objeto:             document.getElementById(`epa-objeto-${pid}`)?.value.trim() || null,
+      data_hora_abertura: document.getElementById(`epa-dha-${pid}`)?.value || null,
+      valor_estimado:     parseFloat(document.getElementById(`epa-valor-${pid}`)?.value) || null,
+      status:             document.getElementById(`epa-status-${pid}`)?.value || null,
+      link_pncp:          document.getElementById(`epa-link-${pid}`)?.value.trim() || null,
+      portal_disputa:     document.getElementById(`epa-portal-${pid}`)?.value || null,
+      operador_obs:       document.getElementById(`epa-obs-${pid}`)?.value.trim() || null,
+    };
+    try {
+      const r = await fetch(`${API}/clientes/${p.cliente_id}/pregoes/${pid}`, {
+        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro);
+      toast('Pregão atualizado!', 'success');
+      carregarPregoesTodos();
+    } catch (err) { toast(err.message || 'Erro ao salvar', 'error'); }
   }
 
   async function excluirPregaoAdmin(pid, cid, numero, el) {

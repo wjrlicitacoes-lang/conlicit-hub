@@ -39,17 +39,22 @@ async function classificarEditaisNovos() {
   if (rows.length > 0) console.log(`[Sync] Segmentação: ${rows.length} editais classificados`);
 }
 const TAMANHO_PAGINA       = 50;
-const CONCORRENCIA         = 3;      // era 5 — menos pressão simultânea sobre a API do PNCP
-const TIMEOUT_MS           = 20000;  // era 12000 — o PNCP costuma ser lento sob concorrência
-const MAX_TENTATIVAS       = 2;
-const TIMEOUT_MS_RETRY     = 30000;  // timeout maior na fila de retentativa final
-const MAX_TENTATIVAS_RETRY = 3;
+const CONCORRENCIA         = 1;
+const TIMEOUT_MS           = 20000;
+const MAX_TENTATIVAS       = 4;
+const TIMEOUT_MS_RETRY     = 30000;
+const MAX_TENTATIVAS_RETRY = 5;
+const PAUSA_ENTRE_REQS_MS  = 400;
+const BACKOFF_429_BASE_MS  = 8000;
 
 function dStr(d) {
   return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
-// tentativas: quantas vezes tentar, timeoutMs: timeout por tentativa
+function pausa(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 async function buscarPagina(dataIni, dataFim, pagina, tentativas = MAX_TENTATIVAS, timeoutMs = TIMEOUT_MS) {
   for (let t = 0; t < tentativas; t++) {
     try {
@@ -60,15 +65,25 @@ async function buscarPagina(dataIni, dataFim, pagina, tentativas = MAX_TENTATIVA
       });
       return { data: r.data.data ?? [], total: r.data.totalRegistros ?? 0, falhou: false };
     } catch (e) {
-      console.error('[PNCP Sync] página', pagina, 'tentativa', t + 1, e.code || e.message);
-      if (t < tentativas - 1) await new Promise((r) => setTimeout(r, 2000 * (t + 1)));
+      const status = e.response?.status;
+      console.error('[PNCP Sync] página', pagina, 'tentativa', t + 1, status ? `HTTP ${status}` : (e.code || e.message));
+
+      if (t < tentativas - 1) {
+        if (status === 429) {
+          const retryAfterHeader = e.response?.headers?.['retry-after'];
+          const retryAfterMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : null;
+          const esperaMs = retryAfterMs || BACKOFF_429_BASE_MS * (t + 1);
+          console.error(`[PNCP Sync] página ${pagina} — 429, aguardando ${esperaMs}ms antes de tentar de novo`);
+          await pausa(esperaMs);
+        } else {
+          await pausa(2000 * (t + 1));
+        }
+      }
     }
   }
-  // Marca explicitamente como falha (diferente de "página vazia porque não tem mais dados")
   return { data: [], total: 0, falhou: true };
 }
 
-// Upsert de uma página inteira numa única query (1 round-trip ao banco por página de 50)
 async function upsertPagina(itens) {
   if (itens.length === 0) return 0;
 
@@ -116,7 +131,6 @@ async function upsertPagina(itens) {
   return itens.length;
 }
 
-// Sincroniza editais do PNCP com encerramento nos próximos `diasAdiante` dias.
 async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
   const inicio = new Date();
   const hoje   = new Date();
@@ -144,15 +158,13 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
       (_, i) => pInicio + i,
     );
 
-    // 1. Busca as páginas do PNCP em paralelo
     const resultados = await Promise.all(lote.map((p) => buscarPagina(dataIni, dataFim, p)));
 
-    // 2. Upsert de cada página no banco (1 query por página), aguardando antes do próximo lote
     for (let i = 0; i < resultados.length; i++) {
       const { data, falhou } = resultados[i];
       const pagina = lote[i];
       if (falhou) {
-        paginasFalhadas.push(pagina); // ← não descarta: guarda pra reprocessar depois
+        paginasFalhadas.push(pagina);
         continue;
       }
       if (data.length === 0) continue;
@@ -169,10 +181,10 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
       const progresso = Math.min(pInicio + CONCORRENCIA - 1, totalPaginas);
       console.log(`[Sync] ${progresso}/${totalPaginas} págs | ${inseridos} inseridos | ${erros} erros | ${paginasFalhadas.length} p/ retentar`);
     }
+
+    if (pInicio + CONCORRENCIA <= totalPaginas) await pausa(PAUSA_ENTRE_REQS_MS);
   }
 
-  // 3. Fila de retentativa: reprocessa sequencialmente (sem concorrência) as páginas que falharam,
-  //    com timeout maior e mais tentativas — em vez de simplesmente perder esses editais.
   if (paginasFalhadas.length > 0) {
     console.log(`[Sync] Reprocessando ${paginasFalhadas.length} página(s) que falharam:`, paginasFalhadas.join(', '));
     const aindaFalharam = [];
@@ -191,6 +203,7 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
           console.error('[Sync] Erro upsert retentativa (página', pagina, '):', e.message);
         }
       }
+      await pausa(PAUSA_ENTRE_REQS_MS * 2);
     }
     if (aindaFalharam.length > 0) {
       console.error(`[Sync] ATENÇÃO: ${aindaFalharam.length} página(s) continuam falhando após retentativa:`, aindaFalharam.join(', '));
@@ -205,7 +218,6 @@ async function sincronizarPNCP({ diasAdiante = 90 } = {}) {
   const resultado = { total, inseridos, erros, paginasFalhadasFinal: paginasFalhadas.length, duracaoSegundos };
   console.log('[Sync] Concluído:', JSON.stringify(resultado));
 
-  // Classifica segmentação dos editais sem categoria (roda em background, sem bloquear)
   classificarEditaisNovos().catch(e => console.error('[Sync] Erro classificação segmentação:', e.message));
 
   return resultado;
