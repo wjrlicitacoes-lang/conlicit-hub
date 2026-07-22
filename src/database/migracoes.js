@@ -543,7 +543,7 @@ async function executarMigracoes() {
   await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
   await db.query(`
     ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-    CHECK (role IN ('socio_fundador','assistente','assistente_junior','diretor_comercial','operador','sdr','social_media','cliente','admin'))
+    CHECK (role IN ('socio_fundador','assistente','assistente_junior','diretor_comercial','operador','sdr','social_media','cliente','admin','operacional','comercial'))
   `);
 
   await db.query(`
