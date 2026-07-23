@@ -9886,7 +9886,7 @@
     try {
       if (pregaoId && pregaoId !== 'null') {
         // Marcar pregão como sugerido
-        const r = await fetch(`${API}/clientes/${pregaoId}/pregoes/${pregaoId}`, {
+        const r = await fetch(`${API}/clientes/${clienteId}/pregoes/${pregaoId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ status: 'sugerido' }),
