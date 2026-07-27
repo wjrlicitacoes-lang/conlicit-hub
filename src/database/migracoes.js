@@ -1366,6 +1366,29 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   // Itens/lotes vencidos — registrado no calendário após o resultado do pregão
   await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS itens_lotes JSONB DEFAULT '[]'`);
 
+  // ── Módulo Apresentação de Resultados ──────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS resultado_apresentacoes (
+      id                  SERIAL PRIMARY KEY,
+      cliente_id          INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      segmento            VARCHAR(255),
+      licitacoes_totais   INTEGER DEFAULT 0,
+      licitacoes_vencidas INTEGER DEFAULT 0,
+      valor_total         NUMERIC(15,2) DEFAULT 0,
+      custo_assinatura    NUMERIC(15,2) DEFAULT 0,
+      tempo_antes_horas   NUMERIC(6,2) DEFAULT 0,
+      tempo_depois_horas  NUMERIC(6,2) DEFAULT 0,
+      modulo_principal    VARCHAR(100),
+      historia_breve      TEXT,
+      feedback_cliente    TEXT,
+      criado_em           TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em       TIMESTAMPTZ DEFAULT NOW(),
+      criado_por          INTEGER REFERENCES usuarios(id),
+      CONSTRAINT resultado_apresentacoes_unique_cliente UNIQUE(cliente_id)
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_resultado_cliente ON resultado_apresentacoes(cliente_id)`);
+
   // ── Seed de usuários iniciais da equipe ──────────────────────────────────────
   const equipeInicial = [
     { nome: 'Sabrine', email: 'sabrine@conlicit.com', role: 'admin' },
