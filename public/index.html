@@ -5267,6 +5267,20 @@
   let _statusFiltroClientes = true; // true = ativos, false = inativos
   let boletinsCache = [];
 
+  // ── Pregões: PATCH/DELETE unificados (evita URL clientes/pregoes montada manualmente em cada call-site) ──
+  async function reqPregao(method, clienteId, pregaoId, body) {
+    const opts = { method, headers: { Authorization: `Bearer ${token}` } };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const r = await fetch(`${API}/clientes/${clienteId}/pregoes/${pregaoId}`, opts);
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Erro na requisição');
+    return r.json();
+  }
+  async function patchPregao(clienteId, pregaoId, body) { return reqPregao('PATCH', clienteId, pregaoId, body); }
+  async function deletePregao(clienteId, pregaoId) { return reqPregao('DELETE', clienteId, pregaoId); }
+
   // ── Tema Light/Dark ────────────────────────────────────────────
   (function aplicarTemaInicial() {
     const salvo = localStorage.getItem('conlicit-tema') || 'dark';
@@ -5778,12 +5792,7 @@
   async function marcarContratoAssinado(pid, cid, btn) {
     btn.disabled = true; btn.textContent = 'Salvando…';
     try {
-      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ contrato_assinado: true }),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(cid, pid, { contrato_assinado: true });
       toast('Contrato marcado como assinado!', 'success');
       btn.closest('div[style]').remove();
     } catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = '✅ Contrato assinado'; }
@@ -6254,11 +6263,7 @@
     const vc = parseFloat(document.getElementById(`vc-${pid}`)?.value);
     if (!vv) { toast('Informe o valor vencido', 'error'); return; }
     try {
-      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
-        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body: JSON.stringify({ status:'vencido', valor_vencido: vv, comissao_gerada: vc || null }),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(clienteAtual.id, pid, { status:'vencido', valor_vencido: vv, comissao_gerada: vc || null });
       toast('Pregão marcado como vencido!', 'success');
       tabsLoaded.pregoes = false;
       switchTab2('pregoes');
@@ -6270,10 +6275,7 @@
   async function atualizarStatusPregao(pid, status) {
     if (!clienteAtual) return;
     try {
-      await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
-        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body: JSON.stringify({ status }),
-      });
+      await patchPregao(clienteAtual.id, pid, { status });
       toast(`Pregão marcado como ${status}`, 'success');
       tabsLoaded.pregoes = false;
       switchTab2('pregoes');
@@ -6357,11 +6359,7 @@
       portal_disputa:       document.getElementById(`ep-portal-${pid}`)?.value || null,
     };
     try {
-      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
-        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(clienteAtual.id, pid, body);
       // Se o número de controle mudou, disparar nova análise Edson
       if (novoControle && novoControle !== (p.numero_controle_pncp || '')) {
         fetch(`${API}/edson/${pid}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
@@ -6380,10 +6378,7 @@
     const confirma = confirm(`Tem certeza que deseja excluir o pregão ${numero}? Esta ação não pode ser desfeita.`);
     if (!confirma) return;
     try {
-      const r = await fetch(`${API}/clientes/${clienteAtual.id}/pregoes/${pid}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await deletePregao(clienteAtual.id, pid);
       toast('Pregão excluído com sucesso.', 'success');
       tabsLoaded.pregoes = false;
       switchTab2('pregoes');
@@ -9886,12 +9881,8 @@
     try {
       if (pregaoId && pregaoId !== 'null') {
         // Marcar pregão como sugerido
-        const r = await fetch(`${API}/clientes/${clienteId}/pregoes/${pregaoId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ status: 'sugerido' }),
-        });
-        if (!r.ok) console.warn('[EnviarCliente] Não foi possível marcar como sugerido');
+        await patchPregao(clienteId, pregaoId, { status: 'sugerido' })
+          .catch(() => console.warn('[EnviarCliente] Não foi possível marcar como sugerido'));
       } else if (analiseId) {
         // Vincular análise avulsa ao cliente
         const r = await fetch(`${API}/edson/analise/${analiseId}/vincular`, {
@@ -10722,12 +10713,7 @@
                         .split(',').map(s => s.trim()).filter(Boolean).map(numero => ({ numero })),
     };
     try {
-      const r = await fetch(`${API}/clientes/${p.cliente_id}/pregoes/${pid}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) { const e = await r.json(); alert(e.erro || 'Erro'); return; }
+      await patchPregao(p.cliente_id, pid, body);
       toast('Pregão atualizado!', 'success');
       await carregarCalendario();
     } catch (err) { alert(err.message || 'Erro ao salvar'); }
@@ -10983,12 +10969,7 @@
 
   async function aceitarOferta(pid) {
     try {
-      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes/${pid}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'a_disputar' }),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(userClienteId, pid, { status: 'a_disputar' });
       toast('Pregão aceito! Agora está em "Meus pregões".', 'success');
       await carregarMinhaArea();
     } catch (err) { toast(err.message || 'Erro ao aceitar oferta', 'error'); }
@@ -10998,12 +10979,7 @@
     const ok = confirm(`Rejeitar a oferta do pregão ${numero}? Ele será marcado como cancelado.`);
     if (!ok) return;
     try {
-      const r = await fetch(`${API}/clientes/${userClienteId}/pregoes/${pid}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'cancelado' }),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(userClienteId, pid, { status: 'cancelado' });
       toast('Oferta rejeitada.', 'success');
       await carregarMinhaArea();
     } catch (err) { toast(err.message || 'Erro ao rejeitar oferta', 'error'); }
@@ -11839,11 +11815,7 @@
       operador_obs:       document.getElementById(`epa-obs-${pid}`)?.value.trim() || null,
     };
     try {
-      const r = await fetch(`${API}/clientes/${p.cliente_id}/pregoes/${pid}`, {
-        method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await patchPregao(p.cliente_id, pid, body);
       toast('Pregão atualizado!', 'success');
       carregarPregoesTodos();
     } catch (err) { toast(err.message || 'Erro ao salvar', 'error'); }
@@ -11852,10 +11824,7 @@
   async function excluirPregaoAdmin(pid, cid, numero, el) {
     if (!confirm(`Excluir pregão ${numero}? Esta ação não pode ser desfeita.`)) return;
     try {
-      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await deletePregao(cid, pid);
       el.closest('tr').remove();
       toast('Pregão excluído.', 'success');
     } catch (e) { toast(e.message, 'error'); }
@@ -14251,13 +14220,9 @@ img { max-height: 22px !important; width: auto !important; display: block; }
   async function excluirPregaoRobo(pregaoId, clienteId) {
     if (!confirm('Remover este pregão da lista do robô?')) return;
     try {
-      const r = await fetch(`${API}/clientes/${clienteId}/pregoes/${pregaoId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) { toast('Pregão removido.', 'success'); carregarRobo(); }
-      else { const err = await r.json().catch(() => ({})); toast(err.erro || 'Erro ao excluir', 'error'); }
-    } catch (e) { toast(e.message, 'error'); }
+      await deletePregao(clienteId, pregaoId);
+      toast('Pregão removido.', 'success'); carregarRobo();
+    } catch (e) { toast(e.message || 'Erro ao excluir', 'error'); }
   }
 
   function abrirAdicionarPregaoRobo() {
@@ -14317,10 +14282,7 @@ img { max-height: 22px !important; width: auto !important; display: block; }
   async function excluirPregaoCalendario(pid, cid, numero) {
     if (!confirm(`Excluir pregão ${numero} do calendário? Esta ação não pode ser desfeita.`)) return;
     try {
-      const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error((await r.json()).erro);
+      await deletePregao(cid, pid);
       toast('Pregão excluído.', 'success');
       carregarCalendario();
     } catch (e) { toast(e.message, 'error'); }
