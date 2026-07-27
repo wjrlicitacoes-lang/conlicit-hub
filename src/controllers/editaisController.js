@@ -438,7 +438,7 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, cidade, raio_km, 
 
 // GET /editais
 async function listarEditais(req, res) {
-  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10, segmentacao } = req.query;
+  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10, segmentacao, cidade, raio_km } = req.query;
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
@@ -447,6 +447,8 @@ async function listarEditais(req, res) {
     const { total: totalCache, dados: dadosCache } = await buscarNaCache({
       q,
       uf:           uf && uf !== 'todos' ? uf : undefined,
+      cidade:       cidade ? cidade.trim() : undefined,
+      raio_km,
       modalidade,
       portal,
       valorMin:     valorMin !== '' ? valorMin : undefined,
