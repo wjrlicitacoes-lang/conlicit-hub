@@ -18245,7 +18245,7 @@ async function prcCarregarMulticanal() {
   let propArquivo = null;
 
   function propToken() {
-    return localStorage.getItem('ch_token') || localStorage.getItem('token') || '';
+    return localStorage.getItem('ch_token') || localStorage.getItem('ch_token') || '';
   }
 
   function propAuthHeader() {
@@ -18778,7 +18778,7 @@ function gcAplicar(d) {
 }
 
 async function gcListaAtualizar() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('ch_token');
   const sel = document.getElementById('gc-lista');
   if (!sel) return;
   const anterior = sel.value;
@@ -18799,7 +18799,7 @@ async function gcListaAtualizar() {
 async function gcCarregarSelecionado() {
   const id = document.getElementById('gc-lista')?.value;
   if (!id) { gcNovo(); return; }
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('ch_token');
   try {
     const res = await fetch(`/api/contratos-gerador/${id}`, { headers: { Authorization: 'Bearer ' + token } });
     const d = await res.json();
@@ -18812,7 +18812,7 @@ async function gcCarregarSelecionado() {
 
 async function gcSalvar() {
   if (!gcV('gc-cli-nome')) { mostrarToast('Informe o nome do cliente', 'aviso'); return; }
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('ch_token');
   const dados = gcDados();
   const url    = gcIdAtual ? `/api/contratos-gerador/${gcIdAtual}` : '/api/contratos-gerador';
   const method = gcIdAtual ? 'PUT' : 'POST';
@@ -18839,7 +18839,7 @@ async function gcDeletar() {
   const id = document.getElementById('gc-lista')?.value;
   if (!id) { mostrarToast('Selecione um contrato para excluir', 'aviso'); return; }
   if (!confirm('Excluir este contrato permanentemente?')) return;
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('ch_token');
   try {
     await fetch(`/api/contratos-gerador/${id}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
     if (gcIdAtual == id) gcIdAtual = null;
