@@ -37,7 +37,8 @@ ${conteudo}`;
 }
 
 const PROMPT_VISUAL = `Você é especialista em licitações públicas brasileiras.
-Analise as páginas do edital nas imagens acima e extraia TODOS os itens/lotes listados para compra.
+Analise o documento PDF do edital abaixo e extraia TODOS os itens/lotes listados para compra.
+Se o PDF estiver escaneado (OCR), ignore formatação imperfeita e foque no conteúdo.
 Se não houver itens nessas páginas, retorne {"itens":[]}.
 ${INSTRUCAO_JSON}`;
 
