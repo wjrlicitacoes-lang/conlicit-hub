@@ -483,6 +483,8 @@ async function listarEditais(req, res) {
       dataFinal:     dataFim,
       tamanhoPagina: 20,
       ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
+      ...(cidade && { cidade: cidade.trim() }),
+      ...(raio_km && { raio_km }),
     };
 
     // Sequencial com 500 ms de intervalo para respeitar o rate limit do PNCP
