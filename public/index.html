@@ -1916,6 +1916,10 @@
           <span class="nav-icon"><i class="ti ti-mail-fast"></i></span>
           <span class="nav-label">Marketing</span>
         </button>
+        <button class="nav-item" data-nav="resultados" onclick="navTo('resultados')" id="nav-resultados" hidden>
+          <span class="nav-icon"><i class="ti ti-report"></i></span>
+          <span class="nav-label">Resultados</span>
+        </button>
         <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
           <span class="nav-icon"><i class="ti ti-file"></i></span>
           <span class="nav-label">Proposta Comercial</span>
@@ -3576,7 +3580,90 @@
         </div>
       </section>
 
+      <!-- ── RESULTADOS (Case Study por Cliente) ── -->
+      <section id="section-resultados" class="section">
+        <div class="section-header">
+          <h1>Resultados</h1>
+          <div class="section-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="carregarResultados()">↻ Atualizar</button>
+            <button class="btn btn-primary btn-sm" onclick="resultadoAbrirModal()">+ Novo Case Study</button>
+          </div>
+        </div>
+        <div id="resultados-area"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+      </section>
+
     </main>
+  </div>
+</div>
+
+<!-- Modal: Case Study de Resultado -->
+<div class="modal-overlay" id="modal-resultado" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:600px">
+    <div style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:1.1rem" id="resultado-modal-titulo">Novo Case Study</h2>
+        <button onclick="document.getElementById('modal-resultado').classList.remove('visible')" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">×</button>
+      </div>
+      <input type="hidden" id="res-id">
+      <div style="display:grid;gap:14px">
+        <div>
+          <label class="form-label">Cliente *</label>
+          <select id="res-cliente" class="form-control"><option value="">Carregando…</option></select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Segmento</label>
+            <input id="res-segmento" class="form-control" placeholder="Ex: Material hospitalar">
+          </div>
+          <div>
+            <label class="form-label">Módulo Principal</label>
+            <input id="res-modulo" class="form-control" placeholder="Ex: Monitor de Editais">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Licitações Totais</label>
+            <input id="res-lic-totais" class="form-control" type="number" min="0" placeholder="0">
+          </div>
+          <div>
+            <label class="form-label">Licitações Vencidas</label>
+            <input id="res-lic-vencidas" class="form-control" type="number" min="0" placeholder="0">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Valor Total Ganho (R$)</label>
+            <input id="res-valor-total" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+          </div>
+          <div>
+            <label class="form-label">Custo Assinatura (R$)</label>
+            <input id="res-custo" class="form-control" type="number" step="0.01" min="0" placeholder="0,00">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label">Tempo Antes (h/semana)</label>
+            <input id="res-tempo-antes" class="form-control" type="number" step="0.1" min="0" placeholder="0">
+          </div>
+          <div>
+            <label class="form-label">Tempo Depois (h/semana)</label>
+            <input id="res-tempo-depois" class="form-control" type="number" step="0.1" min="0" placeholder="0">
+          </div>
+        </div>
+        <div>
+          <label class="form-label">História Breve</label>
+          <textarea id="res-historia" class="form-control" rows="2" placeholder="Resumo do caso de sucesso…"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Feedback do Cliente</label>
+          <textarea id="res-feedback" class="form-control" rows="2" placeholder="Depoimento do cliente…"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-resultado').classList.remove('visible')">Cancelar</button>
+        <button class="btn btn-primary" onclick="resultadoSalvar()">Salvar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4430,6 +4517,7 @@
     document.getElementById('nav-financeiro').hidden    = !admin || cliente;
     document.getElementById('nav-pos-vitoria').hidden   = !admin || cliente;
     document.getElementById('nav-marketing').hidden     = !permiteModulo('marketing') || cliente;
+    document.getElementById('nav-resultados').hidden    = !admin || cliente;
     document.getElementById('nav-label-admin').hidden   =
       (document.getElementById('nav-usuarios').hidden &&
        document.getElementById('nav-pregoes-todos').hidden &&
@@ -4438,7 +4526,8 @@
        document.getElementById('nav-proposta').hidden &&
        document.getElementById('nav-financeiro').hidden &&
        document.getElementById('nav-pos-vitoria').hidden &&
-       document.getElementById('nav-marketing').hidden);
+       document.getElementById('nav-marketing').hidden &&
+       document.getElementById('nav-resultados').hidden);
 
     // Seção Cliente
     document.getElementById('nav-minha-area').hidden     = !cliente;
@@ -4478,6 +4567,7 @@
     else if (section === 'oportunidades')   carregarOportunidades();
     else if (section === 'pos-vitoria')     carregarPosVitoria();
     else if (section === 'marketing')       { mktTabAtiva = 'campanhas'; mktSwitchTab('campanhas'); }
+    else if (section === 'resultados')      carregarResultados();
     else if (section === 'meus-pregoes')    { carregarMinhaArea(); switchMaTab('pregoes'); }
   }
 
@@ -14202,6 +14292,171 @@ async function pvRegistrarRecebimento(id) {
     if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao registrar');
     toast('Recebimento registrado!', 'success');
     pvCarregarComissoes(); pvCarregarKPIs();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULTADOS — Case Study por Cliente
+// ════════════════════════════════════════════════════════════
+
+let resultadosCache = [];
+let resultadosClientesMap = {};
+
+async function carregarResultados() {
+  const area = document.getElementById('resultados-area');
+  if (!area) return;
+  area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+  try {
+    const [rRes, rCli] = await Promise.all([
+      fetch(`${API}/api/apresentacao`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/clientes?ativo=true`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (!rRes.ok) throw new Error('Erro ao carregar resultados');
+    resultadosCache = await rRes.json();
+
+    resultadosClientesMap = {};
+    try {
+      const dCli = await rCli.json();
+      (dCli.dados || dCli.clientes || []).forEach(c => { resultadosClientesMap[c.id] = c.nome; });
+    } catch (_) {}
+
+    if (!resultadosCache.length) {
+      area.innerHTML = '<div class="state-box"><p>Nenhum case study cadastrado ainda.</p></div>';
+      return;
+    }
+
+    area.innerHTML = `
+      <table class="table" style="width:100%">
+        <thead>
+          <tr><th>Cliente</th><th>Segmento</th><th>Licitações</th><th>Valor Total</th><th>ROI</th><th></th></tr>
+        </thead>
+        <tbody>
+          ${resultadosCache.map(res => {
+            const taxa = res.licitacoes_totais > 0
+              ? Math.round((res.licitacoes_vencidas / res.licitacoes_totais) * 100) : 0;
+            const roi  = res.custo_assinatura > 0 ? (res.valor_total / res.custo_assinatura) : 0;
+            return `
+              <tr>
+                <td>${resultadosClientesMap[res.cliente_id] || ('Cliente #' + res.cliente_id)}</td>
+                <td>${res.segmento || '—'}</td>
+                <td>${res.licitacoes_vencidas ?? 0}/${res.licitacoes_totais ?? 0} (${taxa}%)</td>
+                <td>R$ ${Number(res.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td>${roi.toFixed(1)}x</td>
+                <td style="text-align:right;white-space:nowrap">
+                  <button class="btn btn-ghost btn-sm" onclick="resultadoGerarRelatorio(${res.id})" title="Gerar relatório HTML">📄</button>
+                  <button class="btn btn-ghost btn-sm" onclick="resultadoAbrirModal(${res.id})" title="Editar">✎</button>
+                  <button class="btn btn-ghost btn-sm" onclick="resultadoDeletar(${res.id})" title="Excluir">🗑</button>
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    area.innerHTML = `<div class="state-box"><p style="color:var(--danger)">${e.message}</p></div>`;
+  }
+}
+
+async function resultadoAbrirModal(id) {
+  const modal = document.getElementById('modal-resultado');
+  const sel   = document.getElementById('res-cliente');
+  document.getElementById('res-id').value = id || '';
+  document.getElementById('resultado-modal-titulo').textContent = id ? 'Editar Case Study' : 'Novo Case Study';
+
+  try {
+    const r = await fetch(`${API}/clientes?ativo=true`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    sel.innerHTML = '<option value="">Selecione…</option>' +
+      (d.dados || d.clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  } catch (_) { sel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+
+  const camposTexto = ['res-segmento', 'res-modulo', 'res-historia', 'res-feedback'];
+  const camposNum   = ['res-lic-totais', 'res-lic-vencidas', 'res-valor-total', 'res-custo', 'res-tempo-antes', 'res-tempo-depois'];
+
+  if (id) {
+    const res = resultadosCache.find(r => r.id === id);
+    sel.value = res?.cliente_id || '';
+    sel.disabled = true;
+    document.getElementById('res-segmento').value      = res?.segmento || '';
+    document.getElementById('res-modulo').value        = res?.modulo_principal || '';
+    document.getElementById('res-lic-totais').value    = res?.licitacoes_totais ?? '';
+    document.getElementById('res-lic-vencidas').value  = res?.licitacoes_vencidas ?? '';
+    document.getElementById('res-valor-total').value   = res?.valor_total ?? '';
+    document.getElementById('res-custo').value         = res?.custo_assinatura ?? '';
+    document.getElementById('res-tempo-antes').value   = res?.tempo_antes_horas ?? '';
+    document.getElementById('res-tempo-depois').value  = res?.tempo_depois_horas ?? '';
+    document.getElementById('res-historia').value      = res?.historia_breve || '';
+    document.getElementById('res-feedback').value      = res?.feedback_cliente || '';
+  } else {
+    sel.disabled = false;
+    [...camposTexto, ...camposNum].forEach(id2 => { const el = document.getElementById(id2); if (el) el.value = ''; });
+  }
+
+  modal.classList.add('visible');
+}
+
+async function resultadoSalvar() {
+  const id = document.getElementById('res-id').value;
+  const cliente_id = document.getElementById('res-cliente').value;
+  if (!id && !cliente_id) { toast('Selecione um cliente', 'error'); return; }
+
+  if (!id && resultadosCache.some(r => r.cliente_id === parseInt(cliente_id))) {
+    toast('Este cliente já possui um case study. Edite o existente.', 'error');
+    return;
+  }
+
+  const body = {
+    segmento:            document.getElementById('res-segmento').value.trim() || null,
+    modulo_principal:    document.getElementById('res-modulo').value.trim() || null,
+    licitacoes_totais:   parseInt(document.getElementById('res-lic-totais').value) || 0,
+    licitacoes_vencidas: parseInt(document.getElementById('res-lic-vencidas').value) || 0,
+    valor_total:         parseFloat(document.getElementById('res-valor-total').value) || 0,
+    custo_assinatura:    parseFloat(document.getElementById('res-custo').value) || 0,
+    tempo_antes_horas:   parseFloat(document.getElementById('res-tempo-antes').value) || 0,
+    tempo_depois_horas:  parseFloat(document.getElementById('res-tempo-depois').value) || 0,
+    historia_breve:      document.getElementById('res-historia').value.trim() || null,
+    feedback_cliente:    document.getElementById('res-feedback').value.trim() || null,
+  };
+
+  try {
+    let r;
+    if (id) {
+      r = await fetch(`${API}/api/apresentacao/${id}`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } else {
+      body.cliente_id = parseInt(cliente_id);
+      r = await fetch(`${API}/api/apresentacao`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    }
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+    toast(id ? 'Case study atualizado!' : 'Case study criado!', 'success');
+    document.getElementById('modal-resultado').classList.remove('visible');
+    carregarResultados();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function resultadoDeletar(id) {
+  if (!confirm('Excluir este case study? Esta ação não pode ser desfeita.')) return;
+  try {
+    const r = await fetch(`${API}/api/apresentacao/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao excluir');
+    toast('Case study excluído', 'success');
+    carregarResultados();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function resultadoGerarRelatorio(id) {
+  try {
+    const r = await fetch(`${API}/api/apresentacao/${id}/gerar`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error('Erro ao gerar relatório');
+    const html = await r.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    window.open(URL.createObjectURL(blob), '_blank');
   } catch (e) { toast(e.message, 'error'); }
 }
 
