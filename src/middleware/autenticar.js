@@ -9,6 +9,7 @@ const TODOS_MODULOS = [
   // Chaves de visibilidade do sidebar (frontend)
   'edson_ia','buscar_editais','oportunidades','robo_pregao',
   'minha_area','pregoes','proposta_comercial','documentacao','marketing',
+  'apresentacoes',
 ];
 
 const PERMISSOES_ROLE = {
@@ -33,7 +34,7 @@ const PERMISSOES_ROLE = {
   ],
   sdr:               [
     'dashboard','editais','boletins','prospects','calendario',
-    'buscar_editais','prospects','minha_area',
+    'buscar_editais','prospects','minha_area','apresentacoes',
   ],
   social_media:      ['dashboard','documentacao','marketing','minha_area'],
   cliente:           ['minha_area','pregoes','edson','edson_ia'],
@@ -44,7 +45,7 @@ const PERMISSOES_ROLE = {
   comercial:         [
     'dashboard','editais','calendario','prospects','edson','gerador_proposta',
     'buscar_editais','edson_ia','proposta_comercial','oportunidades','prospects',
-    'clientes','minha_area','pregoes',
+    'clientes','minha_area','pregoes','apresentacoes',
   ],
 };
 

@@ -50,7 +50,8 @@ async function atualizar(req, res) {
   const { id, pid } = req.params;
   const { status, valor_vencido, comissao_gerada, numero, orgao, objeto, data_abertura, valor_estimado,
           data_hora_abertura, operador_id, numero_controle_pncp, link_pncp, portal_disputa,
-          contrato_assinado, valor_minimo_lance, motivo_perda, menor_preco_concorrente, monitorar_resultado } = req.body ?? {};
+          contrato_assinado, valor_minimo_lance, motivo_perda, menor_preco_concorrente, monitorar_resultado,
+          operador_obs, itens_lotes } = req.body ?? {};
 
   const campos = [];
   const valores = [];
@@ -84,6 +85,8 @@ async function atualizar(req, res) {
   if (motivo_perda          !== undefined) { campos.push(`motivo_perda = $${idx++}`);          valores.push(motivo_perda || null); }
   if (menor_preco_concorrente !== undefined) { campos.push(`menor_preco_concorrente = $${idx++}`); valores.push(parseFloat(menor_preco_concorrente) || null); }
   if (monitorar_resultado   !== undefined) { campos.push(`monitorar_resultado = $${idx++}`);   valores.push(Boolean(monitorar_resultado)); }
+  if (operador_obs          !== undefined) { campos.push(`operador_obs = $${idx++}`);           valores.push(operador_obs?.trim() || null); }
+  if (itens_lotes           !== undefined) { campos.push(`itens_lotes = $${idx++}`);            valores.push(JSON.stringify(Array.isArray(itens_lotes) ? itens_lotes : [])); }
 
   if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar' });
 

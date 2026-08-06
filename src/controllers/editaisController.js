@@ -297,18 +297,14 @@ function formatarEdital(item) {
 }
 
 // ── Busca no cache local (PostgreSQL FTS) ──
-async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, dataFinal, cidade, raio_km, portal, portais, valorMin, valorMax, pagina, tamanhoPagina, situacao, segmentacao }) {
-  // situacao: 'a_vencer' (default) | 'vencida' | 'todas'
-  let dataCondicao;
-  if (!situacao || situacao === 'a_vencer') {
-    dataCondicao = `data_encerramento >= CURRENT_DATE`;
-  } else if (situacao === 'vencida') {
-    dataCondicao = `data_encerramento < CURRENT_DATE`;
-  } else {
-    dataCondicao = null; // 'todas' — sem restrição de data
-  }
+async function buscarNaCache({ q, uf, modalidade, modalidades, cidade, raio_km, portal, portais, valorMin, valorMax, pagina, tamanhoPagina, segmentacao }) {
+  // Janela fixa: só editais com encerramento entre 4 e 15 dias a partir de hoje.
+  // Não existe mais conceito de "vencida"/"todas" — nada fora dessa janela interessa.
+  const dataCondicao =
+    `data_encerramento >= CURRENT_DATE + INTERVAL '4 days' ` +
+    `AND data_encerramento <= CURRENT_DATE + INTERVAL '15 days'`;
 
-  const condicoes = dataCondicao ? [dataCondicao] : [];
+  const condicoes = [dataCondicao];
   const params = [];
   let idx = 1;
 
@@ -341,16 +337,6 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
   } else if (modalidade) {
     condicoes.push(`modalidade_nome ILIKE $${idx++}`);
     params.push(`%${modalidade}%`);
-  }
-
-  if (dataInicial) {
-    condicoes.push(`data_encerramento >= $${idx++}`);
-    params.push(dataInicial.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-  }
-
-  if (dataFinal) {
-    condicoes.push(`data_encerramento <= $${idx++}`);
-    params.push(dataFinal.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
   }
 
   // TODO: implementar geolocalização real via API IBGE de vizinhos
@@ -452,7 +438,7 @@ async function buscarNaCache({ q, uf, modalidade, modalidades, dataInicial, data
 
 // GET /editais
 async function listarEditais(req, res) {
-  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10, situacao, segmentacao } = req.query;
+  const { q, uf, dataFinal, modalidade, portal, valorMin, valorMax, pagina = 1, tamanhoPagina = 10, segmentacao, cidade, raio_km } = req.query;
   const pg  = Math.max(Number(pagina), 1);
   const tam = Math.max(Number(tamanhoPagina), 10);
 
@@ -461,13 +447,14 @@ async function listarEditais(req, res) {
     const { total: totalCache, dados: dadosCache } = await buscarNaCache({
       q,
       uf:           uf && uf !== 'todos' ? uf : undefined,
+      cidade:       cidade ? cidade.trim() : undefined,
+      raio_km,
       modalidade,
       portal,
       valorMin:     valorMin !== '' ? valorMin : undefined,
       valorMax:     valorMax !== '' ? valorMax : undefined,
       pagina:       pg,
       tamanhoPagina: tam,
-      situacao:     situacao || 'a_vencer',
       segmentacao:  segmentacao && segmentacao !== 'todas' ? segmentacao : undefined,
     });
 
@@ -496,6 +483,8 @@ async function listarEditais(req, res) {
       dataFinal:     dataFim,
       tamanhoPagina: 20,
       ...(uf && uf !== 'todos' ? { uf: uf.toUpperCase() } : {}),
+      ...(cidade && { cidade: cidade.trim() }),
+      ...(raio_km && { raio_km }),
     };
 
     // Sequencial com 500 ms de intervalo para respeitar o rate limit do PNCP

@@ -2,7 +2,28 @@ const db     = require('./db');
 const bcrypt = require('bcryptjs');
 
 async function executarMigracoes() {
-  await db.query(`
+  let sucesso = 0;
+  const falhas = [];
+
+  // Isola cada statement individualmente: uma falha (ex: constraint violada por dado
+  // legado, índice único com duplicata existente) loga o erro e segue para o próximo,
+  // em vez de derrubar todos os statements seguintes (foi a causa raiz de migrations
+  // recentes — ex: itens_lotes em pregoes — nunca terem sido aplicadas em produção).
+  const executarNoBanco = db.query.bind(db);
+  async function query(sql, params) {
+    try {
+      const resultado = await executarNoBanco(sql, params);
+      sucesso++;
+      return resultado;
+    } catch (e) {
+      const trecho = String(sql).trim().replace(/\s+/g, ' ').slice(0, 150);
+      falhas.push({ trecho, erro: e.message });
+      console.error(`[migracoes] FALHA no statement: ${trecho}${trecho.length === 150 ? '…' : ''} — ${e.message}`);
+      return { rows: [] };
+    }
+  }
+
+  await query(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id         SERIAL PRIMARY KEY,
       email      VARCHAR(255) UNIQUE NOT NULL,
@@ -11,7 +32,7 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS clientes (
       id                   SERIAL PRIMARY KEY,
       nome                 VARCHAR(255) NOT NULL,
@@ -28,15 +49,15 @@ async function executarMigracoes() {
   `);
 
   // Adiciona colunas novas a tabelas que já podem existir sem elas
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS valor_contrato       NUMERIC      NOT NULL DEFAULT 0`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS percentual_comissao  NUMERIC      NOT NULL DEFAULT 0`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_vencimento       INTEGER      NOT NULL DEFAULT 1`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel          VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS origem               VARCHAR(50)  NOT NULL DEFAULT 'direto'`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_nome             VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_comissao         NUMERIC      NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS valor_contrato       NUMERIC      NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS percentual_comissao  NUMERIC      NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_vencimento       INTEGER      NOT NULL DEFAULT 1`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel          VARCHAR(255)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS origem               VARCHAR(50)  NOT NULL DEFAULT 'direto'`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_nome             VARCHAR(255)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS sdr_comissao         NUMERIC      NOT NULL DEFAULT 0`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS pregoes (
       id              SERIAL PRIMARY KEY,
       cliente_id      INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
@@ -53,7 +74,7 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS mensalidades (
       id                SERIAL PRIMARY KEY,
       cliente_id        INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
@@ -67,7 +88,7 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS documentos (
       id              SERIAL PRIMARY KEY,
       cliente_id      INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
@@ -80,7 +101,7 @@ async function executarMigracoes() {
   `);
 
   // Cache local de editais do PNCP
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS editais_cache (
       numero_controle_pncp  VARCHAR(100) PRIMARY KEY,
       orgao_cnpj            VARCHAR(20),
@@ -99,38 +120,38 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE INDEX IF NOT EXISTS idx_editais_cache_fts
       ON editais_cache
       USING GIN(to_tsvector('portuguese',
         coalesce(objeto,'') || ' ' || coalesce(orgao_nome,'')))
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_uf  ON editais_cache(uf)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_enc ON editais_cache(data_encerramento)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_uf  ON editais_cache(uf)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_enc ON editais_cache(data_encerramento)`);
 
   // Calendário de pregões
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS data_hora_abertura     TIMESTAMPTZ`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_id             INTEGER REFERENCES usuarios(id)`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_vespera_enviado  BOOLEAN NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_2h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_1h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS data_hora_abertura     TIMESTAMPTZ`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_id             INTEGER REFERENCES usuarios(id)`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_vespera_enviado  BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_2h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_1h_enviado       BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Campos de contato e responsabilidade no cliente
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_nome       VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_cargo      VARCHAR(100)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_whatsapp   VARCHAR(20)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_conlicit VARCHAR(100)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_nome       VARCHAR(255)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_cargo      VARCHAR(100)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contato_whatsapp   VARCHAR(20)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_conlicit VARCHAR(100)`);
 
   // Sistema de roles
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255)`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente'`);
-  await db.query(`UPDATE usuarios SET role = 'admin' WHERE email = 'wjrlicitacoes@gmail.com'`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255)`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'assistente'`);
+  await query(`UPDATE usuarios SET role = 'admin' WHERE email = 'wjrlicitacoes@gmail.com'`);
 
   // Edson — análise de IA por pregão
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS numero_controle_pncp VARCHAR(100)`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS link_pncp TEXT`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS numero_controle_pncp VARCHAR(100)`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS link_pncp TEXT`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS analises_edson (
       id                  SERIAL PRIMARY KEY,
       pregao_id           INTEGER REFERENCES pregoes(id) ON DELETE CASCADE UNIQUE,
@@ -151,7 +172,7 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS chat_edson (
       id          SERIAL PRIMARY KEY,
       analise_id  INTEGER REFERENCES analises_edson(id) ON DELETE CASCADE,
@@ -162,13 +183,13 @@ async function executarMigracoes() {
   `);
 
   // Role cliente — terceiro role com acesso restrito
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
 
   // Garantir que não existe constraint de role (validação é feita no código)
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Status 'oferta' no fluxo de duas etapas (admin oferece → cliente aceita/rejeita)
-  await db.query(`
+  await query(`
     DO $$
     DECLARE r record;
     BEGIN
@@ -188,7 +209,7 @@ async function executarMigracoes() {
       END LOOP;
     END $$
   `);
-  await db.query(`
+  await query(`
     DO $$
     BEGIN
       IF NOT EXISTS (
@@ -204,20 +225,20 @@ async function executarMigracoes() {
   `);
 
   // Portal de disputa no pregão
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS portal_disputa VARCHAR(100)`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS portal_disputa VARCHAR(100)`);
 
   // Edson: análise avulsa (sem pregão vinculado) + rubrica de score
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS referencia TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS criterios_score JSONB`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS referencia TEXT`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS criterios_score JSONB`);
 
   // Vincular análise avulsa diretamente a um cliente
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL`);
 
   // Dashboard: pregões vencidos com status de contrato
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS contrato_assinado BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS contrato_assinado BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Prospects (pipeline comercial)
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS prospects (
       id           SERIAL PRIMARY KEY,
       nome         VARCHAR(255) NOT NULL,
@@ -235,20 +256,20 @@ async function executarMigracoes() {
 
   // Renomear status 'oferta' → 'sugerido' (abordagem idempotente)
   // 1. Drop direto com IF EXISTS (seguro se não existir)
-  await db.query(`
+  await query(`
     DO $$ BEGIN
       ALTER TABLE pregoes DROP CONSTRAINT IF EXISTS pregoes_status_check;
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$
   `);
   // 2. Migrar dados: oferta → sugerido; qualquer outro inválido → a_disputar
-  await db.query(`UPDATE pregoes SET status = 'sugerido' WHERE status = 'oferta'`);
-  await db.query(`
+  await query(`UPDATE pregoes SET status = 'sugerido' WHERE status = 'oferta'`);
+  await query(`
     UPDATE pregoes SET status = 'a_disputar'
     WHERE status NOT IN ('a_disputar','vencido','perdido','cancelado','sugerido')
   `);
   // 3. Recriar constraint — ignora se já existir
-  await db.query(`
+  await query(`
     DO $$ BEGIN
       ALTER TABLE pregoes ADD CONSTRAINT pregoes_status_check
         CHECK (status IN ('a_disputar','vencido','perdido','cancelado','sugerido'));
@@ -257,23 +278,23 @@ async function executarMigracoes() {
   `);
 
   // Suplementos de análise — imagem PNCP e documento complementar
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS imagem_pncp_base64        TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS arquivo_complementar_texto TEXT`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS imagem_pncp_base64        TEXT`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS arquivo_complementar_texto TEXT`);
 
   // Resumo de oportunidade — campos extraídos do edital pelo Edson
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS tipo_fornecimento      VARCHAR(20)`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS entrega_tipo           VARCHAR(20)`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS julgamento_tipo        VARCHAR(20)`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS locais_entrega         TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazo_entrega          TEXT`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_juridica_json JSONB`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_economica_json JSONB`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS capacidade_tecnica_json   JSONB`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS tipo_fornecimento      VARCHAR(20)`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS entrega_tipo           VARCHAR(20)`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS julgamento_tipo        VARCHAR(20)`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS locais_entrega         TEXT`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazo_entrega          TEXT`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_juridica_json JSONB`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS habilitacao_economica_json JSONB`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS capacidade_tecnica_json   JSONB`);
 
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Tabela de propostas comerciais
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS propostas (
       id                  SERIAL PRIMARY KEY,
       numero              VARCHAR(20) NOT NULL,
@@ -288,7 +309,7 @@ async function executarMigracoes() {
   `);
 
   // Controle granular de acesso por módulo
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS usuario_permissoes (
       id           SERIAL PRIMARY KEY,
       usuario_id   INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -300,24 +321,24 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Novos campos Edson — Lei 14.133/2021
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS clausulas_restritivas JSONB DEFAULT '[]'`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazos_legais JSONB DEFAULT '{}'`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS beneficios_me_epp JSONB DEFAULT '{}'`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS clausulas_restritivas JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS prazos_legais JSONB DEFAULT '{}'`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS beneficios_me_epp JSONB DEFAULT '{}'`);
 
   // Ampliar campos VARCHAR(100) que truncam respostas do Edson
-  await db.query(`ALTER TABLE analises_edson ALTER COLUMN modalidade TYPE TEXT`);
-  await db.query(`ALTER TABLE analises_edson ALTER COLUMN modo_disputa TYPE TEXT`);
-  await db.query(`ALTER TABLE analises_edson ALTER COLUMN tipo_julgamento TYPE TEXT`);
-  await db.query(`ALTER TABLE analises_edson ALTER COLUMN status TYPE TEXT`);
+  await query(`ALTER TABLE analises_edson ALTER COLUMN modalidade TYPE TEXT`);
+  await query(`ALTER TABLE analises_edson ALTER COLUMN modo_disputa TYPE TEXT`);
+  await query(`ALTER TABLE analises_edson ALTER COLUMN tipo_julgamento TYPE TEXT`);
+  await query(`ALTER TABLE analises_edson ALTER COLUMN status TYPE TEXT`);
 
   // WhatsApp grupo nos clientes (para disparo de oportunidades)
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS whatsapp_grupo VARCHAR(100)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS whatsapp_grupo VARCHAR(100)`);
 
   // ── Fila de oportunidades ────────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS oportunidades_fila (
       id                   SERIAL PRIMARY KEY,
       edital_ref           VARCHAR(255),
@@ -353,27 +374,27 @@ async function executarMigracoes() {
       created_at           TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_cliente ON oportunidades_fila(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_status ON oportunidades_fila(status)`);
-  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS pregao_id INTEGER REFERENCES pregoes(id) ON DELETE SET NULL`);
-  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_id INTEGER REFERENCES usuarios(id)`);
-  await db.query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_cliente ON oportunidades_fila(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_status ON oportunidades_fila(status)`);
+  await query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS pregao_id INTEGER REFERENCES pregoes(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_id INTEGER REFERENCES usuarios(id)`);
+  await query(`ALTER TABLE oportunidades_fila ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
 
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
 
   // Colunas de operador nos pregões
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_pregoes_operador ON pregoes(operador_id)`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS operador_obs TEXT`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregoes_operador ON pregoes(operador_id)`);
 
   // updated_at em pregoes — necessário para ordenação correta no dashboard
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
-  await db.query(`
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
+  await query(`
     UPDATE pregoes SET updated_at = created_at WHERE updated_at IS NULL
   `);
 
 
   // Adicionar 'novo_lead' ao status de prospects (formulário público)
-  await db.query(`
+  await query(`
     DO $$
     BEGIN
       BEGIN
@@ -389,13 +410,13 @@ async function executarMigracoes() {
   `);
 
   // Coluna uf para prospect (origem do formulário público)
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS uf VARCHAR(2)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS palavras_chave TEXT[]`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem_formulario BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS uf VARCHAR(2)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS palavras_chave TEXT[]`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem_formulario BOOLEAN NOT NULL DEFAULT FALSE`);
 
 
   // Acessos de portais por cliente
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS acessos_portais (
       id           SERIAL PRIMARY KEY,
       cliente_id   INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
@@ -407,33 +428,33 @@ async function executarMigracoes() {
       created_at   TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_acessos_cliente ON acessos_portais(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_acessos_cliente ON acessos_portais(cliente_id)`);
 
   // Campo indicado_por nos prospects
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS indicado_por VARCHAR(255)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS indicado_por VARCHAR(255)`);
 
   // Campo valor_minimo_lance nos pregoes
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS valor_minimo_lance NUMERIC`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS motivo_perda VARCHAR(100)`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS menor_preco_concorrente NUMERIC`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS monitorar_resultado BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS valor_minimo_lance NUMERIC`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS motivo_perda VARCHAR(100)`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS menor_preco_concorrente NUMERIC`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS monitorar_resultado BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Checklist de onboarding nos documentos
-  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
+  await query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS onboarding BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS status_entrega VARCHAR(20) NOT NULL DEFAULT 'pendente'`);
 
 
   // Campos para timbrado e proposta readequada
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS razao_social VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_legal VARCHAR(255)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cargo_responsavel VARCHAR(100)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cpf_responsavel VARCHAR(14)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS endereco TEXT`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_base64 TEXT`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS razao_social VARCHAR(255)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS responsavel_legal VARCHAR(255)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cargo_responsavel VARCHAR(100)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cpf_responsavel VARCHAR(14)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS endereco TEXT`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_base64 TEXT`);
 
   // Tabelas para módulo de documentação
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS documentos_cliente (
       id               SERIAL PRIMARY KEY,
       cliente_id       INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
@@ -449,7 +470,7 @@ async function executarMigracoes() {
       updated_at       TIMESTAMP DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE TABLE IF NOT EXISTS tokens_upload (
+  await query(`CREATE TABLE IF NOT EXISTS tokens_upload (
     id         SERIAL PRIMARY KEY,
     cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
     token      VARCHAR(64) UNIQUE NOT NULL,
@@ -457,13 +478,13 @@ async function executarMigracoes() {
     expira_em  TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
   )`);
-  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_cliente_id ON documentos_cliente(cliente_id)');
-  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_status ON documentos_cliente(status)');
-  await db.query('CREATE INDEX IF NOT EXISTS idx_docs_vencimento ON documentos_cliente(data_vencimento)');
-  await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens_upload(token)');
+  await query('CREATE INDEX IF NOT EXISTS idx_docs_cliente_id ON documentos_cliente(cliente_id)');
+  await query('CREATE INDEX IF NOT EXISTS idx_docs_status ON documentos_cliente(status)');
+  await query('CREATE INDEX IF NOT EXISTS idx_docs_vencimento ON documentos_cliente(data_vencimento)');
+  await query('CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens_upload(token)');
 
   // Tabela para recursos licitatórios
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS recursos_licitatorios (
       id            SERIAL PRIMARY KEY,
       pregao_id     INTEGER REFERENCES pregoes(id) ON DELETE CASCADE,
@@ -479,24 +500,24 @@ async function executarMigracoes() {
 
 
   // Colunas de alerta 48h e 24h nos pregões
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_48h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_24h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_48h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS alerta_24h_enviado BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Coluna whatsapp nos usuários (para alertas diretos aos sócios)
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(20)`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(20)`);
 
   // ── Módulo de Prospecção ampliado ────────────────────────────────────────────
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS edital TEXT`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS obs TEXT`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem VARCHAR(50) NOT NULL DEFAULT 'manual'`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_email_id VARCHAR(100)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status VARCHAR(30)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status_at TIMESTAMPTZ`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS formulario_preenchido BOOLEAN NOT NULL DEFAULT FALSE`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS analise_edson_id INTEGER REFERENCES analises_edson(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS edital TEXT`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS obs TEXT`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS origem VARCHAR(50) NOT NULL DEFAULT 'manual'`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_email_id VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status VARCHAR(30)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_status_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS formulario_preenchido BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS analise_edson_id INTEGER REFERENCES analises_edson(id) ON DELETE SET NULL`);
 
-  await db.query(`
+  await query(`
     DO $$
     BEGIN
       BEGIN
@@ -512,7 +533,7 @@ async function executarMigracoes() {
     END $$;
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS prospects_eventos (
       id          SERIAL PRIMARY KEY,
       prospect_id INTEGER NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
@@ -522,31 +543,31 @@ async function executarMigracoes() {
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_eventos ON prospects_eventos(prospect_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_email ON prospects(email)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_prospects_eventos ON prospects_eventos(prospect_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_prospects_email ON prospects(email)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status)`);
 
   // Planilha de pesquisa de preços — seleção de itens e resultado da pesquisa
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_selecao  JSONB DEFAULT '[]'`);
-  await db.query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_pesquisa JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_selecao  JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE analises_edson ADD COLUMN IF NOT EXISTS itens_planilha_pesquisa JSONB DEFAULT '[]'`);
 
   // ── Gestão de pessoas ──────────────────────────────────────────────────────
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo        VARCHAR(100)`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area         VARCHAR(100)`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gestor_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS clientes_ids INTEGER[] DEFAULT '{}'`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone     VARCHAR(20)`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bio          TEXT`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo        BOOLEAN NOT NULL DEFAULT TRUE`);
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS data_entrada DATE DEFAULT CURRENT_DATE`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo        VARCHAR(100)`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area         VARCHAR(100)`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gestor_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS clientes_ids INTEGER[] DEFAULT '{}'`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone     VARCHAR(20)`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bio          TEXT`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo        BOOLEAN NOT NULL DEFAULT TRUE`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS data_entrada DATE DEFAULT CURRENT_DATE`);
 
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
-  await db.query(`
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`
     ALTER TABLE usuarios ADD CONSTRAINT usuarios_role_check
-    CHECK (role IN ('socio_fundador','assistente','assistente_junior','diretor_comercial','operador','sdr','social_media','cliente','admin'))
+    CHECK (role IN ('socio_fundador','assistente','assistente_junior','diretor_comercial','operador','sdr','social_media','cliente','admin','operacional','comercial'))
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS usuario_permissoes (
       id           SERIAL PRIMARY KEY,
       usuario_id   INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -559,7 +580,7 @@ async function executarMigracoes() {
   `);
 
   // email_templates e email_logs para disparo via Brevo
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS email_templates (
       id                    SERIAL PRIMARY KEY,
       slug                  VARCHAR(100) UNIQUE NOT NULL,
@@ -572,7 +593,7 @@ async function executarMigracoes() {
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS email_logs (
       id                  SERIAL PRIMARY KEY,
       prospect_id         INTEGER REFERENCES prospects(id) ON DELETE SET NULL,
@@ -587,7 +608,7 @@ async function executarMigracoes() {
   `);
 
   // Seeds dos 3 templates de prospecção
-  await db.query(`
+  await query(`
     INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
     VALUES (
       'prospecto_desclassificado',
@@ -614,7 +635,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
-  await db.query(`
+  await query(`
     INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
     VALUES (
       'prospecto_segundo_lugar',
@@ -640,7 +661,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     ON CONFLICT (slug) DO NOTHING
   `);
 
-  await db.query(`
+  await query(`
     INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
     VALUES (
       'prospecto_primeiro_acesso',
@@ -667,10 +688,10 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   `);
 
   // brevo_contact_id — ID do contato na lista Brevo (sync de prospecção)
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_contact_id VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS brevo_contact_id VARCHAR(100)`);
 
   // ── Módulo Financeiro Interno ────────────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS financeiro_lancamentos (
       id           SERIAL PRIMARY KEY,
       tipo         VARCHAR(10) NOT NULL CHECK (tipo IN ('receita','despesa')),
@@ -684,25 +705,25 @@ Conlicit — Seu copiloto em licitações$TMPL$,
       updated_at   TIMESTAMP DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_tipo ON financeiro_lancamentos(tipo)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_fin_data ON financeiro_lancamentos(data)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_fin_tipo ON financeiro_lancamentos(tipo)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_fin_data ON financeiro_lancamentos(data)`);
 
   // Campo função específica do colaborador (distinto de cargo)
-  await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS funcao TEXT`);
+  await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS funcao TEXT`);
 
   // ── Fluxo SDR/Closer: novas colunas em prospects ─────────────────────────────
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nome_empresa text`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nicho text`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_nome text`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_cargo text`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS status_contato text DEFAULT 'novo_lead'`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_id integer REFERENCES usuarios(id) ON DELETE SET NULL`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS anotacoes text`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS data_ultimo_contato timestamptz`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS campanhas_recebidas jsonb DEFAULT '[]'`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nome_empresa text`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS nicho text`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_nome text`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_cargo text`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS status_contato text DEFAULT 'novo_lead'`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS responsavel_id integer REFERENCES usuarios(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS anotacoes text`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS data_ultimo_contato timestamptz`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS campanhas_recebidas jsonb DEFAULT '[]'`);
 
   // ── Tabelas de marketing ──────────────────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS campanhas_marketing (
       id            SERIAL PRIMARY KEY,
       nome          TEXT NOT NULL,
@@ -717,7 +738,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS campanha_leads (
       id              SERIAL PRIMARY KEY,
       campanha_id     INTEGER REFERENCES campanhas_marketing(id) ON DELETE CASCADE,
@@ -729,7 +750,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   `);
 
   // ── Pagamentos flexíveis por cliente ─────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS cliente_pagamentos_config (
       id           SERIAL PRIMARY KEY,
       cliente_id   INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
@@ -745,7 +766,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS cliente_pagamentos_lancamentos (
       id              SERIAL PRIMARY KEY,
       cliente_id      INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
@@ -759,30 +780,30 @@ Conlicit — Seu copiloto em licitações$TMPL$,
     )
   `);
 
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_cliente    ON cliente_pagamentos_lancamentos(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_vencimento ON cliente_pagamentos_lancamentos(data_vencimento)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_status     ON cliente_pagamentos_lancamentos(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_cliente    ON cliente_pagamentos_lancamentos(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_vencimento ON cliente_pagamentos_lancamentos(data_vencimento)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pag_lanc_status     ON cliente_pagamentos_lancamentos(status)`);
 
   // ── Documentos de cliente — campos de controle de vencimento e upload ────────
-  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS data_emissao DATE`);
-  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS alerta_vencimento_dias INTEGER DEFAULT 30`);
-  await db.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS url_arquivo TEXT`);
+  await query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS data_emissao DATE`);
+  await query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS alerta_vencimento_dias INTEGER DEFAULT 30`);
+  await query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS url_arquivo TEXT`);
 
   // ── Clientes: campos de configuração de pagamento simplificado ───────────────
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'mensal'`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_semana      INTEGER`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS datas_pagamento JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'mensal'`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dia_semana      INTEGER`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS datas_pagamento JSONB DEFAULT '[]'`);
 
   // ── Acessos: campos adicionais para portais de licitação ─────────────────────
-  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS portal_id       TEXT`);
-  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cpf_responsavel TEXT`);
-  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cnpj            TEXT`);
-  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS tem_2fa         BOOLEAN DEFAULT FALSE`);
-  await db.query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS obs_2fa         TEXT`);
-  await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acessos_portais_portal_id ON acessos_portais(cliente_id, portal_id) WHERE portal_id IS NOT NULL`);
+  await query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS portal_id       TEXT`);
+  await query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cpf_responsavel TEXT`);
+  await query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS cnpj            TEXT`);
+  await query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS tem_2fa         BOOLEAN DEFAULT FALSE`);
+  await query(`ALTER TABLE acessos_portais ADD COLUMN IF NOT EXISTS obs_2fa         TEXT`);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_acessos_portais_portal_id ON acessos_portais(cliente_id, portal_id) WHERE portal_id IS NOT NULL`);
 
   // ── Configurações do sistema (chave/valor) ────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS system_configs (
       key        VARCHAR(100) PRIMARY KEY,
       value      TEXT,
@@ -791,7 +812,7 @@ Conlicit — Seu copiloto em licitações$TMPL$,
   `);
 
   // ── Template isca: Análise Gratuita de Edital ─────────────────────────────────
-  await db.query(`
+  await query(`
     INSERT INTO email_templates (slug, nome, assunto, corpo_html, variaveis_disponiveis)
     VALUES (
       'isca_analise_gratuita',
@@ -816,10 +837,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // ── Onboarding de cliente ────────────────────────────────────────────────────
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cidade               VARCHAR(100)`);
-  await db.query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS onboarding_concluido BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS cidade               VARCHAR(100)`);
+  await query(`ALTER TABLE clientes ADD COLUMN IF NOT EXISTS onboarding_concluido BOOLEAN NOT NULL DEFAULT FALSE`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS onboarding_tokens (
       id          SERIAL PRIMARY KEY,
       token       VARCHAR(64) UNIQUE NOT NULL,
@@ -830,7 +851,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS credenciais_portais (
       id          SERIAL PRIMARY KEY,
       cliente_id  INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
@@ -843,14 +864,14 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // Expandir constraint de status dos prospects para incluir todos os valores usados no kanban
-  await db.query(`
+  await query(`
     DO $$
     BEGIN
       ALTER TABLE prospects DROP CONSTRAINT IF EXISTS prospects_status_check;
     EXCEPTION WHEN others THEN NULL;
     END $$;
   `);
-  await db.query(`
+  await query(`
     DO $$ BEGIN
       ALTER TABLE prospects ADD CONSTRAINT prospects_status_check
         CHECK (status IN (
@@ -863,7 +884,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // boletins — histórico de boletins manuais disparados
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS boletins (
       id           SERIAL PRIMARY KEY,
       cliente_id   INTEGER,
@@ -876,7 +897,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       criado_em    TIMESTAMP DEFAULT NOW()
     )
   `);
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS boletins_items (
       id            SERIAL PRIMARY KEY,
       boletim_id    INTEGER REFERENCES boletins(id) ON DELETE CASCADE,
@@ -892,7 +913,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // marketing_conteudos — calendário editorial
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS marketing_conteudos (
       id              SERIAL PRIMARY KEY,
       canal           VARCHAR(30) NOT NULL,
@@ -910,21 +931,21 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       atualizado_em   TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_canal  ON marketing_conteudos(canal)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_data   ON marketing_conteudos(data_publicacao)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_status ON marketing_conteudos(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_canal  ON marketing_conteudos(canal)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_data   ON marketing_conteudos(data_publicacao)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_mkt_cont_status ON marketing_conteudos(status)`);
 
   // boletins — colunas complementares (idempotente)
-  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS total_editais  INTEGER`);
-  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS html_gerado_em TIMESTAMPTZ`);
-  await db.query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS criado_por     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
+  await query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS total_editais  INTEGER`);
+  await query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS html_gerado_em TIMESTAMPTZ`);
+  await query(`ALTER TABLE boletins ADD COLUMN IF NOT EXISTS criado_por     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`);
 
   // boletins_items — colunas complementares (idempotente)
-  await db.query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS fila_id  INTEGER`);
-  await db.query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS pncp_id  VARCHAR(200)`);
+  await query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS fila_id  INTEGER`);
+  await query(`ALTER TABLE boletins_items ADD COLUMN IF NOT EXISTS pncp_id  VARCHAR(200)`);
 
   // boletim_fila — fila de editais aguardando inclusão em boletins
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS boletim_fila (
       id             SERIAL PRIMARY KEY,
       pncp_id        VARCHAR(200),
@@ -948,11 +969,11 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
         CHECK (status IN ('na_fila','incluido_boletim','descartado'))
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_cliente ON boletim_fila(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_status  ON boletim_fila(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_cliente ON boletim_fila(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_boletim_fila_status  ON boletim_fila(status)`);
 
   // boletins_interesses — interesses manifestados via botão no HTML do boletim
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS boletins_interesses (
       id              SERIAL PRIMARY KEY,
       boletim_id      INTEGER REFERENCES boletins(id) ON DELETE SET NULL,
@@ -972,21 +993,21 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
         CHECK (status IN ('interesse_confirmado','em_analise','convertido','sem_interesse'))
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_cliente ON boletins_interesses(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_status  ON boletins_interesses(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_cliente ON boletins_interesses(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_boletins_int_status  ON boletins_interesses(status)`);
 
   // ── Multicanal: colunas prospects ────────────────────────────────────────────
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS canal_origem   VARCHAR(50)  DEFAULT 'manual'`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_source     VARCHAR(100)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_medium     VARCHAR(100)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_campaign   VARCHAR(100)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_content    VARCHAR(100)`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS perfil_url     TEXT`);
-  await db.query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS empresa_url    TEXT`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_prospects_canal ON prospects(canal_origem)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS canal_origem   VARCHAR(50)  DEFAULT 'manual'`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_source     VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_medium     VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_campaign   VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS utm_content    VARCHAR(100)`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS perfil_url     TEXT`);
+  await query(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS empresa_url    TEXT`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_prospects_canal ON prospects(canal_origem)`);
 
   // google_prospects — empresas encontradas via busca
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS google_prospects (
       id           SERIAL PRIMARY KEY,
       nome_empresa VARCHAR(255),
@@ -1006,11 +1027,11 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
         CHECK (status IN ('encontrado','contatado','prospect_criado','descartado'))
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_nicho  ON google_prospects(nicho)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_status ON google_prospects(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_nicho  ON google_prospects(nicho)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_google_prospects_status ON google_prospects(status)`);
 
   // social_templates — biblioteca de posts para LinkedIn/Instagram/Facebook
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS social_templates (
       id          SERIAL PRIMARY KEY,
       canal       VARCHAR(50)  NOT NULL,
@@ -1028,18 +1049,23 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_st_canal ON social_templates(canal)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_st_nicho ON social_templates(nicho)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_st_canal ON social_templates(canal)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_st_nicho ON social_templates(nicho)`);
 
   // Seed de templates sociais (apenas se tabela estiver vazia)
-  const { rows: stCount } = await db.query(`SELECT COUNT(*)::int AS n FROM social_templates`);
-  if (stCount[0].n === 0) {
-    const { seedSocialTemplates } = require('../seeds/social_templates');
-    await seedSocialTemplates(db);
+  const { rows: stCount } = await query(`SELECT COUNT(*)::int AS n FROM social_templates`);
+  if (stCount[0] && stCount[0].n === 0) {
+    try {
+      const { seedSocialTemplates } = require('../seeds/social_templates');
+      await seedSocialTemplates(db);
+    } catch (e) {
+      falhas.push({ trecho: 'seedSocialTemplates()', erro: e.message });
+      console.error(`[migracoes] FALHA no statement: seedSocialTemplates() — ${e.message}`);
+    }
   }
 
   // Planilha de proposta — extração de itens de edital via IA
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS proposta_planilhas (
       id            SERIAL PRIMARY KEY,
       cliente_id    INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
@@ -1053,7 +1079,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS proposta_itens (
       id                  SERIAL PRIMARY KEY,
       planilha_id         INTEGER REFERENCES proposta_planilhas(id) ON DELETE CASCADE,
@@ -1071,10 +1097,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       atualizado_em       TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_proposta_itens_planilha ON proposta_itens(planilha_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_proposta_itens_planilha ON proposta_itens(planilha_id)`);
 
   // ── Módulo Minha Área ─────────────────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS oportunidades (
       id                UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
       cliente_id        INTEGER     REFERENCES clientes(id) ON DELETE CASCADE,
@@ -1097,10 +1123,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       UNIQUE(cliente_id, numero_edital)
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_cliente ON oportunidades(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_status  ON oportunidades(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_cliente ON oportunidades(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_oportunidades_hub_status  ON oportunidades(status)`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS tarefas_internas (
       id                        UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
       oportunidade_id           UUID    REFERENCES oportunidades(id) ON DELETE CASCADE,
@@ -1119,10 +1145,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       concluido_em              TIMESTAMPTZ
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_role    ON tarefas_internas(atribuido_para_role, status)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_usuario ON tarefas_internas(atribuido_para_usuario_id, status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tarefas_role    ON tarefas_internas(atribuido_para_role, status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tarefas_usuario ON tarefas_internas(atribuido_para_usuario_id, status)`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS notificacoes (
       id              UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
       usuario_id      INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -1138,10 +1164,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       criado_em       TIMESTAMPTZ DEFAULT now()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_usuario ON notificacoes(usuario_id, lida)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_role    ON notificacoes(role_destino, lida)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_usuario ON notificacoes(usuario_id, lida)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_notificacoes_role    ON notificacoes(role_destino, lida)`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS calendario_conlicit (
       id                        UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
       tipo                      TEXT    DEFAULT 'pregao' CHECK (tipo IN (
@@ -1161,11 +1187,11 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       criado_em                 TIMESTAMPTZ DEFAULT now()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_cal_conlicit_evento ON calendario_conlicit(data_evento)`);
-  await db.query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS visivel_para_roles     TEXT[] DEFAULT ARRAY['admin','socio_fundador']`);
-  await db.query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS lembrete_3dias_enviado BOOLEAN DEFAULT false`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_cal_conlicit_evento ON calendario_conlicit(data_evento)`);
+  await query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS visivel_para_roles     TEXT[] DEFAULT ARRAY['admin','socio_fundador']`);
+  await query(`ALTER TABLE calendario_conlicit ADD COLUMN IF NOT EXISTS lembrete_3dias_enviado BOOLEAN DEFAULT false`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS posts_editoriais (
       id               UUID  DEFAULT gen_random_uuid() PRIMARY KEY,
       titulo           TEXT  NOT NULL,
@@ -1182,14 +1208,14 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
-  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS titulo     TEXT`);
-  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS descricao  TEXT`);
-  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prazo      DATE`);
-  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prioridade TEXT DEFAULT 'normal'`);
-  await db.query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS criado_por INTEGER REFERENCES usuarios(id)`);
+  await query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS titulo     TEXT`);
+  await query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS descricao  TEXT`);
+  await query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prazo      DATE`);
+  await query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS prioridade TEXT DEFAULT 'normal'`);
+  await query(`ALTER TABLE tarefas_internas ADD COLUMN IF NOT EXISTS criado_por INTEGER REFERENCES usuarios(id)`);
 
   // Contratações Diretas — pipeline de emails Make.com
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS contratacoes_diretas (
       id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       created_at       TIMESTAMPTZ DEFAULT NOW(),
@@ -1207,7 +1233,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       pdf_url          TEXT
     )
   `);
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS contratacoes_matches (
       id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       contratacao_id  UUID REFERENCES contratacoes_diretas(id) ON DELETE CASCADE,
@@ -1219,7 +1245,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       notificado_via  VARCHAR(50)
     )
   `);
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS cnpj_cnae_cache (
       cnpj         VARCHAR(14) PRIMARY KEY,
       cnaes        JSONB,
@@ -1227,12 +1253,12 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       atualizado_em TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_data      ON contratacoes_diretas(created_at DESC)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_status    ON contratacoes_diretas(status)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_matches_contratacao_id ON contratacoes_matches(contratacao_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_data      ON contratacoes_diretas(created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_contratacoes_status    ON contratacoes_diretas(status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_matches_contratacao_id ON contratacoes_matches(contratacao_id)`);
 
   // Feature: Calculadora de Lance
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS pregao_estrategia (
       id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       cliente_id       INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
@@ -1248,7 +1274,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // Feature: Histórico de Certames
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS historico_certames (
       id                   UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       cliente_id           INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
@@ -1270,16 +1296,16 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       created_at           TIMESTAMPTZ DEFAULT now()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_cliente ON historico_certames(cliente_id)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_historico_data    ON historico_certames(data_pregao DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_historico_cliente ON historico_certames(cliente_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_historico_data    ON historico_certames(data_pregao DESC)`);
 
   // Segmentação automática de editais (classificada por IA)
-  await db.query(`ALTER TABLE editais_cache ADD COLUMN IF NOT EXISTS segmentacao TEXT`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_seg ON editais_cache(segmentacao)`);
+  await query(`ALTER TABLE editais_cache ADD COLUMN IF NOT EXISTS segmentacao TEXT`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_editais_cache_seg ON editais_cache(segmentacao)`);
 
   // ── Novos papéis da equipe interna ──────────────────────────────────────────
-  await db.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
-  await db.query(`
+  await query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_role_check`);
+  await query(`
     ALTER TABLE usuarios
       ADD CONSTRAINT usuarios_role_check CHECK (role IN (
         'admin','socio_fundador','assistente','assistente_junior',
@@ -1289,7 +1315,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
 
   // ── Sistema de Tarefas da Equipe ────────────────────────────────────────────
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS tarefas (
       id            UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
       titulo        TEXT        NOT NULL,
@@ -1312,10 +1338,10 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
       updated_at    TIMESTAMPTZ DEFAULT now()
     )
   `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_responsavel ON tarefas(responsavel_id, status)`);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_tarefas_status      ON tarefas(status, data_prazo)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tarefas_responsavel ON tarefas(responsavel_id, status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tarefas_status      ON tarefas(status, data_prazo)`);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS tarefa_comentarios (
       id         UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
       tarefa_id  UUID        REFERENCES tarefas(id) ON DELETE CASCADE NOT NULL,
@@ -1325,7 +1351,7 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
-  await db.query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS tarefa_historico (
       id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
       tarefa_id       UUID        REFERENCES tarefas(id) ON DELETE CASCADE NOT NULL,
@@ -1337,6 +1363,32 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     )
   `);
 
+  // Itens/lotes vencidos — registrado no calendário após o resultado do pregão
+  await query(`ALTER TABLE pregoes ADD COLUMN IF NOT EXISTS itens_lotes JSONB DEFAULT '[]'`);
+
+  // ── Módulo Apresentação de Resultados ──────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS resultado_apresentacoes (
+      id                  SERIAL PRIMARY KEY,
+      cliente_id          INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+      segmento            VARCHAR(255),
+      licitacoes_totais   INTEGER DEFAULT 0,
+      licitacoes_vencidas INTEGER DEFAULT 0,
+      valor_total         NUMERIC(15,2) DEFAULT 0,
+      custo_assinatura    NUMERIC(15,2) DEFAULT 0,
+      tempo_antes_horas   NUMERIC(6,2) DEFAULT 0,
+      tempo_depois_horas  NUMERIC(6,2) DEFAULT 0,
+      modulo_principal    VARCHAR(100),
+      historia_breve      TEXT,
+      feedback_cliente    TEXT,
+      criado_em           TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em       TIMESTAMPTZ DEFAULT NOW(),
+      criado_por          INTEGER REFERENCES usuarios(id),
+      CONSTRAINT resultado_apresentacoes_unique_cliente UNIQUE(cliente_id)
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_resultado_cliente ON resultado_apresentacoes(cliente_id)`);
+
   // ── Seed de usuários iniciais da equipe ──────────────────────────────────────
   const equipeInicial = [
     { nome: 'Sabrine', email: 'sabrine@conlicit.com', role: 'admin' },
@@ -1345,17 +1397,26 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
     { nome: 'Caio',    email: 'caio@conlicit.com',    role: 'assistente' },
     { nome: 'Bryan',   email: 'bryan@conlicit.com',   role: 'assistente' },
   ];
-  const senhaHash = await bcrypt.hash('trocar123', 10);
-  for (const u of equipeInicial) {
-    await db.query(
-      `INSERT INTO usuarios (email, senha_hash, nome, role)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (email) DO NOTHING`,
-      [u.email, senhaHash, u.nome, u.role],
-    );
+  try {
+    const senhaHash = await bcrypt.hash('trocar123', 10);
+    for (const u of equipeInicial) {
+      await query(
+        `INSERT INTO usuarios (email, senha_hash, nome, role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (email) DO NOTHING`,
+        [u.email, senhaHash, u.nome, u.role],
+      );
+    }
+  } catch (e) {
+    falhas.push({ trecho: 'seed equipe inicial (bcrypt.hash)', erro: e.message });
+    console.error(`[migracoes] FALHA no statement: seed equipe inicial (bcrypt.hash) — ${e.message}`);
   }
 
-  console.log('Migrações executadas com sucesso');
+  console.log(`[migracoes] Concluído: ${sucesso} statement(s) executado(s) com sucesso, ${falhas.length} falha(s).`);
+  if (falhas.length) {
+    console.error('[migracoes] Statements que falharam:');
+    falhas.forEach((f, i) => console.error(`  ${i + 1}. ${f.trecho} — ${f.erro}`));
+  }
 }
 
 module.exports = { executarMigracoes };

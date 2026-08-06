@@ -12,6 +12,7 @@ async function listar(req, res) {
          p.id, p.cliente_id, p.numero, p.orgao, p.objeto,
          p.data_abertura, p.data_hora_abertura, p.valor_estimado, p.status,
          p.operador_id, p.alerta_vespera_enviado, p.alerta_2h_enviado, p.alerta_1h_enviado,
+         p.link_pncp, p.portal_disputa, p.operador_obs, p.itens_lotes,
          c.nome AS cliente_nome,
          u.nome AS operador_nome,
          (
