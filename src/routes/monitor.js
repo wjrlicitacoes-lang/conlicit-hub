@@ -113,4 +113,31 @@ router.post('/chat', async (req, res) => {
   return res.json({ mensagens, palavrasDetectadas });
 });
 
+// GET /api/monitor/automatico
+// Status do Monitor de polling automático (calendario_conlicit + notificacoes)
+router.get('/automatico', async (req, res) => {
+  try {
+    const { rows: pregoes } = await db.query(`
+      SELECT id, titulo, orgao, plataforma, data_evento, data_encerramento,
+             valor_estimado, ultima_checagem, ultimo_evento
+      FROM calendario_conlicit
+      WHERE ativo = true
+      ORDER BY data_evento ASC NULLS LAST
+    `);
+
+    const { rows: notificacoes } = await db.query(`
+      SELECT id, titulo, mensagem, criado_em
+      FROM notificacoes
+      WHERE tipo = 'alerta_prazo'
+      ORDER BY criado_em DESC
+      LIMIT 15
+    `);
+
+    return res.json({ pregoes, notificacoes });
+  } catch (e) {
+    console.error('[monitor] erro em /automatico:', e.message);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 module.exports = router;
