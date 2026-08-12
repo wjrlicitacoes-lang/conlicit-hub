@@ -1389,6 +1389,66 @@ Conlicit — Seu trabalho começa muito antes do edital.$TMPL$,
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_resultado_cliente ON resultado_apresentacoes(cliente_id)`);
 
+  // ── Acompanhamento de Pregões: documentos, checklist, histórico de status e propostas ──
+  await query(`
+    CREATE TABLE IF NOT EXISTS pregao_documentos (
+      id            SERIAL PRIMARY KEY,
+      pregao_id     INTEGER NOT NULL REFERENCES pregoes(id) ON DELETE CASCADE,
+      tipo          VARCHAR(20) NOT NULL,
+      nome_arquivo  TEXT,
+      url_arquivo   TEXT NOT NULL,
+      tamanho_bytes INTEGER,
+      sha256_hash   VARCHAR(64),
+      criado_por    INTEGER REFERENCES usuarios(id),
+      criado_em     TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT pregao_documentos_tipo_check CHECK (tipo IN ('edital','planilha','proposta','complementar','imagem_pncp'))
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregao_documentos_pregao ON pregao_documentos(pregao_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregao_documentos_hash   ON pregao_documentos(sha256_hash)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS pregao_checklist (
+      id            SERIAL PRIMARY KEY,
+      pregao_id     INTEGER NOT NULL REFERENCES pregoes(id) ON DELETE CASCADE,
+      etapa         VARCHAR(10) NOT NULL,
+      item          TEXT NOT NULL,
+      concluido     BOOLEAN NOT NULL DEFAULT FALSE,
+      concluido_por INTEGER REFERENCES usuarios(id),
+      concluido_em  TIMESTAMPTZ,
+      criado_em     TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT pregao_checklist_etapa_check CHECK (etapa IN ('antes','durante','apos'))
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregao_checklist_pregao ON pregao_checklist(pregao_id)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS pregao_historico_status (
+      id              SERIAL PRIMARY KEY,
+      pregao_id       INTEGER NOT NULL REFERENCES pregoes(id) ON DELETE CASCADE,
+      status_anterior VARCHAR(20),
+      status_novo     VARCHAR(20) NOT NULL,
+      motivo          TEXT,
+      alterado_por    INTEGER REFERENCES usuarios(id),
+      alterado_em     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregao_historico_status_pregao ON pregao_historico_status(pregao_id)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS pregao_propostas (
+      id                  SERIAL PRIMARY KEY,
+      pregao_id           INTEGER NOT NULL REFERENCES pregoes(id) ON DELETE CASCADE,
+      versao              INTEGER NOT NULL DEFAULT 1,
+      arquivo_url         TEXT NOT NULL,
+      valor_total         NUMERIC,
+      itens_precificados  JSONB DEFAULT '[]',
+      gerado_por          INTEGER REFERENCES usuarios(id),
+      criado_em           TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_pregao_propostas_pregao ON pregao_propostas(pregao_id)`);
+
   // ── Seed de usuários iniciais da equipe ──────────────────────────────────────
   const equipeInicial = [
     { nome: 'Sabrine', email: 'sabrine@conlicit.com', role: 'admin' },

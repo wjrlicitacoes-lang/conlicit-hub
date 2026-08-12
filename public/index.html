@@ -3723,6 +3723,27 @@
   </div>
 </div>
 
+<!-- Modal: Acompanhamento de Pregões -->
+<div class="modal-overlay" id="modal-acompanhamento" onclick="if(event.target===this)fecharAcompanhamento()">
+  <div class="modal" onclick="event.stopPropagation()" style="width:90vw;max-width:900px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3 id="acomp-titulo">Pregão</h3>
+      <button class="modal-close" onclick="fecharAcompanhamento()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="acomp-info" class="edital-meta" style="border:none;padding:0 0 1rem 0"></div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="pre" onclick="switchTabPregao('pre')">Pré-Disputa</button>
+        <button class="tab-btn" data-tab="mon" onclick="switchTabPregao('mon')">Monitor de Chat</button>
+        <button class="tab-btn" data-tab="pos" onclick="switchTabPregao('pos')">Pós-Disputa</button>
+      </div>
+      <div id="acomp-tab-pre" class="tab-pane active"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+      <div id="acomp-tab-mon" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+      <div id="acomp-tab-pos" class="tab-pane"><div class="state-box"><div class="spinner spinner-lg"></div></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Nova NF Pós-Vitória -->
 <div class="modal-overlay" id="modal-pv-nf" onclick="if(event.target===this)this.classList.remove('visible')">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
@@ -10253,7 +10274,11 @@
     } catch (e) { toast(e.message, 'error'); }
   }
 
-  // ── Todos os pregões (admin) ────────────────────────────────────────────────
+  // ── Todos os pregões / Acompanhamento (admin) ───────────────────────────────
+  function statusPregaoLabel(s) {
+    return { a_disputar: 'A disputar', sugerido: 'Sugerido', vencido: 'Vencido', perdido: 'Perdido', cancelado: 'Cancelado' }[s] || (s || '').replace('_', ' ');
+  }
+
   async function carregarPregoesTodos() {
     const area = document.getElementById('pregoes-todos-area');
     area.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
@@ -10268,34 +10293,284 @@
         area.innerHTML = '<div class="state-box"><span class="icon">📋</span><h3>Nenhum pregão encontrado</h3></div>';
         return;
       }
-      area.innerHTML = `<div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Número</th><th>Cliente</th><th>Órgão</th><th>Abertura</th><th>Valor est.</th><th>Status</th><th></th></tr></thead>
-        <tbody>${dados.map(p => `<tr>
-          <td style="font-weight:600"><code style="font-size:.78rem">${esc(p.numero||'—')}</code></td>
-          <td class="td-muted">${esc(p.cliente_nome||'—')}</td>
-          <td class="td-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((p.orgao||'').slice(0,50))}</td>
-          <td class="td-muted" style="white-space:nowrap">${p.data_hora_abertura ? new Date(p.data_hora_abertura).toLocaleDateString('pt-BR') : (p.data_abertura || '—')}</td>
-          <td class="td-muted">${p.valor_estimado ? fmtBRL(p.valor_estimado) : '—'}</td>
-          <td><span class="s-badge s-${p.status}">${(p.status||'').replace('_',' ')}</span></td>
-          <td><div class="td-actions">
-            <button class="btn-icon btn-edson" title="Edson IA" onclick="verEdson(${p.id})">🤖</button>
-            <button class="btn-icon btn-danger" title="Excluir" onclick="excluirPregaoAdmin(${p.id},${p.cliente_id},'${esc(p.numero||'')}',this)">🗑️</button>
-          </div></td>
-        </tr>`).join('')}</tbody>
-      </table></div>`;
+      area.innerHTML = `<div class="cards-grid">${dados.map(p => `
+        <div class="edital-card" style="cursor:pointer" onclick="abrirAcompanhamento(${p.id},${p.cliente_id})">
+          <div class="edital-card-top">
+            <span class="edital-numero">${esc(p.numero || '—')}</span>
+            <span class="s-badge s-${p.status}">${statusPregaoLabel(p.status)}</span>
+          </div>
+          <div class="edital-orgao">${esc(p.cliente_nome || '—')}</div>
+          <div class="edital-objeto">${esc(p.objeto || p.orgao || '—')}</div>
+          <div class="edital-meta">
+            <div class="edital-meta-item"><span class="edital-meta-label">Órgão</span><span class="edital-meta-value">${esc((p.orgao || '—').slice(0, 60))}</span></div>
+            <div class="edital-meta-item"><span class="edital-meta-label">Valor mínimo</span><span class="edital-meta-value valor">${p.valor_minimo_lance ? fmtBRL(p.valor_minimo_lance) : '—'}</span></div>
+            <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(p.portal_disputa || '—')}</span></div>
+            <div class="edital-meta-item"><span class="edital-meta-label">Abertura</span><span class="edital-meta-value">${p.data_hora_abertura ? new Date(p.data_hora_abertura).toLocaleDateString('pt-BR') : (p.data_abertura || '—')}</span></div>
+          </div>
+          <div class="edital-acoes">
+            <button class="btn-ver-pncp" onclick="event.stopPropagation();verEdson(${p.id})">🤖 Edson</button>
+            <button class="btn-icon btn-danger" title="Excluir" onclick="event.stopPropagation();excluirPregaoAdmin(${p.id},${p.cliente_id},'${esc(p.numero || '')}')">🗑️</button>
+          </div>
+        </div>`).join('')}</div>`;
     } catch (e) { area.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
   }
 
-  async function excluirPregaoAdmin(pid, cid, numero, el) {
+  async function excluirPregaoAdmin(pid, cid, numero) {
     if (!confirm(`Excluir pregão ${numero}? Esta ação não pode ser desfeita.`)) return;
     try {
       const r = await fetch(`${API}/clientes/${cid}/pregoes/${pid}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error((await r.json()).erro);
-      el.closest('tr').remove();
       toast('Pregão excluído.', 'success');
+      carregarPregoesTodos();
     } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Acompanhamento de Pregões: modal com 3 abas (Pré-Disputa / Monitor / Pós-Disputa) ──
+  let acompPregaoAtual = null;
+  let acompTabsLoaded = {};
+
+  async function apiPregao(path, opts = {}) {
+    const r = await fetch(`${API}/pregoes/${acompPregaoAtual.id}${path}`, {
+      ...opts,
+      headers: { Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Erro na requisição');
+    return r.json();
+  }
+
+  async function abrirAcompanhamento(pid, cid) {
+    try {
+      const r = await fetch(`${API}/clientes/${cid}/pregoes`, { headers: { Authorization: `Bearer ${token}` } });
+      const { dados = [] } = await r.json();
+      acompPregaoAtual = dados.find(p => p.id === pid) || { id: pid, cliente_id: cid };
+    } catch { acompPregaoAtual = { id: pid, cliente_id: cid }; }
+
+    document.getElementById('acomp-titulo').textContent = `Pregão ${acompPregaoAtual.numero || pid}`;
+    document.getElementById('acomp-info').innerHTML = `
+      <div class="edital-meta-item"><span class="edital-meta-label">Cliente</span><span class="edital-meta-value">${esc(acompPregaoAtual.cliente_nome || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Órgão</span><span class="edital-meta-value">${esc(acompPregaoAtual.orgao || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(acompPregaoAtual.portal_disputa || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Valor mínimo</span><span class="edital-meta-value valor">${acompPregaoAtual.valor_minimo_lance ? fmtBRL(acompPregaoAtual.valor_minimo_lance) : '—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Abertura</span><span class="edital-meta-value">${acompPregaoAtual.data_hora_abertura ? new Date(acompPregaoAtual.data_hora_abertura).toLocaleString('pt-BR') : '—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Status</span><span class="s-badge s-${acompPregaoAtual.status}">${statusPregaoLabel(acompPregaoAtual.status)}</span></div>`;
+
+    acompTabsLoaded = {};
+    document.querySelectorAll('#modal-acompanhamento .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'pre'));
+    document.querySelectorAll('#modal-acompanhamento .tab-pane').forEach(p => p.classList.toggle('active', p.id === 'acomp-tab-pre'));
+    document.getElementById('modal-acompanhamento').classList.add('visible');
+    switchTabPregao('pre');
+  }
+
+  function fecharAcompanhamento() {
+    document.getElementById('modal-acompanhamento').classList.remove('visible');
+    acompPregaoAtual = null;
+  }
+
+  function switchTabPregao(name) {
+    document.querySelectorAll('#modal-acompanhamento .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('#modal-acompanhamento .tab-pane').forEach(p => p.classList.toggle('active', p.id === `acomp-tab-${name}`));
+    if (acompTabsLoaded[name]) return;
+    acompTabsLoaded[name] = true;
+    if (name === 'pre') carregarPreDisputaTab();
+    else if (name === 'mon') carregarMonitorTab();
+    else if (name === 'pos') carregarPosDisputaTab();
+  }
+
+  async function carregarPreDisputaTab() {
+    const el = document.getElementById('acomp-tab-pre');
+    el.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const [docsRes, checklistRes, propostasRes] = await Promise.all([
+        apiPregao('/documentos').catch(() => ({ dados: [] })),
+        apiPregao('/checklist').catch(() => ({ dados: [] })),
+        apiPregao('/propostas').catch(() => ({ dados: [] })),
+      ]);
+      const docs = docsRes.dados || [];
+      const checklist = checklistRes.dados || [];
+      const propostas = propostasRes.dados || [];
+
+      const gruposChecklist = ['antes', 'durante', 'apos'].map(etapa => {
+        const itens = checklist.filter(c => c.etapa === etapa);
+        if (!itens.length) return '';
+        const titulo = { antes: 'Antes da sessão', durante: 'Durante a sessão', apos: 'Após a sessão' }[etapa];
+        return `<div style="margin-bottom:.75rem">
+          <strong style="font-size:.85rem">${titulo}</strong>
+          ${itens.map(i => `
+            <label style="display:flex;gap:.5rem;align-items:flex-start;padding:.3rem 0;font-size:.85rem;cursor:pointer">
+              <input type="checkbox" ${i.concluido ? 'checked' : ''} onchange="marcarChecklistItem(${i.id}, this.checked)">
+              <span style="${i.concluido ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${esc(i.item)}</span>
+            </label>`).join('')}
+        </div>`;
+      }).join('') || '<p class="td-muted">Checklist será gerado automaticamente após a análise do Edson.</p>';
+
+      el.innerHTML = `
+        <div style="display:grid;gap:1.25rem">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <strong>Documentos</strong>
+              <div style="display:flex;gap:.4rem;align-items:center">
+                <select id="acomp-doc-tipo" class="form-control" style="width:auto;font-size:.8rem">
+                  <option value="edital">Edital</option>
+                  <option value="planilha">Planilha</option>
+                  <option value="complementar">Complementar</option>
+                  <option value="imagem_pncp">Imagem PNCP</option>
+                </select>
+                <input type="file" id="acomp-doc-file" style="display:none" onchange="uploadDocumentoPregao()">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('acomp-doc-file').click()">↑ Upload</button>
+              </div>
+            </div>
+            <div id="acomp-docs-lista">${docs.length ? docs.map(d => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--sec-border);font-size:.85rem">
+                <a href="${esc(d.url_arquivo)}" target="_blank">${esc(d.nome_arquivo || d.tipo)}</a>
+                <span class="td-muted">${esc(d.tipo)} · ${new Date(d.criado_em).toLocaleDateString('pt-BR')}</span>
+              </div>`).join('') : '<p class="td-muted">Nenhum documento enviado ainda.</p>'}</div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>Análise Edson</strong>
+            <button class="btn btn-ghost btn-sm" onclick="verEdson(${acompPregaoAtual.id})">🤖 Ver análise completa</button>
+          </div>
+
+          <div>
+            <strong>Checklist pré-disputa</strong>
+            <div style="margin-top:.5rem">${gruposChecklist}</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <strong>Proposta</strong>
+              <button class="btn btn-primary btn-sm" onclick="gerarPropostaPregao()">Gerar proposta</button>
+            </div>
+            <div id="acomp-propostas-lista">${propostas.length ? propostas.map(p => `
+              <div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--sec-border);font-size:.85rem">
+                <a href="${esc(p.arquivo_url)}" target="_blank">Versão ${p.versao} — ${fmtBRL(p.valor_total)}</a>
+                <span class="td-muted">${new Date(p.criado_em).toLocaleDateString('pt-BR')}</span>
+              </div>`).join('') : '<p class="td-muted">Nenhuma proposta gerada ainda.</p>'}</div>
+          </div>
+        </div>`;
+    } catch (e) { el.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  async function uploadDocumentoPregao() {
+    const fileInput = document.getElementById('acomp-doc-file');
+    const file = fileInput.files[0];
+    if (!file) return;
+    const tipo = document.getElementById('acomp-doc-tipo').value;
+    const fd = new FormData();
+    fd.append('tipo', tipo);
+    fd.append('arquivo', file);
+    try {
+      toast('Enviando documento…', 'info');
+      const r = await fetch(`${API}/pregoes/${acompPregaoAtual.id}/documentos`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao enviar');
+      toast(tipo === 'edital' ? 'Edital enviado. Edson iniciou a análise.' : 'Documento enviado.', 'success');
+      fileInput.value = '';
+      acompTabsLoaded.pre = false;
+      switchTabPregao('pre');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function marcarChecklistItem(itemId, concluido) {
+    try {
+      await apiPregao(`/checklist/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concluido }),
+      });
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function gerarPropostaPregao() {
+    try {
+      toast('Gerando proposta…', 'info');
+      const proposta = await apiPregao('/gerar-proposta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      toast('Proposta gerada.', 'success');
+      window.open(proposta.arquivo_url, '_blank');
+      acompTabsLoaded.pre = false;
+      switchTabPregao('pre');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function parseNumeroControlePNCP(numero) {
+    if (!numero) return null;
+    const m = String(numero).match(/^(\d+)-\d+-(\d+)\/(\d{4})$/);
+    if (!m) return null;
+    return { cnpj_orgao: m[1], sequencial: m[2], ano: m[3] };
+  }
+
+  async function carregarMonitorTab() {
+    const el = document.getElementById('acomp-tab-mon');
+    const partes = parseNumeroControlePNCP(acompPregaoAtual.numero_controle_pncp);
+    if (!partes) {
+      el.innerHTML = '<p class="td-muted">Informe o "Número de controle PNCP" do pregão para habilitar o monitor de chat ao vivo.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <span class="td-muted" style="font-size:.85rem">Mensagens da sessão pública (PNCP)</span>
+        <button class="btn btn-primary btn-sm" onclick="buscarMonitorChat()">↻ Buscar mensagens</button>
+      </div>
+      <div id="acomp-monitor-lista"><p class="td-muted">Clique em "Buscar mensagens" para consultar o chat ao vivo.</p></div>`;
+  }
+
+  async function buscarMonitorChat() {
+    const lista = document.getElementById('acomp-monitor-lista');
+    const partes = parseNumeroControlePNCP(acompPregaoAtual.numero_controle_pncp);
+    lista.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const r = await fetch(`${API}/monitor/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          pregao_id: acompPregaoAtual.id,
+          numero_pregao: acompPregaoAtual.numero,
+          orgao: acompPregaoAtual.orgao,
+          ...partes,
+        }),
+      });
+      const { mensagens = [], erro } = await r.json();
+      if (erro) { lista.innerHTML = `<p style="color:var(--danger)">${esc(erro)}</p>`; return; }
+      if (!mensagens.length) { lista.innerHTML = '<p class="td-muted">Nenhuma mensagem encontrada até o momento.</p>'; return; }
+      lista.innerHTML = mensagens.map(m => `
+        <div style="padding:.5rem 0;border-bottom:1px solid var(--sec-border);font-size:.85rem">
+          <div>${esc(m.mensagem || m.texto || m.conteudo || '')}</div>
+          <div class="td-muted" style="font-size:.75rem">${m.dataEnvio ? new Date(m.dataEnvio).toLocaleString('pt-BR') : ''}</div>
+        </div>`).join('');
+    } catch (e) { lista.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
+  }
+
+  async function carregarPosDisputaTab() {
+    const el = document.getElementById('acomp-tab-pos');
+    el.innerHTML = '<div class="state-box"><div class="spinner spinner-lg"></div></div>';
+    try {
+      const { dados = [] } = await apiPregao('/historico');
+      const timeline = dados.length ? dados.map(h => `
+        <div style="display:flex;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--sec-border);font-size:.85rem">
+          <div class="td-muted" style="white-space:nowrap">${new Date(h.alterado_em).toLocaleString('pt-BR')}</div>
+          <div>${esc(statusPregaoLabel(h.status_anterior))} → <strong>${esc(statusPregaoLabel(h.status_novo))}</strong>${h.motivo ? ` — ${esc(h.motivo)}` : ''}${h.alterado_por_nome ? ` <span class="td-muted">(${esc(h.alterado_por_nome)})</span>` : ''}</div>
+        </div>`).join('') : '<p class="td-muted">Nenhuma mudança de status registrada ainda.</p>';
+
+      const linkContrato = acompPregaoAtual.status === 'vencido'
+        ? `<button class="btn btn-primary btn-sm" onclick="fecharAcompanhamento(); navTo('pos-vitoria')">Ir para Pós-Vitória (contrato, NF, comissão)</button>`
+        : '';
+
+      el.innerHTML = `
+        <div style="display:grid;gap:1rem">
+          <div>
+            <strong>Histórico de status</strong>
+            <div style="margin-top:.5rem">${timeline}</div>
+          </div>
+          ${linkContrato}
+        </div>`;
+    } catch (e) { el.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; }
   }
 
   // ── Prospects ───────────────────────────────────────────────────────────────
