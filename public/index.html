@@ -1843,12 +1843,8 @@
           <span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span>
           <span class="nav-label">Dashboard</span>
         </button>
-        <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
-          <span class="nav-icon"><i class="ti ti-robot"></i></span>
-          <span class="nav-label">Edson IA</span>
-        </button>
 
-        <!-- Visível para staff -->
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>🔍 Descobrir Licitações</div>
         <button class="nav-item" data-nav="editais" onclick="navTo('editais')" data-staff-only>
           <span class="nav-icon"><i class="ti ti-search"></i></span>
           <span class="nav-label">Buscar Editais</span>
@@ -1857,15 +1853,23 @@
           <span class="nav-icon"><i class="ti ti-target"></i></span>
           <span class="nav-label">Oportunidades</span>
         </button>
-
-        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>Gestão</div>
-        <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
-          <span class="nav-icon"><i class="ti ti-users"></i></span>
-          <span class="nav-label">Clientes</span>
-        </button>
         <button class="nav-item" data-nav="boletins" onclick="navTo('boletins')" data-staff-only>
           <span class="nav-icon"><i class="ti ti-mail"></i></span>
           <span class="nav-label">Boletins</span>
+        </button>
+
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>📋 Acompanhar Pregão</div>
+        <button class="nav-item" data-nav="pregoes-todos" onclick="navTo('pregoes-todos')" id="nav-pregoes-todos" hidden>
+          <span class="nav-icon"><i class="ti ti-file-text"></i></span>
+          <span class="nav-label">Pregões</span>
+        </button>
+        <button class="nav-item" data-nav="edson" onclick="navTo('edson')" data-cliente-visible>
+          <span class="nav-icon"><i class="ti ti-robot"></i></span>
+          <span class="nav-label">Edson IA</span>
+        </button>
+        <button class="nav-item" data-nav="robo" onclick="navTo('robo')" data-staff-only>
+          <span class="nav-icon"><i class="ti ti-bolt"></i></span>
+          <span class="nav-label">Robô de Pregão</span>
         </button>
         <button class="nav-item" data-nav="monitor" onclick="navTo('monitor')" data-staff-only>
           <span class="nav-icon"><i class="ti ti-bell"></i></span>
@@ -1875,9 +1879,37 @@
           <span class="nav-icon"><i class="ti ti-calendar"></i></span>
           <span class="nav-label">Calendário</span>
         </button>
-        <button class="nav-item" data-nav="robo" onclick="navTo('robo')" data-staff-only>
-          <span class="nav-icon"><i class="ti ti-bolt"></i></span>
-          <span class="nav-label">Robô de Pregão</span>
+
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>🤝 Comercial</div>
+        <button class="nav-item" data-nav="prospects" onclick="navTo('prospects')" id="nav-prospects" hidden>
+          <span class="nav-icon"><i class="ti ti-target"></i></span>
+          <span class="nav-label">Prospects</span>
+        </button>
+        <button class="nav-item" data-nav="marketing" onclick="navTo('marketing')" id="nav-marketing" hidden>
+          <span class="nav-icon"><i class="ti ti-mail-fast"></i></span>
+          <span class="nav-label">Marketing</span>
+        </button>
+        <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
+          <span class="nav-icon"><i class="ti ti-file"></i></span>
+          <span class="nav-label">Proposta Comercial</span>
+        </button>
+
+        <div class="sidebar-section-label" style="margin-top:.5rem" data-staff-only>👥 Gestão</div>
+        <button class="nav-item" data-nav="clientes" onclick="navTo('clientes')" data-staff-only>
+          <span class="nav-icon"><i class="ti ti-users"></i></span>
+          <span class="nav-label">Clientes</span>
+        </button>
+        <button class="nav-item" data-nav="financeiro" onclick="navTo('financeiro')" id="nav-financeiro" hidden>
+          <span class="nav-icon"><i class="ti ti-report-money"></i></span>
+          <span class="nav-label">Financeiro</span>
+        </button>
+        <button class="nav-item" data-nav="resultados" onclick="navTo('resultados')" id="nav-resultados" hidden>
+          <span class="nav-icon"><i class="ti ti-report"></i></span>
+          <span class="nav-label">Resultados</span>
+        </button>
+        <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
+          <span class="nav-icon"><i class="ti ti-key"></i></span>
+          <span class="nav-label">Usuários</span>
         </button>
 
         <!-- Exclusivo para role cliente -->
@@ -1891,42 +1923,14 @@
           <span class="nav-label">Meus Pregões</span>
         </button>
 
-        <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>Admin</div>
-        <button class="nav-item" data-nav="pregoes-todos" onclick="navTo('pregoes-todos')" id="nav-pregoes-todos" hidden>
-          <span class="nav-icon"><i class="ti ti-file-text"></i></span>
-          <span class="nav-label">Pregões</span>
-        </button>
-        <button class="nav-item" data-nav="prospects" onclick="navTo('prospects')" id="nav-prospects" hidden>
-          <span class="nav-icon"><i class="ti ti-target"></i></span>
-          <span class="nav-label">Prospects</span>
-        </button>
+        <div class="sidebar-section-label" style="margin-top:.5rem" id="nav-label-admin" hidden>⚙️ Admin</div>
         <button class="nav-item" data-nav="documentacao" onclick="navTo('documentacao')" id="nav-documentacao" hidden>
           <span class="nav-icon"><i class="ti ti-folder"></i></span>
           <span class="nav-label">Documentação</span>
         </button>
-        <button class="nav-item" data-nav="financeiro" onclick="navTo('financeiro')" id="nav-financeiro" hidden>
-          <span class="nav-icon"><i class="ti ti-report-money"></i></span>
-          <span class="nav-label">Financeiro</span>
-        </button>
         <button class="nav-item" data-nav="pos-vitoria" onclick="navTo('pos-vitoria')" id="nav-pos-vitoria" hidden>
           <span class="nav-icon"><i class="ti ti-trophy"></i></span>
           <span class="nav-label">Pós-Vitória</span>
-        </button>
-        <button class="nav-item" data-nav="marketing" onclick="navTo('marketing')" id="nav-marketing" hidden>
-          <span class="nav-icon"><i class="ti ti-mail-fast"></i></span>
-          <span class="nav-label">Marketing</span>
-        </button>
-        <button class="nav-item" data-nav="resultados" onclick="navTo('resultados')" id="nav-resultados" hidden>
-          <span class="nav-icon"><i class="ti ti-report"></i></span>
-          <span class="nav-label">Resultados</span>
-        </button>
-        <button class="nav-item" data-nav="proposta" onclick="navTo('proposta')" id="nav-proposta" hidden>
-          <span class="nav-icon"><i class="ti ti-file"></i></span>
-          <span class="nav-label">Proposta Comercial</span>
-        </button>
-        <button class="nav-item" data-nav="usuarios" onclick="navTo('usuarios')" id="nav-usuarios" hidden>
-          <span class="nav-icon"><i class="ti ti-key"></i></span>
-          <span class="nav-label">Usuários</span>
         </button>
       </nav>
     </aside>
