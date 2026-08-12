@@ -2304,6 +2304,13 @@
           <h1>Monitor de Pregões</h1>
         </div>
 
+        <div class="monitor-add-box" style="margin-bottom:1.5rem">
+          <h3>🤖 Monitor automático <span style="font-weight:400;color:var(--text-muted);font-size:.8rem">— checagem a cada 5 min</span></h3>
+          <div id="monitor-auto-area">
+            <div class="state-box"><p>Carregando…</p></div>
+          </div>
+        </div>
+
         <div class="monitor-add-box">
           <h3>Adicionar pregão para monitorar</h3>
           <div class="monitor-add-grid">
@@ -7428,7 +7435,57 @@
     renderMonitor();
   }
 
+  function fmtDataHora(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function renderMonitorAutomatico() {
+    const area = document.getElementById('monitor-auto-area');
+    if (!area) return;
+    fetch(`${API}/api/monitor/automatico`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then(({ pregoes = [], notificacoes = [] }) => {
+        if (pregoes.length === 0) {
+          area.innerHTML = `<div class="state-box"><span class="icon">🤖</span><h3>Nenhum pregão ativo no monitor automático</h3><p>Pregões marcados como ativos no calendário aparecem aqui.</p></div>`;
+          return;
+        }
+        const agora = new Date();
+        const listaHtml = pregoes.map(p => {
+          const checouRecente = p.ultima_checagem && (agora - new Date(p.ultima_checagem)) < 10 * 60 * 1000;
+          return `<div class="monitor-item">
+            <div class="monitor-status-dot ${checouRecente ? 'dot-active' : 'dot-paused'}" title="${checouRecente ? 'Checagem recente' : 'Aguardando próxima checagem'}"></div>
+            <div class="monitor-info">
+              <div class="monitor-pregao">${esc(p.titulo || '—')}</div>
+              <div class="monitor-portal">${esc(p.orgao || 'Órgão não informado')} · ${esc(p.plataforma || 'Plataforma não informada')}</div>
+              <div class="monitor-since">Última checagem: ${fmtDataHora(p.ultima_checagem)}${p.ultimo_evento ? ' · ' + esc(p.ultimo_evento) : ''}</div>
+            </div>
+            <div class="monitor-actions">
+              <button class="btn btn-ghost btn-sm" onclick="navTo('calendario')">Ver no calendário</button>
+            </div>
+          </div>`;
+        }).join('');
+
+        const notifHtml = notificacoes.length > 0 ? `
+          <div style="margin-top:1rem">
+            <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:.5rem">Últimas checagens registradas</div>
+            <div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem">
+              ${notificacoes.map(n => `<div style="font-size:.78rem;color:var(--text-muted);padding:.4rem .6rem;background:rgba(255,255,255,.03);border-radius:6px">
+                <strong style="color:var(--text)">${esc(n.titulo || '')}</strong> — ${esc(n.mensagem || '')}
+                <div style="opacity:.7">${fmtDataHora(n.criado_em)}</div>
+              </div>`).join('')}
+            </div>
+          </div>` : '';
+
+        area.innerHTML = `<div class="monitor-list">${listaHtml}</div>${notifHtml}`;
+      })
+      .catch(() => {
+        area.innerHTML = `<div class="state-box"><span class="icon">⚠️</span><h3>Não foi possível carregar o monitor automático</h3></div>`;
+      });
+  }
+
   function renderMonitor() {
+    renderMonitorAutomatico();
     const list = monitorGetAll();
     const area = document.getElementById('monitor-area');
     // Buscar pregões de hoje/amanhã do banco para enriquecer a lista

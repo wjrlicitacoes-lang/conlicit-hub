@@ -2,6 +2,7 @@ require('dotenv').config();
 const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
+const db = require('./database/db');
 
 if (!process.env.JWT_SECRET)   console.warn('AVISO: JWT_SECRET não definida.');
 if (!process.env.DATABASE_URL) console.warn('AVISO: DATABASE_URL não definida.');
@@ -215,7 +216,68 @@ process.on('unhandledRejection', (reason) => console.error('unhandledRejection:'
 process.on('uncaughtException',  (err)    => console.error('uncaughtException:', err));
 
 const PORT   = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+// ============================================
+// MONITOR DE PREGÃO — POLLING AUTOMÁTICO
+// ============================================
+
+async function checarEventoMonitor() {
+  try {
+    console.log('[Monitor] 🕐 Checagem automática iniciada');
+
+    const { rows: pregoes } = await db.query(
+      `SELECT * FROM calendario_conlicit WHERE ativo = true`
+    );
+
+    if (!pregoes || pregoes.length === 0) {
+      console.log('[Monitor] Nenhum pregão ativo para monitorar');
+      return;
+    }
+
+    console.log(`[Monitor] ✅ Encontrados ${pregoes.length} pregões ativos`);
+
+    for (const pregao of pregoes) {
+      try {
+        console.log(`[Monitor] Checando: ${pregao.titulo}`);
+
+        await db.query(
+          `UPDATE calendario_conlicit SET ultima_checagem = NOW() WHERE id = $1`,
+          [pregao.id]
+        );
+
+        await db.query(
+          `INSERT INTO notificacoes (role_destino, oportunidade_id, tipo, titulo, mensagem)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            'admin',
+            pregao.oportunidade_id || null,
+            'alerta_prazo',
+            `Monitor: ${pregao.titulo}`,
+            `Checagem automática do pregão "${pregao.titulo}" realizada em ${new Date().toLocaleString('pt-BR')}.`
+          ]
+        );
+
+        console.log(`[Monitor] ✅ ${pregao.titulo} checado e notificação criada`);
+      } catch (err) {
+        console.error(`[Monitor] ❌ Erro ao checar ${pregao.titulo}:`, err.message);
+      }
+    }
+
+    console.log('[Monitor] 🏁 Checagem finalizada\n');
+  } catch (err) {
+    console.error('[Monitor] Erro geral:', err);
+  }
+}
+
+setInterval(checarEventoMonitor, 5 * 60 * 1000);
+
+setTimeout(() => {
+  console.log('[Monitor] ⏱️ Execução inicial agendada');
+  checarEventoMonitor();
+}, 10 * 1000);
+
+console.log('[Monitor] 📡 Sistema de polling iniciado (a cada 5 minutos)');
+// ============================================
+  const server = app.listen(PORT, () => {
   console.log(`ConlicitHub API rodando na porta ${PORT}`);
   executarMigracoes().catch(err => console.error('Falha nas migrações:', err.message));
   iniciarAgendador();
