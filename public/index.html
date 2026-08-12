@@ -3739,7 +3739,10 @@
   <div class="modal" onclick="event.stopPropagation()" style="width:90vw;max-width:900px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <h3 id="acomp-titulo">Pregão</h3>
-      <button class="modal-close" onclick="fecharAcompanhamento()">✕</button>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="btn btn-ghost btn-sm" id="acomp-btn-editar" onclick="alternarEdicaoPregao()">✏️ Editar</button>
+        <button class="modal-close" onclick="fecharAcompanhamento()">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div id="acomp-info" class="edital-meta" style="border:none;padding:0 0 1rem 0"></div>
@@ -10409,19 +10412,93 @@
     } catch { acompPregaoAtual = { id: pid, cliente_id: cid }; }
 
     document.getElementById('acomp-titulo').textContent = `Pregão ${acompPregaoAtual.numero || pid}`;
-    document.getElementById('acomp-info').innerHTML = `
-      <div class="edital-meta-item"><span class="edital-meta-label">Cliente</span><span class="edital-meta-value">${esc(acompPregaoAtual.cliente_nome || '—')}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Órgão</span><span class="edital-meta-value">${esc(acompPregaoAtual.orgao || '—')}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(acompPregaoAtual.portal_disputa || '—')}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Valor mínimo</span><span class="edital-meta-value valor">${acompPregaoAtual.valor_minimo_lance ? fmtBRL(acompPregaoAtual.valor_minimo_lance) : '—'}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Abertura</span><span class="edital-meta-value">${acompPregaoAtual.data_hora_abertura ? new Date(acompPregaoAtual.data_hora_abertura).toLocaleString('pt-BR') : '—'}</span></div>
-      <div class="edital-meta-item"><span class="edital-meta-label">Status</span><span class="s-badge s-${acompPregaoAtual.status}">${statusPregaoLabel(acompPregaoAtual.status)}</span></div>`;
+    document.getElementById('acomp-btn-editar').textContent = '✏️ Editar';
+    document.getElementById('acomp-btn-editar').onclick = alternarEdicaoPregao;
+    renderAcompInfo();
 
     acompTabsLoaded = {};
     document.querySelectorAll('#modal-acompanhamento .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'pre'));
     document.querySelectorAll('#modal-acompanhamento .tab-pane').forEach(p => p.classList.toggle('active', p.id === 'acomp-tab-pre'));
     document.getElementById('modal-acompanhamento').classList.add('visible');
     switchTabPregao('pre');
+  }
+
+  function renderAcompInfo() {
+    const p = acompPregaoAtual;
+    document.getElementById('acomp-info').innerHTML = `
+      <div class="edital-meta-item"><span class="edital-meta-label">Cliente</span><span class="edital-meta-value">${esc(p.cliente_nome || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Órgão</span><span class="edital-meta-value">${esc(p.orgao || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span><span class="edital-meta-value">${esc(p.portal_disputa || '—')}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Valor mínimo</span><span class="edital-meta-value valor">${p.valor_minimo_lance ? fmtBRL(p.valor_minimo_lance) : '—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Abertura</span><span class="edital-meta-value">${p.data_hora_abertura ? new Date(p.data_hora_abertura).toLocaleString('pt-BR') : '—'}</span></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Status</span><span class="s-badge s-${p.status}">${statusPregaoLabel(p.status)}</span></div>`;
+  }
+
+  function toLocalInputAcomp(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function alternarEdicaoPregao() {
+    const p = acompPregaoAtual;
+    const portalOpts = ['PNCP', 'ComprasNet', 'BEC/SP', 'Licitações-e', 'ComprasBR', 'BBMNet', 'Banrisul', 'Caixa']
+      .map(v => `<option value="${v}" ${p.portal_disputa === v ? 'selected' : ''}>${v}</option>`).join('');
+    document.getElementById('acomp-info').innerHTML = `
+      <div class="edital-meta-item"><span class="edital-meta-label">Número</span>
+        <input id="acomp-ed-numero" class="form-control" value="${esc(p.numero || '')}"></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Órgão</span>
+        <input id="acomp-ed-orgao" class="form-control" value="${esc(p.orgao || '')}"></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Plataforma</span>
+        <select id="acomp-ed-portal" class="form-control"><option value="">Nenhum</option>${portalOpts}</select></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Valor mínimo</span>
+        <input id="acomp-ed-valor" class="form-control" type="number" step="0.01" min="0" value="${p.valor_minimo_lance || ''}"></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Abertura</span>
+        <input id="acomp-ed-abertura" class="form-control" type="datetime-local" value="${toLocalInputAcomp(p.data_hora_abertura)}"></div>
+      <div class="edital-meta-item"><span class="edital-meta-label">Status</span>
+        <select id="acomp-ed-status" class="form-control">
+          <option value="a_disputar" ${p.status === 'a_disputar' ? 'selected' : ''}>A disputar</option>
+          <option value="vencido" ${p.status === 'vencido' ? 'selected' : ''}>Vencido</option>
+          <option value="perdido" ${p.status === 'perdido' ? 'selected' : ''}>Perdido</option>
+          <option value="cancelado" ${p.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+        </select></div>`;
+
+    const btn = document.getElementById('acomp-btn-editar');
+    btn.textContent = '💾 Salvar';
+    btn.onclick = salvarEdicaoPregao;
+  }
+
+  async function salvarEdicaoPregao() {
+    const p = acompPregaoAtual;
+    const body = {
+      numero: document.getElementById('acomp-ed-numero').value.trim(),
+      orgao: document.getElementById('acomp-ed-orgao').value.trim() || null,
+      portal_disputa: document.getElementById('acomp-ed-portal').value || null,
+      valor_minimo_lance: document.getElementById('acomp-ed-valor').value || null,
+      data_hora_abertura: document.getElementById('acomp-ed-abertura').value || null,
+      status: document.getElementById('acomp-ed-status').value,
+    };
+    if (!body.numero) { toast('Número é obrigatório', 'error'); return; }
+
+    try {
+      const r = await fetch(`${API}/clientes/${p.cliente_id}/pregoes/${p.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json()).erro || 'Erro ao salvar');
+      // PATCH retorna a linha crua da tabela (sem cliente_nome, que só vem do JOIN da listagem) — merge preserva o que já tínhamos
+      acompPregaoAtual = { ...acompPregaoAtual, ...(await r.json()) };
+      document.getElementById('acomp-titulo').textContent = `Pregão ${acompPregaoAtual.numero || p.id}`;
+      const btn = document.getElementById('acomp-btn-editar');
+      btn.textContent = '✏️ Editar';
+      btn.onclick = alternarEdicaoPregao;
+      renderAcompInfo();
+      toast('Pregão atualizado!', 'success');
+      carregarPregoesTodos();
+      acompTabsLoaded.pos = false; // força recarregar o histórico da próxima vez que a aba Pós-Disputa for aberta
+    } catch (e) { toast(e.message, 'error'); }
   }
 
   function fecharAcompanhamento() {
